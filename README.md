@@ -42,46 +42,19 @@ uv run imgsort-web
 Each project keeps one slideshow selection; to make a second show from the same holiday,
 export the first one, then select again.
 
-## Runtime estimates and findings
+## Runtime
 
-Measured on 2026-10-23 on a laptop (Ryzen 8040 / Radeon 780M iGPU, 16 cores, 29 GB RAM) against the
-self-hosted GLM endpoint (`MODEL=prod`), with the Norway 2026 holiday (848 JPG + 29 MP4, 2 GB):
-local scan of all 877 files, plus the full AI pass on a random subset of 100 JPG + 10 MP4.
+For a holiday of ~900 photos and videos (laptop + self-hosted GLM endpoint):
 
-| Step | Measured | Per file | Estimate for 877 files |
-|---|---|---|---|
-| Pass 1 – local scan (first run) | 877 files in 146 s | ~0.17 s | **~2.5 min** |
-| Pass 1 – re-run (cached) | 877 files in 4 s | – | seconds |
-| Pass 2 – AI, `AI_CONCURRENCY=1` | 110 files in 518 s | 4.7 s (median 4.3, 2.5–11.4) | **~65–70 min** (~850 sent) |
-| Pass 2 – AI, `AI_CONCURRENCY=2` (default) | **all 857 files in 2467 s, no errors** | 2.9 s | **~41 min** |
-| Pass 2 – AI, `AI_CONCURRENCY=4` | 20 files in 39 s, no errors | 1.9 s | **~27 min** |
-| Slideshow selection | 110 candidates → 60 picks in 176 s | ~3 s per pick | – |
-| Slideshow selection, full size | **857 candidates (~58k-token prompt) → 104 picks in 294 s** | ~2.8 s per pick | **~5 min** |
+| Step | Time |
+|---|---|
+| Local scan (blur, exposure, repeats) | ~2–3 min first run, seconds afterwards |
+| AI descriptions, 2 parallel (default) | ~45 min (~3 s per file) |
+| AI descriptions, 4 parallel | ~30 min (~2 s per file) |
+| AI descriptions, 1 at a time | ~70 min (~5 s per file) |
+| Slideshow selection | ~5 min |
 
-Rules of thumb:
-- **Total for one holiday of ~900 files: ~45 min with the default (2 parallel), ~30 min with 4,
-  ~70 min one-by-one** – once. Afterwards everything is cached; re-runs only process new/changed files.
-- Full-size selection ("10-minute show … chronological, best landscapes, some photos of us, a few
-  short videos, no blurry or boring shots"): strictly chronological, 5 videos, 26 people shots,
-  no flagged photo, 93 of 104 picks rated aesthetic 7–10, 35 of 44 days covered (max 10 per day).
-  104 picks ≈ 8.7 min – the model undershoots the requested length a little.
-- Selection time grows mainly with the number of picks (the model writes a reason for each);
-  the prompt is ~70 tokens per candidate (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k tokens).
-- Videos cost about the same as photos (one middle frame is sent).
-
-Findings:
-- The endpoint supports JSON mode, so each photo is exactly one request.
-- Same-scene detection on the full set: 21 photos are exact repeats and are not sent to AI
-  (~2.5 % saved). A random sample has almost no repeats, so all 110 were sent.
-- Only 2 of 848 photos are flagged blurry; holiday phone photos are mostly sharp and well exposed.
-  Motion blur where one part of the picture stays sharp is not detected.
-- AI scores are compressed: aesthetic mostly 6–8, interest mostly 6–7 (on 1–10). They separate
-  the very weak (1–3) and the highlights (9) well, but not the middle – the selection relies on
-  captions and tags as much as on scores.
-- Tags fit the trip (mountains, clouds, tundra, lake, hiking, snow); 80 of 110 photos are "landscape".
-- Selection quality: "5-minute show … chronological, best landscapes, some photos of us, no blurry
-  or boring shots" gave exactly 60 picks (= 5 min at 5 s each), in date order, with a video,
-  several people shots and sensible reasons per pick.
+AI descriptions are made once per file and cached; re-runs only process new or changed files.
 
 ## Command line
 
