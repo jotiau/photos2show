@@ -53,12 +53,18 @@ local scan of all 877 files, plus the full AI pass on a random subset of 100 JPG
 | Pass 1 – local scan (first run) | 877 files in 146 s | ~0.17 s | **~2.5 min** |
 | Pass 1 – re-run (cached) | 877 files in 4 s | – | seconds |
 | Pass 2 – AI, `AI_CONCURRENCY=1` | 110 files in 518 s | 4.7 s (median 4.3, 2.5–11.4) | **~65–70 min** (~850 sent) |
+| Pass 2 – AI, `AI_CONCURRENCY=2` (default) | **all 857 files in 2467 s, no errors** | 2.9 s | **~41 min** |
 | Pass 2 – AI, `AI_CONCURRENCY=4` | 20 files in 39 s, no errors | 1.9 s | **~27 min** |
-| Slideshow selection | 110 candidates → 60 picks in 176 s | ~3 s per pick | 110 candidates: ~3 min; ~850: not tested, expect several minutes |
+| Slideshow selection | 110 candidates → 60 picks in 176 s | ~3 s per pick | – |
+| Slideshow selection, full size | **857 candidates (~58k-token prompt) → 104 picks in 294 s** | ~2.8 s per pick | **~5 min** |
 
 Rules of thumb:
-- **Total for one holiday of ~900 files: ~1 h 10 min one-by-one, or ~30 min with
-  `AI_CONCURRENCY=4`** – once. Afterwards everything is cached; re-runs only process new/changed files.
+- **Total for one holiday of ~900 files: ~45 min with the default (2 parallel), ~30 min with 4,
+  ~70 min one-by-one** – once. Afterwards everything is cached; re-runs only process new/changed files.
+- Full-size selection ("10-minute show … chronological, best landscapes, some photos of us, a few
+  short videos, no blurry or boring shots"): strictly chronological, 5 videos, 26 people shots,
+  no flagged photo, 93 of 104 picks rated aesthetic 7–10, 35 of 44 days covered (max 10 per day).
+  104 picks ≈ 8.7 min – the model undershoots the requested length a little.
 - Selection time grows mainly with the number of picks (the model writes a reason for each);
   the prompt is ~70 tokens per candidate (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k tokens).
 - Videos cost about the same as photos (one middle frame is sent).

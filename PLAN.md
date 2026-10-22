@@ -164,7 +164,7 @@ Reviewed with the user on 2026-10-23.
 |---|---|
 | Endpoint: vision, JSON mode, image size | Resolved – works; JSON mode supported (1 request per image) |
 | Throughput | Resolved – ~30–70 min per ~900-file holiday once, then cached; parallel requests selectable |
-| Selection on a full holiday (~850 candidates, ~60k-token prompt) | **Open** – being tested as is (no pre-filter); the OpenAI client times out after 10 min (2 retries) |
+| Selection on a full holiday (~850 candidates, ~60k-token prompt) Resolved – tested on all 857 Norway files: 104 good picks in 294 s, well under the 10-min client timeout |
 | Video dates from mtime off by 1 h | Fixed – date from file name, mtime fallback |
 | AI scores compressed (mostly 6–8) | Accepted – selection works via captions/tags; prompt unchanged |
 | AI results lost if a cache cleaner runs | Fixed – data moved from `~/.cache` to `~/.local/share/imgsort` |
