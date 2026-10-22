@@ -66,7 +66,7 @@ camera, M4 calibrates them on real photos (possibly folder-relative percentiles)
   leniently and retry once.
 - **Two passes:** pass 1 (steps 1–3, local, fast) runs over all files first, because the best
   image of a scene is only known once its neighbours are scanned. Pass 2 then sends the remaining
-  images to the LLM one after another (`AI_CONCURRENCY`, default 1); each result is saved
+  images to the LLM in small parallel batches (`AI_CONCURRENCY`, default 4 – 2.4× faster than 1 in the test); each result is saved
   immediately, shows up live in the UI, and an interrupted run resumes where it stopped.
 - **Save tokens – only send what is worth analysing:**
   - Very blurry images (`very_blurry` flag) are never sent to the LLM.

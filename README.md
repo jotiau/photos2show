@@ -26,7 +26,7 @@ uv run imgsort-web
    Switch between holidays with the project dropdown in the header.
 2. **Analysis runs in two passes** (progress in the *Library* tab):
    - *Scanning*: local checks for blur, exposure, contrast, monotony, same-scene shots; fast.
-   - *Describing with AI*: each remaining photo goes to the model one after another (~4 s each);
+   - *Describing with AI*: each remaining photo goes to the model 4 at a time (~2 s each, `AI_CONCURRENCY`);
      captions and tags appear live. Very blurry photos and the non-best shots of a scene are
      never sent (marked *no AI*). Interrupted? Press *Analyse again* – it continues where it stopped.
 3. **Browse the Library**: filter by quality flag or click a card to see details, all metrics,
@@ -87,7 +87,7 @@ uv run pytest
 ```
 
 Settings (`.env` or environment): `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL`,
-`AI_CONCURRENCY` (default 1), `IMGSORT_CACHE` (default `~/.cache/imgsort`), `IMGSORT_PORT` (default 8000).
+`AI_CONCURRENCY` (default 4; 1 = strictly one by one), `IMGSORT_CACHE` (default `~/.cache/imgsort`), `IMGSORT_PORT` (default 8000).
 Projects, results and thumbnails live in the cache folder, never in your photo folder.
 
 See [PLAN.md](PLAN.md) for the roadmap.
