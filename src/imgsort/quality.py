@@ -8,9 +8,10 @@ from PIL import Image
 # Metrics are computed at a fixed size so values are comparable across cameras.
 ANALYSIS_EDGE = 1024
 
-# Absolute thresholds from one real phone photo blurred step by step (at ANALYSIS_EDGE:
-# sharp ≈ 1500, Gaussian r=0.7 ≈ 255, r=1 ≈ 60, r=1.5 ≈ 14). Calibrate on more real photos in M4.
-BLURRY = 100.0            # max-tile Laplacian variance
+# Calibrated on 848 real phone photos (Norway 2026): median sharpness ≈ 2850; below 200 only
+# visibly blurry shots; sharp but low-detail scenes (lake, sunset, sky) sit at 200–300.
+# shortcut: motion blur with one sharp tile (e.g. from a car) is not caught; needs a directional measure.
+BLURRY = 200.0            # max-tile Laplacian variance
 VERY_BLURRY = 20.0        # below this the image is excluded and never sent to the LLM
 TOO_DARK = 0.15           # mean brightness 0..1
 TOO_BRIGHT = 0.88
