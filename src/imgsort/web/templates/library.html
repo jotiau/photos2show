@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>imgsort – Library</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>imgsort</h1>
+  <form hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">
+    <input name="folder" value="{{ job.folder }}" placeholder="~/Pictures/holiday" required size="50">
+    <button>Analyse</button>
+  </form>
+  {% include "_progress.html" %}
+</header>
+<main>
+  <section id="grid" hx-get="/grid" hx-trigger="load, analysed from:body"></section>
+  <aside id="detail"></aside>
+</main>
+</body>
+</html>

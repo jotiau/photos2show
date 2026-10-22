@@ -47,8 +47,9 @@ folder ─► 1 Scan ─► 2 Quality ─► 3 Dedup ─► 4 AI analysis ─►
 | Colourfulness | Hasler–Süsstrunk metric | – |
 | Monotony | Shannon entropy of luminance + edge density (Canny) | `monotone` |
 
-Thresholds are **relative to the folder** (percentiles) with sane absolute floors, because
-sharpness/noise vary strongly by camera. Calibrated in M4 against hand ratings.
+Two blur levels: `blurry` (shown as warning) and `very_blurry` (excluded, never sent to the LLM).
+M1 uses absolute thresholds tuned on generated test images. Because sharpness/noise vary by
+camera, M4 calibrates them on real photos (possibly folder-relative percentiles).
 
 ### 3. Duplicates / bursts
 - Perceptual hash (`imagehash.phash`) + capture time: images within a few seconds and small
@@ -64,7 +65,10 @@ sharpness/noise vary strongly by camera. Calibrated in M4 against hand ratings.
 - Use `response_format={"type": "json_object"}` if the server supports it; otherwise parse
   leniently and retry once.
 - Async with a concurrency limit (configurable, default 4); results cached.
-- Skip AI analysis for images already flagged as duplicates (they inherit the cluster tags).
+- **Save tokens – only send what is worth analysing:**
+  - Very blurry images (`very_blurry` flag) are never sent to the LLM.
+  - From several images of the same scene (duplicate/burst cluster) only the best one is sent;
+    the others inherit its caption/tags.
 
 ### 5. Slideshow selection
 1. User enters a description, e.g. *"10-minute show for my parents, ~80 photos, chronological,

@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -23,3 +24,10 @@ def load_settings() -> Settings:
         model=os.environ.get("MODEL", "glm-5.3-flash"),
         ai_concurrency=int(os.environ.get("AI_CONCURRENCY", "4")),
     )
+
+
+def cache_root() -> Path:
+    """Where per-library databases and thumbnails live (never inside the photo folder)."""
+    load_dotenv()
+    default = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "imgsort"
+    return Path(os.environ.get("IMGSORT_CACHE", default))

@@ -5,16 +5,29 @@ description = "Presort holiday images with AI and pick a slideshow"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.161.0",
+    "imagehash>=4.3.2",
+    "jinja2>=3.1.6",
+    "numpy>=2.5.4",
     "openai>=1.50",
+    "opencv-python-headless>=5.0.0.93",
     "pillow>=11",
     "python-dotenv>=1.0",
+    "python-multipart>=0.0.32",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
 imgsort-smoke = "imgsort.smoke:main"
+imgsort-scan = "imgsort.cli:main"
+imgsort-web = "imgsort.web.app:main"
+imgsort-testdata = "imgsort.testdata:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8",
+]
 
 [build-system]
 requires = ["hatchling"]

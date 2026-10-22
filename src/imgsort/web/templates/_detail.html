@@ -1,0 +1,28 @@
+<button class="close" onclick="this.parentElement.innerHTML=''">×</button>
+<h2>#{{ it.id }} {{ it.path | basename }}</h2>
+{% if it.kind == 'video' %}
+<video src="/original/{{ it.id }}" controls preload="metadata"></video>
+<div class="frames">
+  {% for i in range(it.frames) %}<img src="/thumb/{{ it.id }}?frame={{ i }}" alt="frame {{ i }}">{% endfor %}
+</div>
+{% else %}
+<a href="/original/{{ it.id }}" target="_blank"><img src="/original/{{ it.id }}" alt=""></a>
+{% endif %}
+<p class="path">{{ it.path }}</p>
+<p>{{ (it.taken_at or 'no date').replace('T', ' ') }} · {{ it.width }}×{{ it.height }}</p>
+<div class="flags">
+  {% for f in it.flags %}<span class="flag {{ f }}">{{ f.replace('_', ' ') }}</span>{% else %}<span class="flag okay">ok</span>{% endfor %}
+</div>
+<p>{% if it.skip_ai %}Not sent to AI: {{ it.skip_ai }}{% else %}Will be sent to AI{% endif %}</p>
+<table>
+  {% for k, v in it.metrics.items() %}<tr><th>{{ k.replace('_', ' ') }}</th><td>{{ '%.3f' % v if v < 10 else '%.1f' % v }}</td></tr>{% endfor %}
+  <tr><th>score</th><td>{{ '%.2f' % it.score }}</td></tr>
+</table>
+{% if scene %}
+<h3>Same scene</h3>
+<div class="frames">
+  {% for s in scene %}
+  <img src="/thumb/{{ s.id }}" title="#{{ s.id }}" hx-get="/media/{{ s.id }}" hx-target="#detail" class="{{ 'best' if not s.duplicate_of }}">
+  {% endfor %}
+</div>
+{% endif %}
