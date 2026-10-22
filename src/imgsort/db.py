@@ -40,10 +40,6 @@ def connect(root: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)
-    try:  # caches created before M2 lack the ai column
-        conn.execute("ALTER TABLE media ADD COLUMN ai TEXT")
-    except sqlite3.OperationalError:
-        pass
     return conn
 
 

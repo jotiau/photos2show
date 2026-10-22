@@ -43,11 +43,12 @@ def parse_json(text: str) -> dict:
 
 
 def make_client(settings: Settings) -> OpenAI:
-    return OpenAI(base_url=settings.base_url, api_key=settings.api_key)
+    return OpenAI(base_url=settings.base_url, api_key=settings.api_key, max_retries=1)
 
 
 def analyse_image(client: OpenAI, settings: Settings, img: Image.Image) -> dict:
-    return complete_json(client, settings, [{
+    # Image calls take 2-12 s; a hung one must not block a worker for the 10 min default.
+    return complete_json(client.with_options(timeout=90), settings, [{
         "role": "user",
         "content": [
             {"type": "text", "text": ANALYSE_PROMPT},

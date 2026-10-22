@@ -9,7 +9,7 @@ import imagehash
 from PIL import Image
 
 from imgsort import ai, db, dedup, quality, scan
-from imgsort.config import load_settings
+from imgsort.config import default_concurrency, load_settings
 
 THUMB_EDGE = 400
 COLUMNS = ("path", "kind", "size", "mtime", "taken_at", "width", "height",
@@ -50,6 +50,9 @@ def analyse_file(path: Path, thumbs: Path) -> dict:
 
 def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = None) -> dict:
     """Analyse new/changed files under root (unchanged files are cached). Returns a summary."""
+    root = root.resolve()  # stored paths must not depend on how the folder was typed
+    if not root.is_dir():  # e.g. unplugged drive: would otherwise delete every row as "gone"
+        raise FileNotFoundError(f"Folder not found: {root}")
     conn = db.connect(root)
     thumbs = db.library_dir(root) / "thumbs"
     paths = scan.find_media(root)
@@ -117,7 +120,7 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
         return ai.analyse_image(client, settings, img)
 
     errors = []
-    with ThreadPoolExecutor(concurrency or settings.ai_concurrency) as pool:
+    with ThreadPoolExecutor(concurrency or default_concurrency()) as pool:
         futures = {pool.submit(describe, it): it for it in todo}
         for i, fut in enumerate(as_completed(futures)):
             it = futures[fut]

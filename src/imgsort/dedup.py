@@ -1,4 +1,5 @@
 """Group images of the same scene (bursts, near-duplicates) and pick the best of each group."""
+import functools
 from datetime import datetime
 
 import imagehash
@@ -9,11 +10,13 @@ import imagehash
 SAME_SCENE = ((14, 60), (18, 10))  # (max phash Hamming distance of 64 bits, max seconds apart)
 IDENTICAL_DIST = 2                  # practically identical images, regardless of capture time
 
+_hash = functools.lru_cache(maxsize=100_000)(imagehash.hex_to_hash)  # parsed once, compared n² times
+
 
 def same_scene(a: dict, b: dict) -> bool:
     if (a["width"] > a["height"]) != (b["width"] > b["height"]):  # portrait vs landscape
         return False
-    dist = imagehash.hex_to_hash(a["phash"]) - imagehash.hex_to_hash(b["phash"])
+    dist = _hash(a["phash"]) - _hash(b["phash"])
     if dist <= IDENTICAL_DIST:
         return True
     if not (a["taken_at"] and b["taken_at"]):

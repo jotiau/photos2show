@@ -9,7 +9,8 @@ from imgsort.web import app as web
 def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     monkeypatch.setenv("IMGSORT_CACHE", str(tmp_path / "cache"))
     folder = testdata.generate(tmp_path / "photos")
-    client = TestClient(web.app)
+    client = TestClient(web.app, headers={"HX-Request": "true"})
+    assert TestClient(web.app).post("/analyse", data={"parallel": "1"}).status_code == 403  # CSRF guard
 
     assert "Create a project" in client.get("/").text
     assert "Not a folder" in client.post("/projects", data={"name": "x", "folder": str(tmp_path / "nope")}).text

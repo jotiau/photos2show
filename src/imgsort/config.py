@@ -10,19 +10,18 @@ class Settings:
     base_url: str
     api_key: str
     model: str
-    ai_concurrency: int
 
 
 def load_settings() -> Settings:
     load_dotenv()
     base_url = os.environ.get("OPENAI_BASE_URL")
     if not base_url:
-        raise SystemExit("OPENAI_BASE_URL is not set – copy .env.example to .env and fill it in.")
+        raise SystemExit("OPENAI_BASE_URL is empty – check .env and the variables it references "
+                         "(e.g. ${BLUM_BASE_URL}; PyCharm does not load ~/.bashrc).")
     return Settings(
         base_url=base_url,
         api_key=os.environ.get("OPENAI_API_KEY") or "none",  # empty is fine for servers without auth
         model=os.environ.get("MODEL", "glm-5.3-flash"),
-        ai_concurrency=default_concurrency(),
     )
 
 

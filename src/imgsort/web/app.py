@@ -30,6 +30,14 @@ job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "t
 lock = threading.Lock()
 
 
+@app.middleware("http")
+async def htmx_only(request: Request, call_next):
+    # Other websites can post forms to localhost (CSRF) but cannot add this header.
+    if request.method != "GET" and "hx-request" not in request.headers:
+        return HTMLResponse("Forbidden", status_code=403)
+    return await call_next(request)
+
+
 def _open(name: str) -> None:
     job.update(project=name, folder=db.load_projects()[name], flag="all", summary=None, error=None)
 

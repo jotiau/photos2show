@@ -69,6 +69,28 @@ def test_describe_sends_only_images_worth_it(library, fake_ai):
     assert describe_folder(folder)["described"] == 0  # cached, nothing re-sent
 
 
+def test_describe_failure_is_reported_and_retried(library, fake_ai, monkeypatch):
+    folder = library[0]
+    conn = db.connect(folder)
+    conn.execute("UPDATE media SET ai = NULL WHERE path LIKE '%scene_1.jpg'")
+    conn.commit()
+    monkeypatch.setattr("imgsort.ai.analyse_image", lambda *a: 1 / 0)
+    assert describe_folder(folder) == {"described": 0, "errors": ["scene_1.jpg: division by zero"]}
+    assert items_by_name(folder)["scene_1.jpg"]["ai"] is None
+    monkeypatch.setattr("imgsort.ai.analyse_image", lambda *a: {"caption": "retry"})
+    assert describe_folder(folder)["described"] == 1
+    assert items_by_name(folder)["scene_1.jpg"]["ai"] == {"caption": "retry"}
+
+
+def test_relative_path_keeps_results_and_missing_folder_is_refused(library, monkeypatch):
+    folder = library[0]
+    monkeypatch.chdir(folder.parent)
+    assert analyse_folder(Path(folder.name))["analysed"] == 0  # same rows as the absolute path
+    with pytest.raises(FileNotFoundError):
+        analyse_folder(folder / "unplugged")
+    assert items_by_name(folder)  # nothing deleted
+
+
 def test_rescan_uses_cache_and_drops_removed_files(library):
     folder = library[0]
     (folder / "grey_sky.jpg").unlink()
