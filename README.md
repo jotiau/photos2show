@@ -42,6 +42,41 @@ uv run imgsort-web
 Each project keeps one slideshow selection; to make a second show from the same holiday,
 export the first one, then select again.
 
+## Runtime estimates and findings
+
+Measured on 2026-10-23 on a laptop (Ryzen 8040 / Radeon 780M iGPU, 16 cores, 29 GB RAM) against the
+self-hosted GLM endpoint (`MODEL=prod`), with the Norway 2026 holiday (848 JPG + 29 MP4, 2 GB):
+local scan of all 877 files, plus the full AI pass on a random subset of 100 JPG + 10 MP4.
+
+| Step | Measured | Per file | Estimate for 877 files |
+|---|---|---|---|
+| Pass 1 – local scan (first run) | 877 files in 146 s | ~0.17 s | **~2.5 min** |
+| Pass 1 – re-run (cached) | 877 files in 4 s | – | seconds |
+| Pass 2 – AI, `AI_CONCURRENCY=1` | 110 files in 518 s | 4.7 s (median 4.3, 2.5–11.4) | **~65–70 min** (~850 sent) |
+| Pass 2 – AI, `AI_CONCURRENCY=4` | 20 files in 39 s, no errors | 1.9 s | **~27 min** |
+| Slideshow selection | 110 candidates → 60 picks in 176 s | ~3 s per pick | 110 candidates: ~3 min; ~850: not tested, expect several minutes |
+
+Rules of thumb:
+- **Total for one holiday of ~900 files: ~1 h 10 min one-by-one, or ~30 min with
+  `AI_CONCURRENCY=4`** – once. Afterwards everything is cached; re-runs only process new/changed files.
+- Selection time grows mainly with the number of picks (the model writes a reason for each);
+  the prompt is ~70 tokens per candidate (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k tokens).
+- Videos cost about the same as photos (one middle frame is sent).
+
+Findings:
+- The endpoint supports JSON mode, so each photo is exactly one request.
+- Same-scene detection on the full set: 21 photos are exact repeats and are not sent to AI
+  (~2.5 % saved). A random sample has almost no repeats, so all 110 were sent.
+- Only 2 of 848 photos are flagged blurry; holiday phone photos are mostly sharp and well exposed.
+  Motion blur where one part of the picture stays sharp is not detected.
+- AI scores are compressed: aesthetic mostly 6–8, interest mostly 6–7 (on 1–10). They separate
+  the very weak (1–3) and the highlights (9) well, but not the middle – the selection relies on
+  captions and tags as much as on scores.
+- Tags fit the trip (mountains, clouds, tundra, lake, hiking, snow); 80 of 110 photos are "landscape".
+- Selection quality: "5-minute show … chronological, best landscapes, some photos of us, no blurry
+  or boring shots" gave exactly 60 picks (= 5 min at 5 s each), in date order, with a video,
+  several people shots and sensible reasons per pick.
+
 ## Command line
 
 ```bash
