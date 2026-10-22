@@ -17,7 +17,7 @@ def test_analyse_and_browse(tmp_path, monkeypatch, fake_ai):
     assert client.post("/analyse", data={"folder": str(folder)}).status_code == 200
     for _ in range(100):
         resp = client.get("/progress")
-        if resp.headers.get("HX-Trigger") == "analysed":
+        if 'hx-get="/progress"' not in resp.text:  # stopped polling = finished
             break
         time.sleep(0.1)
     assert f"{len(testdata.EXPECTED)} files" in resp.text and "9 described by AI" in resp.text
