@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>imgsort – Slideshow</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+{% include "_header.html" %}
+<main class="slideshow">
+{% if selection is none %}
+  <p class="empty">Create a project first.</p>
+{% else %}
+  <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking" hx-disabled-elt="find button">
+    <label for="description">Describe the slideshow</label>
+    <textarea id="description" name="description" rows="4" required
+      placeholder="10-minute show for my parents, chronological, mostly landscapes and the two of us, little food">{{ selection.description }}</textarea>
+    <button>Select photos</button>
+    <span id="thinking" class="htmx-indicator">GLM is choosing… this can take a minute</span>
+  </form>
+  <div id="picks" hx-get="/slideshow/picks" hx-trigger="load"></div>
+  <form class="export" hx-post="/slideshow/export" hx-target="#export-msg">
+    <label for="target">Export to (new folder, outside the photo folder)</label>
+    <input id="target" name="target" value="{{ default_target }}" required>
+    <button>Export</button>
+    <span id="export-msg"></span>
+  </form>
+{% endif %}
+</main>
+</body>
+</html>

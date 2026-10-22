@@ -57,3 +57,25 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; }
 .caption { font-style: italic; }
+.tabs { display: flex; gap: 4px; }
+.tabs a { padding: 6px 10px; border-radius: 6px; color: var(--text); text-decoration: none; }
+.tabs a.active { background: var(--bg); box-shadow: inset 0 0 0 1px var(--border); }
+header details { display: inline-block; }
+header details summary { cursor: pointer; color: var(--accent); }
+header details form { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+select { font: inherit; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
+.bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 16px 0; }
+.bar .path { color: var(--muted); word-break: break-all; }
+main.slideshow { flex-direction: column; align-items: stretch; max-width: 900px; }
+main.slideshow form { display: flex; flex-direction: column; gap: 6px; }
+main.slideshow form.export { flex-direction: row; flex-wrap: wrap; align-items: center; }
+main.slideshow form.export label { width: 100%; }
+main.slideshow form.export input { flex: 1; min-width: 200px; }
+main.slideshow button { align-self: flex-start; }
+textarea { font: inherit; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); width: 100%; }
+.picks { padding-left: 2em; display: flex; flex-direction: column; gap: 6px; }
+.picks li { display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px; }
+.picks img { width: 96px; aspect-ratio: 4/3; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.picks li > div:nth-child(2) { flex: 1; min-width: 0; }
+.picks .meta { color: var(--muted); font-size: 12px; }
+.picks .actions { display: flex; gap: 4px; }

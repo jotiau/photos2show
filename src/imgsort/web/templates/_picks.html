@@ -1,0 +1,18 @@
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<p>{{ picks | length }} photos · about {{ '%.1f' % minutes }} min at 5 s per photo. Add more from the Library detail panel.</p>
+<ol class="picks">
+  {% for p in picks %}
+  <li>
+    <img src="/thumb/{{ p.item.id }}" alt="" loading="lazy">
+    <div>
+      <strong>#{{ p.item.id }} {{ p.item.path | basename }}</strong>{% if p.item.kind == 'video' %} ▶{% endif %}
+      <div class="meta">{{ p.reason }}</div>
+    </div>
+    <div class="actions">
+      <button hx-post="/slideshow/up/{{ p.item.id }}" hx-target="#picks" aria-label="Move up">↑</button>
+      <button hx-post="/slideshow/down/{{ p.item.id }}" hx-target="#picks" aria-label="Move down">↓</button>
+      <button hx-post="/slideshow/remove/{{ p.item.id }}" hx-target="#picks" aria-label="Remove">×</button>
+    </div>
+  </li>
+  {% endfor %}
+</ol>

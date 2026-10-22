@@ -79,28 +79,32 @@ camera, M4 calibrates them on real photos (possibly folder-relative percentiles)
 3. Send GLM one prompt: the description + a compact line per candidate
    (`id | date | scene | tags | caption | aesthetic | interest | quality`), ~60 tokens each –
    a few hundred images fit easily.
-4. GLM returns JSON: target count, ordered list of ids, short reason per pick.
-5. Validate (ids exist, no duplicates, max one per burst cluster, count within ±10 %);
-   fallback: score-based ranking with per-day quota if the response is unusable.
+4. GLM returns JSON: ordered list of ids with a short reason per pick (count from the description,
+   ~5 s per photo).
+5. Validate: unknown, repeated or malformed ids are dropped; only described, non-duplicate items.
+   No score-based fallback – on a bad answer the UI shows the error and you press *Select* again.
 6. Default order chronological unless the description says otherwise.
+7. One selection per project (`selection.json` in the project cache); editing by hand in the UI.
 
 ### 6. Review UI
 Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
-- **Library view**: enter folder path → "Analyse" with progress bar → thumbnail grid with
-  badges (score, flags, tags, video icon); filter by flag/tag; click for detail
-  (caption, metrics, frames for videos).
-- **Slideshow view**: prompt box → "Select" → ordered grid of picks with reasons; click to
-  toggle in/out, drag or up/down to reorder; "Export".
+- **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
+  dropdown in the header to switch, "New project" to create and analyse.
+- **Library view**: progress bar → thumbnail grid with badges (score, flags, tags, video icon);
+  filter by flag/tag; click for detail (caption, metrics, frames for videos, "Add to slideshow").
+- **Slideshow view**: prompt box → "Select" → ordered list of picks with reasons; up/down to
+  reorder, × to remove; "Export".
 
 ### 7. Export
-- Copy to `<output>/<slideshow-name>/` as `001_2026-07-14_beach-sunset.jpg` (videos copied as
-  `.mp4` in their slot). Never move or modify originals.
+- Copy to a new, empty folder outside the photo folder (default `<photo folder>_slideshow`) as
+  `001_2026-07-14_beach-sunset.jpg` (videos copied as `.mp4` in their slot). Never move or
+  modify originals.
 - Write `selection.json` (prompt, ids, reasons) next to it for reproducibility.
 
 ## Tech stack
 - Python ≥ 3.12 managed with `uv` (no torch needed, so 3.14 works)
 - `pillow`, `opencv-python-headless`, `numpy`, `imagehash`
-- `openai` (async client, custom `base_url`)
+- `openai` (client with custom `base_url`, thread pool for concurrency)
 - `fastapi`, `uvicorn`, `jinja2`, HTMX (vendored static file)
 - SQLite via stdlib `sqlite3`
 - `pytest` for tests
@@ -111,13 +115,14 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
 pyproject.toml
 src/imgsort/
   config.py     # settings from .env
-  db.py         # SQLite schema + cache
-  scan.py       # file walk, EXIF, thumbnails, video frames
+  db.py         # SQLite schema + cache, projects
+  scan.py       # file walk, EXIF, video frames
   quality.py    # classic metrics + flags
   dedup.py      # phash clustering
-  ai.py         # GLM client: analyse_image(), select()
-  select.py     # filtering, validation, fallback ranking
-  export.py     # numbered copies + selection.json
+  pipeline.py   # pass 1 (scan, thumbnails, flags) and pass 2 (LLM descriptions)
+  ai.py         # GLM client: analyse_image(), complete_json()
+  slideshow.py  # LLM selection, validation, editing, export
+  cli.py, smoke.py, testdata.py
   web/
     app.py      # FastAPI routes, background analysis job
     templates/  # library.html, slideshow.html, partials
@@ -131,7 +136,8 @@ tests/
   instance and measures seconds/image.
 - **M1 – Scan, quality, dedup + Library UI**: grid with metric badges and flags, no AI yet.
 - **M2 – AI analysis**: captions/tags/scores in DB and UI, filtering by tag.
-- **M3 – Selection, review, export**: prompt → picks → toggle/reorder → sorted folder.
+- **M3 – Selection, review, export**: prompt → picks → toggle/reorder → sorted folder;
+  holiday projects. *(M0–M3 done)*
 - **M4 – Calibration**: rate ~100 own photos (keep/reject), tune thresholds and the combined
   score; small regression test set.
 
@@ -143,6 +149,7 @@ tests/
 - Deeper video handling (scene detection, picking clips)
 - HEIC / RAW support
 - Map / location grouping from GPS
+- Several saved slideshows per project; projects spanning several folders; drag & drop reordering
 
 ## Risks / open points
 - Vision support, image size limits and JSON mode of the self-hosted GLM endpoint → verified in M0.

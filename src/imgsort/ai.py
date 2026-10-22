@@ -47,13 +47,16 @@ def make_client(settings: Settings) -> OpenAI:
 
 
 def analyse_image(client: OpenAI, settings: Settings, img: Image.Image) -> dict:
-    messages = [{
+    return complete_json(client, settings, [{
         "role": "user",
         "content": [
             {"type": "text", "text": ANALYSE_PROMPT},
             {"type": "image_url", "image_url": {"url": encode_image(img)}},
         ],
-    }]
+    }])
+
+
+def complete_json(client: OpenAI, settings: Settings, messages: list) -> dict:
     try:
         resp = client.chat.completions.create(
             model=settings.model, messages=messages, response_format={"type": "json_object"}

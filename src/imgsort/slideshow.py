@@ -1,0 +1,95 @@
+"""Slideshow: let the LLM pick and order photos from a description, edit the picks, export a numbered folder."""
+import json
+import re
+import shutil
+from pathlib import Path
+
+from imgsort import ai, db
+from imgsort.config import load_settings
+
+SECONDS_PER_PHOTO = 5
+
+SELECT_PROMPT = """You are choosing photos for a holiday slideshow. The user describes it like this:
+---
+{description}
+---
+Candidates, one per line: id | date | kind | scene | tags | caption | aesthetic/10 | interest/10 | quality flags
+{lines}
+
+Pick the photos that best fit the description, in the order they should be shown (chronological unless
+the description says otherwise). Respect a requested number of photos or duration (about {seconds} seconds
+per photo). Prefer high aesthetic and interest, avoid quality flags and repetitive shots.
+Answer ONLY with JSON: {{"picks": [{{"id": 12, "reason": "short reason"}}]}}"""
+
+
+def _line(it: dict) -> str:
+    a = it["ai"]
+    return (f"{it['id']} | {(it['taken_at'] or '')[:16]} | {it['kind']} | {a.get('scene')} | "
+            f"{', '.join(a.get('tags') or [])} | {a.get('caption')} | {a.get('aesthetic')} | "
+            f"{a.get('interest')} | {','.join(it['flags']) or '-'}")
+
+
+def select(conn, description: str) -> list[dict]:
+    """Ask the LLM for picks; returns [{"id", "reason"}] restricted to described, non-duplicate items."""
+    items = [it for it in db.all_media(conn) if it["ai"] and not it["duplicate_of"]]
+    if not items:
+        raise ValueError("No photos described by AI yet – analyse the project first.")
+    settings = load_settings()
+    prompt = SELECT_PROMPT.format(description=description, lines="\n".join(map(_line, items)),
+                                  seconds=SECONDS_PER_PHOTO)
+    answer = ai.complete_json(ai.make_client(settings), settings, [{"role": "user", "content": prompt}])
+    valid, picks = {it["id"] for it in items}, []
+    for p in answer.get("picks") or []:  # LLM output: drop unknown, repeated or malformed ids
+        try:
+            pid = int(p["id"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if pid in valid and pid not in {q["id"] for q in picks}:
+            picks.append({"id": pid, "reason": str(p.get("reason") or "")})
+    return picks
+
+
+def edit(picks: list[dict], action: str, media_id: int) -> list[dict]:
+    """add / remove / up / down one item; returns a new list."""
+    ids = [p["id"] for p in picks]
+    if action == "add":
+        return picks if media_id in ids else picks + [{"id": media_id, "reason": "added by hand"}]
+    if media_id not in ids:
+        return picks
+    i, picks = ids.index(media_id), list(picks)
+    if action == "remove":
+        del picks[i]
+    elif action in ("up", "down"):
+        j = i - 1 if action == "up" else i + 1
+        if 0 <= j < len(picks):
+            picks[i], picks[j] = picks[j], picks[i]
+    return picks
+
+
+def load(root: Path) -> dict:
+    f = db.library_dir(root) / "selection.json"
+    return json.loads(f.read_text()) if f.exists() else {"description": "", "picks": []}
+
+
+def save(root: Path, selection: dict) -> None:
+    (db.library_dir(root) / "selection.json").write_text(json.dumps(selection, indent=2, ensure_ascii=False))
+
+
+def export(root: Path, target: Path) -> int:
+    """Copy the picks as 001_<date>_<tags>.<ext> into target; originals are never touched."""
+    root, target = root.resolve(), target.expanduser().resolve()
+    if target.is_relative_to(root):
+        raise ValueError("Export folder must be outside the photo folder, otherwise it gets scanned again.")
+    if target.exists() and any(target.iterdir()):
+        raise ValueError(f"{target} is not empty – choose a new folder.")
+    selection, conn = load(root), db.connect(root)
+    items = [it for p in selection["picks"] if (it := db.get_media(conn, p["id"]))]
+    if not items:
+        raise ValueError("Nothing selected.")
+    target.mkdir(parents=True, exist_ok=True)
+    for n, it in enumerate(items, 1):
+        src = Path(it["path"])
+        slug = re.sub(r"[^a-z0-9]+", "-", " ".join(((it["ai"] or {}).get("tags") or [])[:2]).lower()).strip("-")
+        shutil.copy2(src, target / f"{n:03d}_{(it['taken_at'] or '')[:10]}_{slug or 'photo'}{src.suffix.lower()}")
+    (target / "selection.json").write_text(json.dumps(selection, indent=2, ensure_ascii=False))
+    return len(items)

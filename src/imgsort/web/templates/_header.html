@@ -1,0 +1,23 @@
+<header>
+  <h1>imgsort</h1>
+  <nav class="tabs">
+    <a href="/" class="{{ 'active' if page == 'library' }}">Library</a>
+    <a href="/slideshow" class="{{ 'active' if page == 'slideshow' }}">Slideshow</a>
+  </nav>
+  {% if projects %}
+  <form hx-post="/projects/open" hx-target="#project-msg" hx-trigger="change">
+    <select name="name" aria-label="Project">
+      {% for name in projects %}<option {{ 'selected' if name == job.project }}>{{ name }}</option>{% endfor %}
+    </select>
+  </form>
+  {% endif %}
+  <details {{ 'open' if not projects }}>
+    <summary>New project</summary>
+    <form hx-post="/projects" hx-target="#project-msg">
+      <input name="name" placeholder="Norway 2026" required aria-label="Project name">
+      <input name="folder" placeholder="~/Pictures/norway" required size="36" aria-label="Photo folder">
+      <button>Create &amp; analyse</button>
+    </form>
+  </details>
+  <span id="project-msg"></span>
+</header>

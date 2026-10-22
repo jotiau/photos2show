@@ -1,6 +1,7 @@
-"""Local web UI: analyse a folder and browse the results."""
+"""Local web UI: holiday projects, analysis, browsing, slideshow selection and export."""
 import os
 import threading
+from html import escape
 from pathlib import Path
 
 import uvicorn
@@ -9,7 +10,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from imgsort import db
+from imgsort import db, slideshow
 from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 HERE = Path(__file__).parent
@@ -20,11 +21,16 @@ templates.env.filters["basename"] = lambda p: Path(p).name
 
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
            "low_contrast", "monotone", "duplicate", "video")
+REFRESH = {"HX-Refresh": "true"}
 
 # Single local user, one analysis at a time.
-job = {"folder": os.environ.get("IMGSORT_LIBRARY", ""), "running": False, "phase": "", "done": 0, "total": 0,
+job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0,
        "summary": None, "error": None, "flag": "all"}
 lock = threading.Lock()
+
+
+def _open(name: str) -> None:
+    job.update(project=name, folder=db.load_projects()[name], flag="all", summary=None, error=None)
 
 
 def _run(root: Path) -> None:
@@ -39,6 +45,13 @@ def _run(root: Path) -> None:
         job["error"] = str(e)
     finally:
         job["running"] = False
+
+
+def _start() -> None:
+    with lock:
+        if job["folder"] and not job["running"]:
+            job.update(running=True, done=0, total=0, summary=None, error=None)
+            threading.Thread(target=_run, args=(Path(job["folder"]),), daemon=True).start()
 
 
 def _items() -> list[dict]:
@@ -71,20 +84,43 @@ def _item(media_id: int) -> dict:
     return item
 
 
+def _page(request: Request, template: str, **ctx) -> HTMLResponse:
+    return templates.TemplateResponse(request, template, {"job": job, "projects": db.load_projects(), **ctx})
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse(request, "library.html", {"job": job})
+    if not job["project"] and (projects := db.load_projects()):
+        _open(list(projects)[-1])
+    return _page(request, "library.html", page="library")
+
+
+@app.post("/projects", response_class=HTMLResponse)
+def create_project(name: str = Form(...), folder: str = Form(...)):
+    root = Path(folder).expanduser()
+    if not name.strip() or not root.is_dir():
+        return HTMLResponse(f'<span class="error">Not a folder: {escape(folder)}</span>' if name.strip() else "Name missing")
+    if job["running"]:
+        return HTMLResponse('<span class="error">Wait until the running analysis is finished.</span>')
+    db.save_project(name.strip(), root.resolve())
+    _open(name.strip())
+    _start()
+    return HTMLResponse("", headers=REFRESH)
+
+
+@app.post("/projects/open", response_class=HTMLResponse)
+def open_project(name: str = Form(...)):
+    if job["running"]:
+        return HTMLResponse('<span class="error">Wait until the running analysis is finished.</span>')
+    if name not in db.load_projects():
+        raise HTTPException(404)
+    _open(name)
+    return HTMLResponse("", headers=REFRESH)
 
 
 @app.post("/analyse", response_class=HTMLResponse)
-def analyse(request: Request, folder: str = Form(...)):
-    root = Path(folder).expanduser()
-    if not root.is_dir():
-        return HTMLResponse(f'<div id="progress" class="error">Not a folder: {folder}</div>')
-    with lock:
-        if not job["running"]:
-            job.update(folder=str(root.resolve()), running=True, done=0, total=0, summary=None, error=None)
-            threading.Thread(target=_run, args=(root,), daemon=True).start()
+def analyse(request: Request):
+    _start()
     return templates.TemplateResponse(request, "_progress.html", {"job": job})
 
 
@@ -126,6 +162,58 @@ def thumb(media_id: int, frame: int | None = None):
 @app.get("/original/{media_id}")
 def original(media_id: int):
     return FileResponse(_item(media_id)["path"])
+
+
+def _picks(request: Request, error: str | None = None) -> HTMLResponse:
+    conn = db.connect(Path(job["folder"]))
+    picks = [{"item": it, "reason": p["reason"]}
+             for p in slideshow.load(Path(job["folder"]))["picks"] if (it := db.get_media(conn, p["id"]))]
+    return templates.TemplateResponse(request, "_picks.html", {
+        "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60})
+
+
+@app.get("/slideshow", response_class=HTMLResponse)
+def slideshow_page(request: Request):
+    if not job["folder"]:
+        return _page(request, "slideshow.html", page="slideshow", selection=None)
+    return _page(request, "slideshow.html", page="slideshow", selection=slideshow.load(Path(job["folder"])),
+                 default_target=f"{job['folder']}_slideshow")
+
+
+@app.get("/slideshow/picks", response_class=HTMLResponse)
+def picks(request: Request):
+    return _picks(request)
+
+
+@app.post("/slideshow/select", response_class=HTMLResponse)
+def select(request: Request, description: str = Form(...)):
+    root = Path(job["folder"])
+    try:
+        picks = slideshow.select(db.connect(root), description)
+    except (Exception, SystemExit) as e:
+        return _picks(request, error=str(e))
+    slideshow.save(root, {"description": description, "picks": picks})
+    return _picks(request)
+
+
+@app.post("/slideshow/export", response_class=HTMLResponse)
+def export(target: str = Form(...)):
+    try:
+        n = slideshow.export(Path(job["folder"]), Path(target))
+    except ValueError as e:
+        return HTMLResponse(f'<span class="error">{escape(str(e))}</span>')
+    return HTMLResponse(f"Exported {n} files to {escape(str(Path(target).expanduser()))}")
+
+
+@app.post("/slideshow/{action}/{media_id}", response_class=HTMLResponse)
+def edit(request: Request, action: str, media_id: int):
+    if action not in ("add", "remove", "up", "down"):
+        raise HTTPException(404)
+    root = Path(job["folder"])
+    selection = slideshow.load(root)
+    selection["picks"] = slideshow.edit(selection["picks"], action, _item(media_id)["id"])
+    slideshow.save(root, selection)
+    return HTMLResponse("In slideshow ✓") if action == "add" else _picks(request)
 
 
 def main() -> None:

@@ -63,3 +63,15 @@ def all_media(conn: sqlite3.Connection) -> list[dict]:
 def get_media(conn: sqlite3.Connection, media_id: int) -> dict | None:
     row = conn.execute("SELECT * FROM media WHERE id = ?", (media_id,)).fetchone()
     return row_to_dict(row) if row else None
+
+
+def load_projects() -> dict[str, str]:
+    """Holiday projects: name -> photo folder."""
+    f = cache_root() / "projects.json"
+    return json.loads(f.read_text()) if f.exists() else {}
+
+
+def save_project(name: str, folder: Path) -> None:
+    cache_root().mkdir(parents=True, exist_ok=True)
+    projects = load_projects() | {name: str(folder)}
+    (cache_root() / "projects.json").write_text(json.dumps(projects, indent=2, ensure_ascii=False))

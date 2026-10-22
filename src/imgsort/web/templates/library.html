@@ -8,17 +8,19 @@
   <script src="/static/htmx.min.js"></script>
 </head>
 <body>
-<header>
-  <h1>imgsort</h1>
-  <form hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">
-    <input name="folder" value="{{ job.folder }}" placeholder="~/Pictures/holiday" required size="50">
-    <button>Analyse</button>
-  </form>
+{% include "_header.html" %}
+{% if job.folder %}
+<div class="bar">
+  <span class="path">{{ job.folder }}</span>
+  <button hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">Analyse again</button>
   {% include "_progress.html" %}
-</header>
+</div>
 <main>
   <section id="grid" hx-get="/grid" hx-trigger="load, analysed from:body"></section>
   <aside id="detail"></aside>
 </main>
+{% else %}
+<main><p class="empty">Create a project: give it a name and the folder with your holiday photos.</p></main>
+{% endif %}
 </body>
 </html>
