@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from imgsort import db, slideshow
+from imgsort.config import default_concurrency
 from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 HERE = Path(__file__).parent
@@ -25,7 +26,7 @@ REFRESH = {"HX-Refresh": "true"}
 
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0,
-       "summary": None, "error": None, "flag": "all"}
+       "summary": None, "error": None, "flag": "all", "parallel": default_concurrency()}
 lock = threading.Lock()
 
 
@@ -39,7 +40,7 @@ def _run(root: Path) -> None:
         job["phase"] = "Scanning"
         summary = analyse_folder(root, progress)
         job.update(phase="Describing with AI", done=0, total=0)
-        described = describe_folder(root, progress)
+        described = describe_folder(root, progress, job["parallel"])
         job["summary"] = {**summary, **described, "errors": summary["errors"] + described["errors"]}
     except (Exception, SystemExit) as e:  # SystemExit: AI endpoint not configured
         job["error"] = str(e)
@@ -119,7 +120,9 @@ def open_project(name: str = Form(...)):
 
 
 @app.post("/analyse", response_class=HTMLResponse)
-def analyse(request: Request):
+def analyse(request: Request, parallel: int = Form(ge=1, le=16)):
+    if not job["running"]:
+        job["parallel"] = parallel
     _start()
     return templates.TemplateResponse(request, "_progress.html", {"job": job})
 

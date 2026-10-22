@@ -1,19 +1,24 @@
-"""Command line: imgsort-scan FOLDER prints the analysis as a table."""
+"""Command line: imgsort-scan FOLDER [--parallel N] prints the analysis as a table."""
+import argparse
 import sys
 from pathlib import Path
 
 from imgsort import db
+from imgsort.config import default_concurrency
 from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        raise SystemExit("usage: imgsort-scan FOLDER")
-    root = Path(sys.argv[1]).expanduser()
+    parser = argparse.ArgumentParser(prog="imgsort-scan", description="Scan and describe a photo folder.")
+    parser.add_argument("folder", type=Path)
+    parser.add_argument("--parallel", type=int, choices=range(1, 17), metavar="N", default=default_concurrency(),
+                        help="parallel AI requests, 1-16 (default: %(default)s, from AI_CONCURRENCY)")
+    args = parser.parse_args()
+    root = args.folder.expanduser()
     progress = lambda done, total: print(f"\r{done}/{total}", end="", file=sys.stderr)  # noqa: E731
     summary = analyse_folder(root, progress)
     print(" scanned", file=sys.stderr)
-    described = describe_folder(root, progress)
+    described = describe_folder(root, progress, args.parallel)
     print(" described by AI", file=sys.stderr)
     summary["errors"] += described["errors"]
     conn = db.connect(root)

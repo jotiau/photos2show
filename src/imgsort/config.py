@@ -22,8 +22,14 @@ def load_settings() -> Settings:
         base_url=base_url,
         api_key=os.environ.get("OPENAI_API_KEY") or "none",  # empty is fine for servers without auth
         model=os.environ.get("MODEL", "glm-5.3-flash"),
-        ai_concurrency=int(os.environ.get("AI_CONCURRENCY", "4")),
+        ai_concurrency=default_concurrency(),
     )
+
+
+def default_concurrency() -> int:
+    """Parallel LLM requests unless chosen in the UI/CLI."""
+    load_dotenv()
+    return int(os.environ.get("AI_CONCURRENCY", "2"))
 
 
 def cache_root() -> Path:

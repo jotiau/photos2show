@@ -14,15 +14,21 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert "Create a project" in client.get("/").text
     assert "Not a folder" in client.post("/projects", data={"name": "x", "folder": str(tmp_path / "nope")}).text
 
+    def wait():
+        for _ in range(100):
+            resp = client.get("/progress")
+            if 'hx-get="/progress"' not in resp.text:  # stopped polling = finished
+                return resp
+            time.sleep(0.1)
+
     resp = client.post("/projects", data={"name": "Norway 2026", "folder": str(folder)})
     assert resp.headers["HX-Refresh"] == "true"
-    for _ in range(100):
-        resp = client.get("/progress")
-        if 'hx-get="/progress"' not in resp.text:  # stopped polling = finished
-            break
-        time.sleep(0.1)
+    resp = wait()
     assert f"{len(testdata.EXPECTED)} files" in resp.text and "9 described by AI" in resp.text
     assert "Norway 2026" in client.get("/").text
+    assert client.post("/analyse", data={"parallel": "99"}).status_code == 422
+    client.post("/analyse", data={"parallel": "1"})
+    assert web.job["parallel"] == 1 and "0 described by AI" in wait().text  # all cached
 
     grid = client.get("/grid").text
     assert "burst_1.jpg" in grid and "▶ video" in grid

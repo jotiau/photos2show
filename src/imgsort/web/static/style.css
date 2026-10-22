@@ -79,3 +79,4 @@ textarea { font: inherit; padding: 8px; border: 1px solid var(--border); border-
 .picks li > div:nth-child(2) { flex: 1; min-width: 0; }
 .picks .meta { color: var(--muted); font-size: 12px; }
 .picks .actions { display: flex; gap: 4px; }
+.bar form { display: flex; gap: 6px; align-items: center; }

@@ -12,7 +12,14 @@
 {% if job.folder %}
 <div class="bar">
   <span class="path">{{ job.folder }}</span>
-  <button hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">Analyse again</button>
+  <form hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">
+    <label>Parallel AI requests
+      <select name="parallel">
+        {% for n in (1, 2, 4, 8) %}<option {{ 'selected' if n == job.parallel }}>{{ n }}</option>{% endfor %}
+      </select>
+    </label>
+    <button>Analyse again</button>
+  </form>
   {% include "_progress.html" %}
 </div>
 <main>

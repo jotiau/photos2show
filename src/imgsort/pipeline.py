@@ -99,7 +99,8 @@ def skip_ai_reason(item: dict) -> str | None:
     return None
 
 
-def describe_folder(root: Path, progress: Callable[[int, int], None] | None = None) -> dict:
+def describe_folder(root: Path, progress: Callable[[int, int], None] | None = None,
+                    concurrency: int | None = None) -> dict:
     """Pass 2: send each image still worth describing to the LLM; every result is saved right away."""
     settings = load_settings()
     client = ai.make_client(settings)
@@ -116,7 +117,7 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
         return ai.analyse_image(client, settings, img)
 
     errors = []
-    with ThreadPoolExecutor(settings.ai_concurrency) as pool:
+    with ThreadPoolExecutor(concurrency or settings.ai_concurrency) as pool:
         futures = {pool.submit(describe, it): it for it in todo}
         for i, fut in enumerate(as_completed(futures)):
             it = futures[fut]
