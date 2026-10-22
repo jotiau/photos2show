@@ -32,10 +32,11 @@ folder ─► 1 Scan ─► 2 Quality ─► 3 Dedup ─► 4 AI analysis ─►
 
 ### 1. Scan
 - Walk folder recursively for `.jpg/.jpeg` and `.mp4`.
-- Read EXIF (`DateTimeOriginal`, camera, GPS if present) with Pillow; apply EXIF orientation.
+- Read EXIF `DateTimeOriginal` with Pillow; apply EXIF orientation (camera/GPS not read yet).
 - Create thumbnails: ~400px for the UI, ~1024px long edge for the LLM (keeps token use low).
 - Videos: OpenCV `VideoCapture` grabs frames at 10 % / 50 % / 90 % of duration; the sharpest
-  frame represents the video. Date: MP4 metadata if easily readable, else file mtime.
+  frame represents the video. Date: from the phone-style file name (`YYYYMMDD_HHMMSS`), else
+  file mtime (mtime was 1 h off for copied Norway videos).
 - Cache key: path + size + mtime.
 
 ### 2. Classic quality (OpenCV + NumPy, no AI)
@@ -45,16 +46,17 @@ folder ─► 1 Scan ─► 2 Quality ─► 3 Dedup ─► 4 AI analysis ─►
 | Exposure | Mean brightness, % clipped pixels at 0 / 255 | `too_dark`, `too_bright` |
 | Contrast | Std. dev. of luminance | `low_contrast` |
 | Colourfulness | Hasler–Süsstrunk metric | – |
-| Monotony | Shannon entropy of luminance + edge density (Canny) | `monotone` |
+| Monotony | Edge density (Canny) + low contrast (entropy only shown) | `monotone` |
 
 Two blur levels: `blurry` (shown as warning) and `very_blurry` (excluded, never sent to the LLM).
-M1 uses absolute thresholds tuned on generated test images. Because sharpness/noise vary by
-camera, M4 calibrates them on real photos (possibly folder-relative percentiles).
+Blur is only judged with enough contrast (dark/washed-out images get exposure flags instead).
+Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BLURRY` 20).
 
 ### 3. Duplicates / bursts
-- Perceptual hash (`imagehash.phash`) + capture time: images within a few seconds and small
-  Hamming distance form a cluster.
-- Best of cluster = highest combined quality score; others flagged `duplicate_of`.
+- Perceptual hash (`imagehash.phash`) + capture time: same orientation and Hamming distance ≤14
+  within 60 s or ≤18 within 10 s (or ≤2 at any time) form a cluster. Only exact repeats count;
+  reframed shots of the same place stay separate (user spot-check in M4).
+- Best of cluster = highest technical score (sharpness, exposure); others flagged `duplicate_of`.
 
 ### 4. AI analysis (GLM-5.3 Flash, per image)
 - Send the 1024px thumbnail (base64 `image_url`) with a fixed prompt; request JSON:
@@ -75,10 +77,11 @@ camera, M4 calibrates them on real photos (possibly folder-relative percentiles)
 ### 5. Slideshow selection
 1. User enters a description, e.g. *"10-minute show for my parents, ~80 photos, chronological,
    mostly landscapes and the two of us, little food"*.
-2. Hard filter: drop `blurry`/`too_dark`/duplicate losers (toggle in UI to include anyway).
+2. Candidates: every described, non-duplicate item. Flagged ones stay in, with their flags in
+   the prompt; GLM is told to avoid them (no separate hard filter).
 3. Send GLM one prompt: the description + a compact line per candidate
-   (`id | date | scene | tags | caption | aesthetic | interest | quality`), ~60 tokens each –
-   a few hundred images fit easily.
+   (`id | date | kind | scene | tags | caption | aesthetic | interest | flags`), ~70 tokens each
+   (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k).
 4. GLM returns JSON: ordered list of ids with a short reason per pick (count from the description,
    ~5 s per photo).
 5. Validate: unknown, repeated or malformed ids are dropped; only described, non-duplicate items.
@@ -108,7 +111,8 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
 - `fastapi`, `uvicorn`, `jinja2`, HTMX (vendored static file)
 - SQLite via stdlib `sqlite3`
 - `pytest` for tests
-- Config via `.env`: `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL=glm-5.3-flash`, `AI_CONCURRENCY`
+- Config via `.env`: `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL` (`prod` on the BLUM server),
+  `AI_CONCURRENCY`, `IMGSORT_CACHE` (data folder, default `~/.local/share/imgsort`)
 
 ## Project layout
 ```
@@ -154,6 +158,17 @@ tests/
 - Several saved slideshows per project; projects spanning several folders; drag & drop reordering
 
 ## Risks / open points
-- Vision support, image size limits and JSON mode of the self-hosted GLM endpoint → verified in M0.
-- Throughput: several hundred images × per-image latency; mitigated by caching and concurrency.
-- LLM aesthetic scores may be poorly calibrated → combine with classic metrics, calibrate in M4.
+Reviewed with the user on 2026-10-23.
+
+| Risk | Status / decision |
+|---|---|
+| Endpoint: vision, JSON mode, image size | Resolved – works; JSON mode supported (1 request per image) |
+| Throughput | Resolved – ~30–70 min per ~900-file holiday once, then cached; parallel requests selectable |
+| Selection on a full holiday (~850 candidates, ~60k-token prompt) | **Open** – being tested as is (no pre-filter); the OpenAI client times out after 10 min (2 retries) |
+| Video dates from mtime off by 1 h | Fixed – date from file name, mtime fallback |
+| AI scores compressed (mostly 6–8) | Accepted – selection works via captions/tags; prompt unchanged |
+| AI results lost if a cache cleaner runs | Fixed – data moved from `~/.cache` to `~/.local/share/imgsort` |
+| No backup of the code | **Open** – user pushes to GitHub (`git push origin main`) |
+| Very large folders (5,000+): pairwise dedup is O(n²) | Accepted – minutes at worst, fine for holidays |
+| "Photos of us" without face recognition | Accepted – people count + captions; faces are a future feature |
+| Motion blur with one sharp tile not detected | Accepted – GLM usually lists it under issues |

@@ -1,4 +1,5 @@
 """Find media files, read capture dates, extract video frames."""
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -61,6 +62,18 @@ def read_video_frames(path: Path) -> tuple[list[Image.Image], tuple[int, int]]:
     return frames, size
 
 
+NAME_DATE = re.compile(r"(20\d{6})[_-](\d{6})")  # phone naming, e.g. 20260725_130945.mp4
+
+
 def file_time(path: Path) -> str:
-    # shortcut: videos use file mtime; MP4 creation_time would need an extra metadata parser.
+    """Capture time for videos: from the file name if it has one, else file mtime.
+
+    mtime can be off by hours after copying (seen: exactly 1 h, time zone).
+    shortcut: MP4 creation_time is not read; add a metadata parser if names lack dates.
+    """
+    if m := NAME_DATE.search(path.stem):
+        try:
+            return datetime.strptime(m[1] + m[2], "%Y%m%d%H%M%S").isoformat()
+        except ValueError:
+            pass
     return datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()

@@ -33,7 +33,10 @@ def default_concurrency() -> int:
 
 
 def cache_root() -> Path:
-    """Where per-library databases and thumbnails live (never inside the photo folder)."""
+    """Where projects, per-library databases and thumbnails live (never inside the photo folder).
+
+    A data dir, not ~/.cache: the AI results cost ~30-70 min per holiday to recreate.
+    """
     load_dotenv()
-    default = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "imgsort"
+    default = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "imgsort"
     return Path(os.environ.get("IMGSORT_CACHE", default))

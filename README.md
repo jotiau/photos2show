@@ -87,7 +87,7 @@ uv run pytest
 ```
 
 Settings (`.env` or environment): `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL`,
-`AI_CONCURRENCY` (default 2; 1 = strictly one by one; selectable in the UI and via `imgsort-scan --parallel N`), `IMGSORT_CACHE` (default `~/.cache/imgsort`), `IMGSORT_PORT` (default 8000).
-Projects, results and thumbnails live in the cache folder, never in your photo folder.
+`AI_CONCURRENCY` (default 2; 1 = strictly one by one; selectable in the UI and via `imgsort-scan --parallel N`), `IMGSORT_CACHE` (data folder, default `~/.local/share/imgsort`), `IMGSORT_PORT` (default 8000).
+Projects, AI results and thumbnails live in that data folder, never in your photo folder.
 
 See [PLAN.md](PLAN.md) for the roadmap.
