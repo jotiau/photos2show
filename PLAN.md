@@ -139,7 +139,9 @@ tests/
 - **M3 – Selection, review, export**: prompt → picks → toggle/reorder → sorted folder;
   holiday projects. *(M0–M3 done)*
 - **M4 – Calibration**: rate ~100 own photos (keep/reject), tune thresholds and the combined
-  score; small regression test set.
+  score; small regression test set. *(done: 848 Norway photos reviewed via contact sheets plus
+  user spot-check → `BLURRY` 200, same-scene = same orientation and phash ≤14 within 60 s or
+  ≤18 within 10 s; motion blur with one sharp tile is a known gap)*
 
 ## Future features
 - Face detection / clustering ("everyone appears at least once")

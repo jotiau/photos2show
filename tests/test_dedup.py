@@ -14,7 +14,7 @@ def test_same_scene_tiers():
     a = item(0, 0)
     assert same_scene(a, item(14, 59))        # close hash, within a minute
     assert not same_scene(a, item(16, 30))    # medium hash needs a short gap
-    assert same_scene(a, item(22, 10))        # medium hash, seconds apart
-    assert not same_scene(a, item(24, 2))     # too different even seconds apart
+    assert same_scene(a, item(18, 10))        # medium hash, seconds apart
+    assert not same_scene(a, item(20, 2))     # reframed shot of the same place: keep both
     assert not same_scene(a, item(14, 2, portrait=True))  # orientation differs
     assert same_scene(a, {**item(2, 0), "taken_at": None})  # identical regardless of time

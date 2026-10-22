@@ -3,9 +3,10 @@ from datetime import datetime
 
 import imagehash
 
-# Calibrated on 848 real photos: repeats of a scene seconds apart reach hash distance ~22, while
-# different scenes start at ~20 once more time passes. Beyond 22 phash cannot tell them apart.
-SAME_SCENE = ((14, 60), (22, 10))  # (max phash Hamming distance of 64 bits, max seconds apart)
+# Calibrated on 848 real photos with user spot-check: only exact repeats of a scene count.
+# Seconds-apart repeats reach distance ~18; at 20-22 reframed shots of the same place appear,
+# which the user wants to keep apart. A missed repeat only costs one extra LLM call.
+SAME_SCENE = ((14, 60), (18, 10))  # (max phash Hamming distance of 64 bits, max seconds apart)
 IDENTICAL_DIST = 2                  # practically identical images, regardless of capture time
 
 
