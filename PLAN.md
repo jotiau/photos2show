@@ -64,11 +64,13 @@ camera, M4 calibrates them on real photos (possibly folder-relative percentiles)
   ```
 - Use `response_format={"type": "json_object"}` if the server supports it; otherwise parse
   leniently and retry once.
-- Async with a concurrency limit (configurable, default 4); results cached.
+- **Two passes:** pass 1 (steps 1–3, local, fast) runs over all files first, because the best
+  image of a scene is only known once its neighbours are scanned. Pass 2 then sends the remaining
+  images to the LLM one after another (`AI_CONCURRENCY`, default 1); each result is saved
+  immediately, shows up live in the UI, and an interrupted run resumes where it stopped.
 - **Save tokens – only send what is worth analysing:**
   - Very blurry images (`very_blurry` flag) are never sent to the LLM.
-  - From several images of the same scene (duplicate/burst cluster) only the best one is sent;
-    the others inherit its caption/tags.
+  - From several images of the same scene (duplicate/burst cluster) only the best one is sent.
 
 ### 5. Slideshow selection
 1. User enters a description, e.g. *"10-minute show for my parents, ~80 photos, chronological,

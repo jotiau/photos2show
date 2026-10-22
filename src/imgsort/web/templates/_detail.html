@@ -13,7 +13,15 @@
 <div class="flags">
   {% for f in it.flags %}<span class="flag {{ f }}">{{ f.replace('_', ' ') }}</span>{% else %}<span class="flag okay">ok</span>{% endfor %}
 </div>
-<p>{% if it.skip_ai %}Not sent to AI: {{ it.skip_ai }}{% else %}Will be sent to AI{% endif %}</p>
+{% if it.ai %}
+<p class="caption">{{ it.ai.caption }}</p>
+<p>{{ it.ai.scene }} · {{ it.ai.people_count }} people · aesthetic {{ it.ai.aesthetic }}/10 · interest {{ it.ai.interest }}/10</p>
+<div class="flags">
+  {% for t in it.ai.tags or [] %}<button class="tag" hx-get="/grid?flag=tag:{{ t | urlencode }}" hx-target="#grid">#{{ t }}</button>{% endfor %}
+</div>
+{% if it.ai.issues %}<p>Issues: {{ it.ai.issues | join(', ') }}</p>{% endif %}
+{% elif it.skip_ai %}<p>Not sent to AI: {{ it.skip_ai }}</p>
+{% else %}<p>Waiting for AI description</p>{% endif %}
 <table>
   {% for k, v in it.metrics.items() %}<tr><th>{{ k.replace('_', ' ') }}</th><td>{{ '%.3f' % v if v < 10 else '%.1f' % v }}</td></tr>{% endfor %}
   <tr><th>score</th><td>{{ '%.2f' % it.score }}</td></tr>

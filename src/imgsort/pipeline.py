@@ -2,16 +2,18 @@
 import hashlib
 import json
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import imagehash
 from PIL import Image
 
-from imgsort import db, dedup, quality, scan
+from imgsort import ai, db, dedup, quality, scan
+from imgsort.config import load_settings
 
 THUMB_EDGE = 400
 COLUMNS = ("path", "kind", "size", "mtime", "taken_at", "width", "height",
-           "thumb", "frames", "metrics", "score", "phash")
+           "thumb", "frames", "metrics", "score", "phash", "ai")
 UPSERT = (
     f"INSERT INTO media ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))}) "
     f"ON CONFLICT(path) DO UPDATE SET {', '.join(f'{c}=excluded.{c}' for c in COLUMNS)}"
@@ -42,6 +44,7 @@ def analyse_file(path: Path, thumbs: Path) -> dict:
         "path": str(path), "kind": kind, "size": st.st_size, "mtime": st.st_mtime,
         "taken_at": taken, "width": w, "height": h, "thumb": f"{name}.jpg", "frames": len(frames),
         "metrics": json.dumps(m), "score": quality.score(m), "phash": str(imagehash.phash(rep)),
+        "ai": None,  # a changed file needs a new description
     }
 
 
@@ -94,3 +97,35 @@ def skip_ai_reason(item: dict) -> str | None:
     if item["duplicate_of"]:
         return f"same scene as #{item['duplicate_of']}"
     return None
+
+
+def describe_folder(root: Path, progress: Callable[[int, int], None] | None = None) -> dict:
+    """Pass 2: send each image still worth describing to the LLM; every result is saved right away."""
+    settings = load_settings()
+    client = ai.make_client(settings)
+    conn = db.connect(root)
+    todo = [it for it in db.all_media(conn) if it["ai"] is None and skip_ai_reason(it) is None]
+
+    def describe(it: dict) -> dict:
+        path = Path(it["path"])
+        if it["kind"] == "video":
+            frames, _ = scan.read_video_frames(path)
+            img = frames[len(frames) // 2]
+        else:
+            img = scan.read_image(path)[0]
+        return ai.analyse_image(client, settings, img)
+
+    errors = []
+    with ThreadPoolExecutor(settings.ai_concurrency) as pool:
+        futures = {pool.submit(describe, it): it for it in todo}
+        for i, fut in enumerate(as_completed(futures)):
+            it = futures[fut]
+            try:
+                conn.execute("UPDATE media SET ai = ? WHERE id = ?", (json.dumps(fut.result()), it["id"]))
+                conn.commit()
+            except Exception as e:  # one failed request must not stop the run; it is retried next time
+                errors.append(f"{Path(it['path']).name}: {e}")
+            if progress:
+                progress(i + 1, len(todo))
+    conn.close()
+    return {"described": len(todo) - len(errors), "errors": errors}

@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from imgsort import db
-from imgsort.pipeline import analyse_folder, skip_ai_reason
+from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 HERE = Path(__file__).parent
 app = FastAPI(title="imgsort")
@@ -22,15 +22,20 @@ FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_br
            "low_contrast", "monotone", "duplicate", "video")
 
 # Single local user, one analysis at a time.
-job = {"folder": os.environ.get("IMGSORT_LIBRARY", ""), "running": False, "done": 0, "total": 0,
-       "summary": None, "error": None}
+job = {"folder": os.environ.get("IMGSORT_LIBRARY", ""), "running": False, "phase": "", "done": 0, "total": 0,
+       "summary": None, "error": None, "flag": "all"}
 lock = threading.Lock()
 
 
 def _run(root: Path) -> None:
+    progress = lambda done, total: job.update(done=done, total=total)  # noqa: E731
     try:
-        job["summary"] = analyse_folder(root, lambda done, total: job.update(done=done, total=total))
-    except Exception as e:
+        job["phase"] = "Scanning"
+        summary = analyse_folder(root, progress)
+        job.update(phase="Describing with AI", done=0, total=0)
+        described = describe_folder(root, progress)
+        job["summary"] = {**summary, **described, "errors": summary["errors"] + described["errors"]}
+    except (Exception, SystemExit) as e:  # SystemExit: AI endpoint not configured
         job["error"] = str(e)
     finally:
         job["running"] = False
@@ -54,6 +59,8 @@ def _matches(it: dict, flag: str) -> bool:
         return it["skip_ai"] is not None
     if flag == "video":
         return it["kind"] == "video"
+    if flag.startswith("tag:"):
+        return flag[4:] in ((it["ai"] or {}).get("tags") or [])
     return flag in it["flags"]
 
 
@@ -84,15 +91,18 @@ def analyse(request: Request, folder: str = Form(...)):
 @app.get("/progress", response_class=HTMLResponse)
 def progress(request: Request):
     resp = templates.TemplateResponse(request, "_progress.html", {"job": job})
-    if not job["running"]:
-        resp.headers["HX-Trigger"] = "analysed"  # tells the grid to reload
+    if not job["running"] or job["phase"] != "Scanning":
+        resp.headers["HX-Trigger"] = "analysed"  # tells the grid to reload, live while AI results come in
     return resp
 
 
 @app.get("/grid", response_class=HTMLResponse)
-def grid(request: Request, flag: str = "all"):
+def grid(request: Request, flag: str | None = None):
+    flag = job["flag"] = flag or job["flag"]  # remembered so live reloads keep the filter
     items = _items()
     counts = {f: sum(_matches(it, f) for it in items) for f in FILTERS}
+    if flag.startswith("tag:"):
+        counts[flag] = sum(_matches(it, flag) for it in items)
     shown = [it for it in items if _matches(it, flag)]
     return templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag})
 

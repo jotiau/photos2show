@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from imgsort import db, testdata
-from imgsort.pipeline import analyse_folder, skip_ai_reason
+from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 
 @pytest.fixture(scope="module")
@@ -57,6 +57,16 @@ def test_video_frames_and_exif_dates(library):
     assert items["scene_1.jpg"]["taken_at"] == "2026-08-11T10:00:00"
     thumbs = db.library_dir(folder) / "thumbs"
     assert all((thumbs / it["thumb"]).exists() for it in items.values())
+
+
+def test_describe_sends_only_images_worth_it(library, fake_ai):
+    folder = library[0]
+    expected = sorted(n for n, it in items_by_name(folder).items() if skip_ai_reason(it) is None)
+    assert "burst_2.jpg" not in expected and "very_blurry.jpg" not in expected and "video.mp4" in expected
+    assert describe_folder(folder) == {"described": len(expected), "errors": []}
+    assert len(fake_ai) == len(expected)
+    assert sorted(n for n, it in items_by_name(folder).items() if it["ai"]) == expected
+    assert describe_folder(folder)["described"] == 0  # cached, nothing re-sent
 
 
 def test_rescan_uses_cache_and_drops_removed_files(library):

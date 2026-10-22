@@ -20,9 +20,9 @@ def load_settings() -> Settings:
         raise SystemExit("OPENAI_BASE_URL is not set – copy .env.example to .env and fill it in.")
     return Settings(
         base_url=base_url,
-        api_key=os.environ.get("OPENAI_API_KEY", "none"),
+        api_key=os.environ.get("OPENAI_API_KEY") or "none",  # empty is fine for servers without auth
         model=os.environ.get("MODEL", "glm-5.3-flash"),
-        ai_concurrency=int(os.environ.get("AI_CONCURRENCY", "4")),
+        ai_concurrency=int(os.environ.get("AI_CONCURRENCY", "1")),
     )
 
 

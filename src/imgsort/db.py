@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS media (
     score REAL,
     phash TEXT,
     flags TEXT DEFAULT '[]',         -- JSON list
-    duplicate_of INTEGER             -- id of the best image of the same scene
+    duplicate_of INTEGER,            -- id of the best image of the same scene
+    ai TEXT                          -- JSON from ai.analyse_image(), NULL until described
 );
 """
 
@@ -39,6 +40,10 @@ def connect(root: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)
+    try:  # caches created before M2 lack the ai column
+        conn.execute("ALTER TABLE media ADD COLUMN ai TEXT")
+    except sqlite3.OperationalError:
+        pass
     return conn
 
 
@@ -46,6 +51,7 @@ def row_to_dict(row: sqlite3.Row) -> dict:
     d = dict(row)
     d["metrics"] = json.loads(d["metrics"] or "{}")
     d["flags"] = json.loads(d["flags"] or "[]")
+    d["ai"] = json.loads(d["ai"]) if d["ai"] else None
     return d
 
 

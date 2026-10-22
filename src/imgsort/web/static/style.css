@@ -55,3 +55,5 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
   main { flex-direction: column-reverse; }
   #detail { width: 100%; position: static; max-height: none; }
 }
+.tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; }
+.caption { font-style: italic; }

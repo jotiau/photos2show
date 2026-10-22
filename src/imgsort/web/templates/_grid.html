@@ -1,7 +1,7 @@
 <nav class="filters">
   {% for f, n in counts.items() %}
   <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f }}" hx-target="#grid">
-    {{ f.replace('_', ' ') }} <span>{{ n }}</span>
+    {{ f.replace('_', ' ').replace('tag:', '#') }} <span>{{ n }}</span>
   </button>
   {% endfor %}
 </nav>
@@ -15,6 +15,7 @@
     {% if it.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
     <div class="name">#{{ it.id }} {{ it.path | basename }}</div>
     <div class="meta">{{ (it.taken_at or '')[:16].replace('T', ' ') }} · sharp {{ it.metrics.sharpness | round | int }}</div>
+    {% if it.ai %}<div class="meta" title="{{ it.ai.caption }}">★ {{ it.ai.aesthetic }}/{{ it.ai.interest }} · {{ (it.ai.tags or [])[:4] | join(', ') }}</div>{% endif %}
     <div class="flags">
       {% for f in it.flags %}<span class="flag {{ f }}">{{ f.replace('_', ' ') }}</span>{% endfor %}
       {% if it.skip_ai %}<span class="flag noai" title="{{ it.skip_ai }}">no AI</span>{% endif %}
