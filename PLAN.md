@@ -4,6 +4,10 @@ Goal: drop a folder of holiday photos and videos, get automatic quality checks a
 tags, then describe the slideshow you want in plain words and get a sorted folder with the
 selected files.
 
+## Working agreement
+Whenever there is doubt about how to continue (unclear requirement, design trade-off, unexpected
+result, deviation from this plan), stop and come back to ask before proceeding – don't guess.
+
 ## Decisions
 
 | Topic | Decision |
