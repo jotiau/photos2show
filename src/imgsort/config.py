@@ -14,13 +14,14 @@ class Settings:
 
 def load_settings() -> Settings:
     load_dotenv()
-    base_url = os.environ.get("OPENAI_BASE_URL")
-    if not base_url:
-        raise SystemExit("OPENAI_BASE_URL is empty – check .env and the variables it references "
-                         "(e.g. ${BLUM_BASE_URL}; PyCharm does not load ~/.bashrc).")
+    # expandvars: python-dotenv only expands ${VAR}; a plain $VAR stayed literal ("Connection error" x 857)
+    base_url = os.path.expandvars(os.environ.get("OPENAI_BASE_URL", ""))
+    if not base_url.startswith(("http://", "https://")):
+        raise SystemExit(f"OPENAI_BASE_URL is not a URL ({base_url!r}) – check .env and the variables it "
+                         "references (e.g. ${BLUM_BASE_URL}; PyCharm does not load ~/.bashrc).")
     return Settings(
         base_url=base_url,
-        api_key=os.environ.get("OPENAI_API_KEY") or "none",  # empty is fine for servers without auth
+        api_key=os.path.expandvars(os.environ.get("OPENAI_API_KEY", "")) or "none",  # empty: server without auth
         model=os.environ.get("MODEL", "glm-5.3-flash"),
     )
 
