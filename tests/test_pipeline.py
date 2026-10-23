@@ -1,3 +1,4 @@
+import weakref
 from pathlib import Path
 
 import pytest
@@ -80,6 +81,25 @@ def test_describe_failure_is_reported_and_retried(library, fake_ai, monkeypatch)
     monkeypatch.setattr("imgsort.ai.analyse_image", lambda *a: {"caption": "retry"})
     assert describe_folder(folder)["described"] == 1
     assert items_by_name(folder)["scene_1.jpg"]["ai"] == {"caption": "retry"}
+
+
+def test_failed_requests_do_not_keep_images_in_memory(library, fake_ai, monkeypatch):
+    folder = library[0]
+    conn = db.connect(folder)
+    conn.execute("UPDATE media SET ai = NULL")
+    conn.commit()
+    refs = []
+
+    def failing(client, settings, img):
+        refs.append(weakref.ref(img))
+        raise ConnectionError("server down")
+
+    monkeypatch.setattr("imgsort.ai.analyse_image", failing)
+    alive = []
+    result = describe_folder(folder, lambda d, n: alive.append(sum(r() is not None for r in refs)), 2)
+    assert len(result["errors"]) == len(refs) > 4
+    assert max(alive) <= 2  # only images still in flight, not every failed one (was: all of them, 20 GB OOM)
+    describe_folder(folder)  # restore descriptions for the following tests
 
 
 def test_relative_path_keeps_results_and_missing_folder_is_refused(library, monkeypatch):

@@ -123,7 +123,8 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
     with ThreadPoolExecutor(concurrency or default_concurrency()) as pool:
         futures = {pool.submit(describe, it): it for it in todo}
         for i, fut in enumerate(as_completed(futures)):
-            it = futures[fut]
+            # pop: a failed future keeps its traceback and with it the decoded image (~30 MB)
+            it = futures.pop(fut)
             try:
                 conn.execute("UPDATE media SET ai = ? WHERE id = ?", (json.dumps(fut.result()), it["id"]))
                 conn.commit()
