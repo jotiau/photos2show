@@ -127,7 +127,14 @@ def test_file_vanishing_during_scan_is_reported_not_fatal(library, monkeypatch):
 
 def test_rescan_uses_cache_and_drops_removed_files(library):
     folder = library[0]
-    (folder / "grey_sky.jpg").unlink()
+    items, thumbs = items_by_name(folder), db.library_dir(folder) / "thumbs"
+    gone = [thumbs / items[n]["thumb"] for n in ("grey_sky.jpg", "video.mp4")]
+    gone += [thumbs / items["video.mp4"]["thumb"].replace(".jpg", f"_f{i}.jpg") for i in range(3)]
+    assert all(t.exists() for t in gone)
+    for name in ("grey_sky.jpg", "video.mp4"):
+        Path(items[name]["path"]).unlink()
     summary = analyse_folder(folder)
-    assert summary["analysed"] == 0 and summary["total"] == len(testdata.EXPECTED) - 1
+    assert summary["analysed"] == 0 and summary["total"] == len(testdata.EXPECTED) - 2
     assert "grey_sky.jpg" not in items_by_name(folder)
+    assert not any(t.exists() for t in gone)  # thumbnails and video frames deleted too
+    assert (thumbs / items["scene_1.jpg"]["thumb"]).exists()

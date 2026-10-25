@@ -55,8 +55,9 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     picks = client.post("/slideshow/select", data={"description": "short"}).text
     assert "great view" in picks and "2 photos" in picks
     assert "✓" in client.post(f"/slideshow/add/{items['video.mp4']}").text
-    picks = client.post(f"/slideshow/up/{items['scene_2.jpg']}").text
+    picks = client.post("/slideshow/move", data={"id": items["scene_2.jpg"], "to": 0}).text  # ← button
     assert picks.index("scene_2.jpg") < picks.index("scene_1.jpg") and "3 photos" in picks
+    assert '"to": 2}' in picks  # → button of the 2nd tile
     picks = client.post("/slideshow/move", data={"id": items["video.mp4"], "to": 0}).text
     assert picks.index("video.mp4") < picks.index("scene_2.jpg") < picks.index("scene_1.jpg")
     assert "2 photos" in client.post(f"/slideshow/remove/{items['video.mp4']}").text

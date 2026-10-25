@@ -44,10 +44,8 @@ def test_rescan_forgets_picks_of_deleted_files(described):
 def test_edit():
     picks = [{"id": 1, "reason": ""}, {"id": 2, "reason": ""}]
     ids = lambda ps: [p["id"] for p in ps]  # noqa: E731
-    assert ids(slideshow.edit(picks, "up", 2)) == [2, 1]
-    assert ids(slideshow.edit(picks, "up", 1)) == [1, 2]
-    assert ids(slideshow.edit(picks, "down", 1)) == [2, 1]
     assert ids(slideshow.edit(picks, "remove", 1)) == [2]
+    assert ids(slideshow.edit(picks, "remove", 9)) == [1, 2]
     assert ids(slideshow.edit(picks, "add", 3)) == [1, 2, 3]
     assert ids(slideshow.edit(picks, "add", 1)) == [1, 2]
     assert ids(picks) == [1, 2]  # input untouched

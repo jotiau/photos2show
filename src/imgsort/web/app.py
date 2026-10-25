@@ -299,7 +299,7 @@ def export(target: str = Form(...)):
 
 @app.post("/slideshow/{action}/{media_id}", response_class=HTMLResponse)
 def edit(request: Request, action: str, media_id: int):
-    if action not in ("add", "remove", "up", "down"):
+    if action not in ("add", "remove"):
         raise HTTPException(404)
     root = Path(job["folder"])
     selection = slideshow.load(root)

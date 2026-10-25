@@ -19,8 +19,8 @@
     <div class="name">#{{ p.item.id }} {{ p.item.path | basename }}</div>
     <div class="meta" title="{{ p.reason }}">{{ p.reason }}</div>
     <div class="actions">
-      <button hx-post="/slideshow/up/{{ p.item.id }}" hx-target="#picks" aria-label="Move earlier">←</button>
-      <button hx-post="/slideshow/down/{{ p.item.id }}" hx-target="#picks" aria-label="Move later">→</button>
+      <button hx-post="/slideshow/move" hx-vals='{"id": {{ p.item.id }}, "to": {{ loop.index0 - 1 }}}' hx-target="#picks" aria-label="Move earlier">←</button>
+      <button hx-post="/slideshow/move" hx-vals='{"id": {{ p.item.id }}, "to": {{ loop.index0 + 1 }}}' hx-target="#picks" aria-label="Move later">→</button>
       <button hx-post="/slideshow/remove/{{ p.item.id }}" hx-target="#picks" aria-label="Remove">×</button>
     </div>
   </li>

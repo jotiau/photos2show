@@ -11,6 +11,7 @@ SAME_SCENE = ((14, 60), (18, 10))  # (max phash Hamming distance of 64 bits, max
 IDENTICAL_DIST = 2                  # practically identical images, regardless of capture time
 
 _hash = functools.lru_cache(maxsize=100_000)(imagehash.hex_to_hash)  # parsed once, compared n² times
+_date = functools.lru_cache(maxsize=100_000)(datetime.fromisoformat)
 
 
 def same_scene(a: dict, b: dict) -> bool:
@@ -21,7 +22,7 @@ def same_scene(a: dict, b: dict) -> bool:
         return True
     if not (a["taken_at"] and b["taken_at"]):
         return False
-    gap = abs(datetime.fromisoformat(a["taken_at"]) - datetime.fromisoformat(b["taken_at"])).total_seconds()
+    gap = abs(_date(a["taken_at"]) - _date(b["taken_at"])).total_seconds()
     return any(dist <= max_dist and gap <= max_gap for max_dist, max_gap in SAME_SCENE)
 
 

@@ -72,7 +72,8 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
         if progress:
             progress(i + 1, len(paths))
     present = {str(p) for p in paths}
-    gone = {r["id"] for r in conn.execute("SELECT id, path FROM media") if r["path"] not in present}
+    gone_rows = [r for r in conn.execute("SELECT id, path, thumb, frames FROM media") if r["path"] not in present]
+    gone = {r["id"] for r in gone_rows}
     # SQLite gives a deleted top id to the next new file, so the slideshow must forget gone ids now.
     selection = slideshow.load(root)
     if any(p["id"] in gone for p in selection["picks"]):
@@ -81,6 +82,9 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     update_flags(conn)
     conn.commit()
     conn.close()
+    for r in gone_rows:  # after the commit: no row may point at a deleted thumbnail
+        for name in [r["thumb"], *(r["thumb"].replace(".jpg", f"_f{i}.jpg") for i in range(r["frames"]))]:
+            (thumbs / name).unlink(missing_ok=True)
     return {"total": len(paths), "analysed": analysed, "errors": errors}
 
 

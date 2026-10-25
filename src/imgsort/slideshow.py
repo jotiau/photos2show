@@ -50,20 +50,11 @@ def select(conn, description: str) -> list[dict]:
 
 
 def edit(picks: list[dict], action: str, media_id: int) -> list[dict]:
-    """add / remove / up / down one item; returns a new list."""
-    ids = [p["id"] for p in picks]
+    """add / remove one item (reordering is move()); returns a new list."""
     if action == "add":
-        return picks if media_id in ids else picks + [{"id": media_id, "reason": "added by hand"}]
-    if media_id not in ids:
-        return picks
-    i, picks = ids.index(media_id), list(picks)
-    if action == "remove":
-        del picks[i]
-    elif action in ("up", "down"):
-        j = i - 1 if action == "up" else i + 1
-        if 0 <= j < len(picks):
-            picks[i], picks[j] = picks[j], picks[i]
-    return picks
+        added = any(p["id"] == media_id for p in picks)
+        return picks if added else picks + [{"id": media_id, "reason": "added by hand"}]
+    return [p for p in picks if p["id"] != media_id]
 
 
 def move(picks: list[dict], media_id: int, index: int) -> list[dict]:
