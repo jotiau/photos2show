@@ -1,5 +1,14 @@
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
 <p>{{ picks | length }} photos · about {{ '%.1f' % minutes }} min at 5 s per photo. Add more from the Library detail panel.</p>
+{% if picks | length > 1 %}
+<form class="sort" hx-post="/slideshow/sort" hx-target="#picks" hx-trigger="change">
+  <label for="sort-by">Sort by</label>
+  <select id="sort-by" name="by">
+    <option value="" selected disabled>choose…</option>
+    {% for key, label in sorts.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+  </select>
+</form>
+{% endif %}
 <ol class="picks">
   {% for p in picks %}
   <li>

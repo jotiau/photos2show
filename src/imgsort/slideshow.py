@@ -66,6 +66,35 @@ def edit(picks: list[dict], action: str, media_id: int) -> list[dict]:
     return picks
 
 
+def _number(v) -> float | None:
+    try:  # AI scores are raw LLM output: may be missing or a string
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+# name -> (label, key on the media item, best/newest first)
+SORTS = {
+    "date": ("Date (oldest first)", lambda it: it["taken_at"], False),
+    "date_desc": ("Date (newest first)", lambda it: it["taken_at"], True),
+    "aesthetic": ("Aesthetic (best first)", lambda it: _number((it["ai"] or {}).get("aesthetic")), True),
+    "interest": ("Interest (best first)", lambda it: _number((it["ai"] or {}).get("interest")), True),
+    "quality": ("Technical quality (best first)", lambda it: it["score"], True),
+    "name": ("File name", lambda it: Path(it["path"]).name.lower(), False),
+    "reverse": ("Reverse current order", None, False),
+}
+
+
+def sort(picks: list[dict], items: dict[int, dict], by: str) -> list[dict]:
+    """Reorder picks by one of SORTS; picks without a value keep their order at the end."""
+    _, key, desc = SORTS[by]
+    if key is None:
+        return picks[::-1]
+    known = [p for p in picks if p["id"] in items and key(items[p["id"]]) is not None]
+    rest = [p for p in picks if p not in known]
+    return sorted(known, key=lambda p: key(items[p["id"]]), reverse=desc) + rest
+
+
 def load(root: Path) -> dict:
     f = db.library_dir(root) / "selection.json"
     return json.loads(f.read_text()) if f.exists() else {"description": "", "picks": []}

@@ -39,6 +39,21 @@ def test_edit():
     assert ids(picks) == [1, 2]  # input untouched
 
 
+def test_sort():
+    items = {1: {"taken_at": "2026-08-12", "ai": {"aesthetic": 5, "interest": "9"}, "score": 0.2, "path": "/x/b.jpg"},
+             2: {"taken_at": "2026-08-10", "ai": {"aesthetic": 8}, "score": 0.9, "path": "/x/C.jpg"},
+             3: {"taken_at": None, "ai": None, "score": None, "path": "/x/a.jpg"}}
+    picks = [{"id": i, "reason": ""} for i in (3, 1, 2)]
+    ids = lambda by: [p["id"] for p in slideshow.sort(picks, items, by)]  # noqa: E731
+    assert ids("date") == [2, 1, 3]  # missing values last
+    assert ids("date_desc") == [1, 2, 3]
+    assert ids("aesthetic") == [2, 1, 3]
+    assert ids("interest") == [1, 3, 2]
+    assert ids("quality") == [2, 1, 3]
+    assert ids("name") == [3, 1, 2]
+    assert ids("reverse") == [2, 1, 3]
+
+
 def test_export(described, tmp_path):
     folder, ids = described
     slideshow.save(folder, {"description": "d", "picks": [{"id": ids["video.mp4"], "reason": ""},

@@ -182,7 +182,8 @@ def _picks(request: Request, error: str | None = None) -> HTMLResponse:
     picks = [{"item": it, "reason": p["reason"]}
              for p in slideshow.load(Path(job["folder"]))["picks"] if (it := db.get_media(conn, p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
-        "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60})
+        "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60,
+        "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}})
 
 
 @app.get("/slideshow", response_class=HTMLResponse)
@@ -206,6 +207,18 @@ def select(request: Request, description: str = Form(...)):
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
     slideshow.save(root, {"description": description, "picks": picks})
+    return _picks(request)
+
+
+@app.post("/slideshow/sort", response_class=HTMLResponse)
+def sort(request: Request, by: str = Form(...)):
+    if by not in slideshow.SORTS:
+        raise HTTPException(400)
+    root = Path(job["folder"])
+    conn, selection = db.connect(root), slideshow.load(root)
+    items = {p["id"]: it for p in selection["picks"] if (it := db.get_media(conn, p["id"]))}
+    selection["picks"] = slideshow.sort(selection["picks"], items, by)
+    slideshow.save(root, selection)
     return _picks(request)
 
 

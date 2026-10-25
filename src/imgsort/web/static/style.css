@@ -71,6 +71,7 @@ main.slideshow form { display: flex; flex-direction: column; gap: 6px; }
 main.slideshow form.export { flex-direction: row; flex-wrap: wrap; align-items: center; }
 main.slideshow form.export label { width: 100%; }
 main.slideshow form.export input { flex: 1; min-width: 200px; }
+main.slideshow form.sort { flex-direction: row; align-items: center; }
 main.slideshow button { align-self: flex-start; }
 textarea { font: inherit; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); width: 100%; }
 .picks { padding-left: 2em; display: flex; flex-direction: column; gap: 6px; }

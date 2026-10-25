@@ -54,5 +54,8 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     picks = client.post(f"/slideshow/up/{items['scene_2.jpg']}").text
     assert picks.index("scene_2.jpg") < picks.index("scene_1.jpg") and "3 photos" in picks
     assert "2 photos" in client.post(f"/slideshow/remove/{items['video.mp4']}").text
+    picks = client.post("/slideshow/sort", data={"by": "name"}).text
+    assert picks.index("scene_1.jpg") < picks.index("scene_2.jpg") and "Sort by" in picks
+    assert client.post("/slideshow/sort", data={"by": "nope"}).status_code == 400
     assert "Exported 2 files" in client.post("/slideshow/export", data={"target": str(tmp_path / "show")}).text
     assert sorted(p.name for p in (tmp_path / "show").iterdir())[0].startswith("001_2026-08-11")
