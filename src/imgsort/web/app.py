@@ -14,6 +14,7 @@ from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from imgsort import db, slideshow
 from imgsort.config import default_concurrency
@@ -42,6 +43,10 @@ async def htmx_only(request: Request, call_next):
     if request.method != "GET" and "hx-request" not in request.headers:
         return HTMLResponse("Forbidden", status_code=403)
     return await call_next(request)
+
+
+# DNS rebinding: a website can point its own domain at 127.0.0.1 and then pass the check above.
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 
 
 def _open(name: str) -> None:

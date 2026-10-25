@@ -6,12 +6,15 @@ from fastapi.testclient import TestClient
 from imgsort import testdata
 from imgsort.web import app as web
 
+LOCAL = "http://127.0.0.1"
+
 
 def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     monkeypatch.setenv("IMGSORT_CACHE", str(tmp_path / "cache"))
     folder = testdata.generate(tmp_path / "photos")
-    client = TestClient(web.app, headers={"HX-Request": "true"})
-    assert TestClient(web.app).post("/analyse", data={"parallel": "1"}).status_code == 403  # CSRF guard
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    assert TestClient(web.app, base_url=LOCAL).post("/analyse", data={"parallel": "1"}).status_code == 403  # CSRF guard
+    assert TestClient(web.app, base_url="http://rebound.example").get("/").status_code == 400  # DNS rebinding
 
     assert "Create a project" in client.get("/").text
     assert "Not a folder" in client.post("/projects", data={"name": "x", "folder": str(tmp_path / "nope")}).text
@@ -65,7 +68,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
 
 
 def test_pick_folder(tmp_path, monkeypatch):
-    client = TestClient(web.app, headers={"HX-Request": "true"})
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
     answer, calls = str(tmp_path / "picked"), []
 
     def fake_run(cmd, **kwargs):
@@ -80,7 +83,7 @@ def test_pick_folder(tmp_path, monkeypatch):
     assert resp.text == str(tmp_path / "picked" / "show")
     answer = ""  # cancelled
     assert client.post("/pick-folder", data={"path": ""}).text == ""
-    assert TestClient(web.app).post("/pick-folder").status_code == 403  # CSRF guard
+    assert TestClient(web.app, base_url=LOCAL).post("/pick-folder").status_code == 403  # CSRF guard
 
     def no_display(cmd, **kwargs):
         return web.subprocess.CompletedProcess(cmd, 1, stdout="", stderr="_tkinter.TclError: no display name")
@@ -92,7 +95,7 @@ def test_pick_folder(tmp_path, monkeypatch):
 
 def test_settings(tmp_path, monkeypatch):
     monkeypatch.setenv("IMGSORT_CACHE", str(tmp_path / "cache"))
-    client = TestClient(web.app, headers={"HX-Request": "true"})
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
     assert 'data-theme="auto"' in client.get("/settings").text
     assert client.post("/settings", data={"key": "theme", "value": "pink"}).status_code == 400
     assert client.post("/settings", data={"key": "theme", "value": "dark"}).headers["HX-Refresh"] == "true"
@@ -100,7 +103,7 @@ def test_settings(tmp_path, monkeypatch):
 
 
 def test_pick_folder_linux_uses_desktop_dialog(tmp_path, monkeypatch):
-    client = TestClient(web.app, headers={"HX-Request": "true"})
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
     monkeypatch.setattr(web.sys, "platform", "linux")
     monkeypatch.setattr(web.shutil, "which", lambda name: f"/usr/bin/{name}" if name == "zenity" else None)
     calls, code = [], 0

@@ -8,7 +8,7 @@ from pathlib import Path
 import imagehash
 from PIL import Image
 
-from imgsort import ai, db, dedup, quality, scan
+from imgsort import ai, db, dedup, quality, scan, slideshow
 from imgsort.config import default_concurrency, load_settings
 
 THUMB_EDGE = 400
@@ -72,7 +72,12 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
         if progress:
             progress(i + 1, len(paths))
     present = {str(p) for p in paths}
-    conn.executemany("DELETE FROM media WHERE path = ?", [(p,) for p in known if p not in present])
+    gone = {r["id"] for r in conn.execute("SELECT id, path FROM media") if r["path"] not in present}
+    # SQLite gives a deleted top id to the next new file, so the slideshow must forget gone ids now.
+    selection = slideshow.load(root)
+    if any(p["id"] in gone for p in selection["picks"]):
+        slideshow.save(root, {**selection, "picks": [p for p in selection["picks"] if p["id"] not in gone]})
+    conn.executemany("DELETE FROM media WHERE id = ?", [(i,) for i in gone])
     update_flags(conn)
     conn.commit()
     conn.close()

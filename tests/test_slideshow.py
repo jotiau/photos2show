@@ -27,6 +27,20 @@ def test_select_keeps_only_valid_picks(described, monkeypatch):
     assert "short show" in prompt and "fake caption" in prompt and f"\n{ids['burst_2.jpg']} |" not in prompt
 
 
+def test_rescan_forgets_picks_of_deleted_files(described):
+    folder, ids = described
+    top = max(ids.values())
+    slideshow.save(folder, {"description": "d", "picks": [{"id": ids["scene_1.jpg"], "reason": ""},
+                                                           {"id": top, "reason": ""}]})
+    conn = db.connect(folder)
+    Path(db.get_media(conn, top)["path"]).unlink()
+    analyse_folder(folder)
+    (folder / "zz_new.jpg").write_bytes(Path(db.get_media(conn, ids["scene_2.jpg"])["path"]).read_bytes())
+    analyse_folder(folder)
+    assert {Path(it["path"]).name: it["id"] for it in db.all_media(conn)}["zz_new.jpg"] == top  # id reused
+    assert slideshow.load(folder)["picks"] == [{"id": ids["scene_1.jpg"], "reason": ""}]
+
+
 def test_edit():
     picks = [{"id": 1, "reason": ""}, {"id": 2, "reason": ""}]
     ids = lambda ps: [p["id"] for p in ps]  # noqa: E731
