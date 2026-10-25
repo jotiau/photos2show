@@ -64,8 +64,9 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
   {"caption": "...", "tags": ["beach", "sunset", "people"], "scene": "landscape|people|food|city|...",
    "people_count": 2, "aesthetic": 1-10, "interest": 1-10, "issues": ["closed eyes", "tilted horizon"]}
   ```
-- Use `response_format={"type": "json_object"}` if the server supports it; otherwise parse
-  leniently and retry once.
+- Use `response_format={"type": "json_object"}`; if the server rejects JSON mode, the request is
+  sent again without it and the answer is parsed leniently. An unusable answer (not a JSON object)
+  counts as failed and is retried on the next run.
 - **Two passes:** pass 1 (steps 1–3, local, fast) runs over all files first, because the best
   image of a scene is only known once its neighbours are scanned. Pass 2 then sends the remaining
   images to the LLM in small parallel batches (`AI_CONCURRENCY`, default 2, selectable in the UI and CLI; 4 was 2.4× faster than 1 in the test); each result is saved
@@ -129,7 +130,7 @@ src/imgsort/
   cli.py, smoke.py, testdata.py
   web/
     app.py      # FastAPI routes, background analysis job
-    templates/  # library.html, slideshow.html, partials
+    templates/  # library.html, slideshow.html, settings.html, partials
     static/     # htmx.min.js, style.css
 tests/
 ```
@@ -166,11 +167,11 @@ Reviewed with the user on 2026-10-23.
 |---|---|
 | Endpoint: vision, JSON mode, image size | Resolved – works; JSON mode supported (1 request per image) |
 | Throughput | Resolved – ~30–70 min per ~900-file holiday once, then cached; parallel requests selectable |
-| Selection on a full holiday (~850 candidates, ~60k-token prompt) Resolved – tested on all 857 Norway files: 104 good picks in 294 s, well under the 10-min client timeout |
+| Selection on a full holiday (~850 candidates, ~60k-token prompt) | Resolved – tested on all 857 Norway files: 104 good picks in 294 s, well under the 10-min client timeout |
 | Video dates from mtime off by 1 h | Fixed – date from file name, mtime fallback |
 | AI scores compressed (mostly 6–8) | Accepted – selection works via captions/tags; prompt unchanged |
 | AI results lost if a cache cleaner runs | Fixed – data moved from `~/.cache` to `~/.local/share/imgsort` |
-| No backup of the code | **Open** – user pushes to GitHub (`git push origin main`) |
+| No backup of the code | Resolved – on GitHub (`jotiau/ai-image-sorting`) |
 | Very large folders (5,000+): pairwise dedup is O(n²) | Accepted – minutes at worst, fine for holidays |
 | "Photos of us" without face recognition | Accepted – people count + captions; faces are a future feature |
 | Motion blur with one sharp tile not detected | Accepted – GLM usually lists it under issues |

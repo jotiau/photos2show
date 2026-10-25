@@ -2,7 +2,9 @@ import time
 import weakref
 from pathlib import Path
 
+import numpy as np
 import pytest
+from PIL import Image
 
 from imgsort import db, scan, testdata
 from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
@@ -69,6 +71,21 @@ def test_describe_sends_only_images_worth_it(library, fake_ai):
     assert len(fake_ai) == len(expected)
     assert sorted(n for n, it in items_by_name(folder).items() if it["ai"]) == expected
     assert describe_folder(folder)["described"] == 0  # cached, nothing re-sent
+
+
+def test_video_is_described_from_its_sharpest_frame(library, monkeypatch):
+    folder = library[0]
+    conn = db.connect(folder)
+    conn.execute("UPDATE media SET ai = NULL WHERE kind = 'video'")
+    conn.commit()
+    sharp = Image.fromarray(np.random.default_rng(0).integers(0, 255, (40, 40, 3), dtype=np.uint8))
+    flat = Image.new("RGB", (30, 30), "grey")  # shaky middle of the clip
+    monkeypatch.setattr(scan, "read_video_frames", lambda path: ([sharp, flat, flat], (40, 40)))
+    sent = []
+    monkeypatch.setattr("imgsort.ai.analyse_image", lambda client, s, img: sent.append(img.size) or {"caption": "v"})
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://fake.invalid/v1")
+    assert describe_folder(folder)["described"] == 1
+    assert sent == [(40, 40)]
 
 
 def test_describe_failure_is_reported_and_retried(library, fake_ai, monkeypatch):

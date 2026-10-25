@@ -18,7 +18,7 @@
     <textarea id="description" name="description" rows="4" required
       placeholder="10-minute show for my parents, chronological, mostly landscapes and the two of us, little food">{{ selection.description }}</textarea>
     <button>Select photos</button>
-    <span id="thinking" class="htmx-indicator">GLM is choosing… this can take a minute</span>
+    <span id="thinking" class="htmx-indicator">The AI is choosing… this can take a minute</span>
   </form>
   <div id="picks" hx-get="/slideshow/picks" hx-trigger="load"></div>
   <form class="export" hx-post="/slideshow/export" hx-target="#export-msg">

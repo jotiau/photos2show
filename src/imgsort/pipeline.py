@@ -26,14 +26,18 @@ def _save_thumb(img: Image.Image, dest: Path) -> None:
     t.save(dest, "JPEG", quality=80)
 
 
+def _sharpest(frames: list[Image.Image]) -> tuple[dict, Image.Image]:
+    """(metrics, frame) of the sharpest sampled frame: it represents a video in the UI and for the AI."""
+    return max(((quality.metrics(quality.prepare(f)), f) for f in frames), key=lambda x: x[0]["sharpness"])
+
+
 def analyse_file(path: Path, thumbs: Path) -> dict:
     name = hashlib.sha1(str(path).encode()).hexdigest()[:16]
     if scan.is_video(path):
         frames, (w, h) = scan.read_video_frames(path)
         for i, f in enumerate(frames):
             _save_thumb(f, thumbs / f"{name}_f{i}.jpg")
-        # The sharpest sampled frame represents the video.
-        m, rep = max(((quality.metrics(quality.prepare(f)), f) for f in frames), key=lambda x: x[0]["sharpness"])
+        m, rep = _sharpest(frames)
         kind, taken = "video", scan.file_time(path)
     else:
         rep, taken, (w, h) = scan.read_image(path)
@@ -123,7 +127,7 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
         path = Path(it["path"])
         if it["kind"] == "video":
             frames, _ = scan.read_video_frames(path)
-            img = frames[len(frames) // 2]
+            img = _sharpest(frames)[1]  # the frame the user sees on the card
         else:
             img = scan.read_image(path)[0]
         try:

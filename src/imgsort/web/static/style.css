@@ -36,7 +36,7 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .flags { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 8px; }
 .flag { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: var(--warn); color: #fff; }
 .flag.very_blurry, .flag.too_dark, .flag.too_bright { background: var(--bad); }
-.flag.duplicate, .flag.noai { background: var(--muted); }
+.flag.duplicate, .flag.noai { background: #6b6b66; }  /* fixed: white on dark mode's light --muted is unreadable */
 .flag.okay { background: var(--ok); }
 .empty { color: var(--muted); }
 #detail:empty { display: none; }
@@ -90,4 +90,4 @@ form button.browse { background: var(--panel); color: var(--text); border-color:
 #lightbox img, #lightbox video { display: block; max-width: 95vw; max-height: 95vh; object-fit: contain; }
 #lightbox img { cursor: zoom-out; }
 .bar form { display: flex; gap: 6px; align-items: center; }
-.settings { display: grid; grid-template-columns: max-content auto; gap: 8px 16px; align-items: center; }
+.settings { display: grid; grid-template-columns: max-content auto; gap: 8px 16px; align-items: center; justify-items: start; }

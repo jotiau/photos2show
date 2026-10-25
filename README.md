@@ -132,7 +132,8 @@ Tips for local models:
 ## How to use
 
 1. **Create a project**: one per trip. Click *New project*, enter a name (e.g. "Norway 2026") and
-   the folder with the photos and videos (subfolders are included), then press *Create & analyse*.
+   the folder with the photos and videos (type the path or pick it with *Browse…*; subfolders are
+   included), then press *Create & analyse*.
 2. **Let it analyse** (progress in the *Library* tab):
    - *Scanning*: local checks for blur, exposure, contrast, monotony and same-scene shots. Fast.
    - *Describing with AI*: each remaining photo goes to the model, 2 at a time by default
@@ -146,6 +147,8 @@ Tips for local models:
 
 Each project keeps one slideshow; to make a second show from the same trip, export the first one,
 then select again.
+
+The *Settings* tab has the colour theme (auto follows your system, or light / dark).
 
 ### How long does it take?
 
