@@ -1,9 +1,20 @@
 [project]
 name = "imgsort"
 version = "0.1.0"
-description = "Presort holiday images with AI and pick a slideshow"
+description = "Sort out bad holiday photos and build a slideshow by describing it, with any OpenAI-compatible vision model"
 readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
+keywords = ["photos", "slideshow", "image-quality", "llm", "vision", "ollama", "photo-culling"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics",
+]
 dependencies = [
     "fastapi>=0.161.0",
     "imagehash>=4.3.2",
@@ -16,6 +27,10 @@ dependencies = [
     "python-multipart>=0.0.32",
     "uvicorn>=0.54.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/jotiau/ai-image-sorting"
+Issues = "https://github.com/jotiau/ai-image-sorting/issues"
 
 [project.scripts]
 imgsort-smoke = "imgsort.smoke:main"

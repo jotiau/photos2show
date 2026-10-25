@@ -1,50 +1,109 @@
 # ai-image-sorting
-quick tool to presort images with the help of ai
 
-Drop your holiday photos and videos into a folder, let the tool check their quality and describe
-them with an AI model, then describe the slideshow you want and get a sorted folder.
+**Turn a folder of 900 holiday photos into a slideshow by describing the show you want.**
 
-## Setup
+[![Tests](https://github.com/jotiau/ai-image-sorting/actions/workflows/tests.yml/badge.svg)](https://github.com/jotiau/ai-image-sorting/actions/workflows/tests.yml)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)
+
+You come back from a trip with hundreds of photos and videos: blurry ones, dark ones, ten shots
+of the same fjord. This tool sorts out the technical rejects on your own machine, has an AI model
+describe the rest, and then builds a slideshow from a plain sentence like:
+
+> *"10-minute show for my parents, chronological, mostly landscapes and the two of us, little food"*
+
+You get a new folder with numbered copies (`001_2026-08-11_church-fog.jpg`, `002_…`) ready for any
+slideshow app, TV or photo frame. **Your originals are never moved or changed.**
+
+It works with any OpenAI-compatible vision model: a hosted API, or a local model via Ollama or
+LM Studio if you'd rather keep your photos on your own computer.
+
+## Features
+
+**Quality checks, offline and fast**
+- Finds blurry, too dark, too bright, low-contrast and monotone shots (plain sky, a wall) with
+  classic image analysis; no AI, no upload. Sharp subjects in front of a blurred background count as sharp.
+- Groups same-scene shots (bursts, "one more just in case") and keeps the best of each group.
+- Very blurry photos and the weaker shots of a scene are never sent to the AI, which saves time and money.
+
+**AI descriptions**
+- A caption, content tags, scene type, people count, scores for aesthetic and interest, and visible
+  issues (closed eyes, tilted horizon) for every photo worth keeping.
+- Videos are covered too: frames at 10 %, 50 % and 90 % of the clip, the sharpest one represents it.
+- Runs 1–8 requests in parallel, shows results live, and resumes where it stopped after an interruption.
+- Everything is cached: re-runs only process new or changed files.
+
+**Slideshow from a description**
+- Describe length, audience, order and content in your own words; the model picks and orders the
+  photos and says why it chose each one.
+- Fine-tune by hand: reorder, remove, add photos from the library, or sort by date, aesthetic,
+  interest, technical quality or file name.
+- Export numbered copies plus a `selection.json` with your description and the reason for every pick.
+
+**Library browser**
+- Thumbnail grid with filters by quality flag and tag; a detail panel with all metrics, the other
+  shots of the same scene and the AI description.
+- One project per trip; switch between them in the header.
+
+**Your photos stay yours**
+- Runs locally in your browser; projects, AI results and thumbnails live in a data folder, never in your photo folder.
+- Only a downscaled copy (1024 px) of each photo goes to the AI endpoint you configure.
+
+## Quick start
+
+You need [uv](https://docs.astral.sh/uv/getting-started/installation/) (installs Python for you)
+and access to a vision-capable AI model (see [Choosing a model](#choosing-a-model)).
 
 ```bash
+git clone https://github.com/jotiau/ai-image-sorting.git
+cd ai-image-sorting
 uv sync
-cp .env.example .env   # fill in your OpenAI-compatible endpoint, key and model
+cp .env.example .env      # then enter your endpoint, key and model
+uv run imgsort-smoke      # sends one test picture to check that the model answers
+uv run imgsort-web        # opens http://127.0.0.1:8000 in your browser
 ```
 
-`.env` may reference existing environment variables, e.g. `OPENAI_BASE_URL=${BLUM_BASE_URL}`.
+Everything is plain Python, so it should run on Linux, macOS and Windows (on Windows use `copy`
+instead of `cp`). Day-to-day use has been tested on Linux so far; reports from other systems are very welcome.
+
+## Choosing a model
+
+Any server that speaks the OpenAI chat API and accepts images works. Set three values in `.env`:
+
+| Where the model runs | `OPENAI_BASE_URL` | `OPENAI_API_KEY` | `MODEL` |
+|---|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | your key | a vision model of your choice |
+| [Ollama](https://ollama.com) (local) | `http://localhost:11434/v1` | leave empty | e.g. a Qwen-VL or Gemma 3 model you pulled |
+| [LM Studio](https://lmstudio.ai) (local) | `http://localhost:1234/v1` | leave empty | the model id LM Studio shows |
+| Self-hosted (vLLM, SGLang, …) | your server's `/v1` URL | your key, if any | as the server lists it |
+
+`imgsort-smoke` lists the model ids your server offers, so you can copy the right one.
+Development used a self-hosted GLM-5.3 Flash; other models should work but may describe photos
+differently. If you try one, please share how it went in an issue.
+
+`.env` may reference existing environment variables, e.g. `OPENAI_BASE_URL=${MY_BASE_URL}`.
 
 ## How to use
 
-Start the UI; it opens http://127.0.0.1:8000 in your browser (add `--no-browser` to skip that):
+1. **Create a project**: one per trip. Click *New project*, enter a name (e.g. "Norway 2026") and
+   the folder with the photos and videos (subfolders are included), then press *Create & analyse*.
+2. **Let it analyse** (progress in the *Library* tab):
+   - *Scanning*: local checks for blur, exposure, contrast, monotony and same-scene shots. Fast.
+   - *Describing with AI*: each remaining photo goes to the model, 2 at a time by default
+     (choose 1–8 next to *Analyse again*). Captions and tags appear live; skipped photos are marked
+     *no AI*. Interrupted? Press *Analyse again* and it continues where it stopped.
+3. **Browse the Library**: filter by quality flag, click a card for details, click a tag to filter by it.
+4. **Build the slideshow** in the *Slideshow* tab: describe the show and press *Select photos*.
+   Reorder with ↑ ↓, remove with ×, sort the whole list, or add photos via *Add to slideshow* in the
+   Library detail panel.
+5. **Export**: choose a new folder outside the photo folder and press *Export*.
 
-```bash
-uv run imgsort-web
-```
+Each project keeps one slideshow; to make a second show from the same trip, export the first one,
+then select again.
 
-1. **Create a project** – one per holiday. Click *New project*, enter a name (e.g. "Norway 2026")
-   and the folder with the photos/videos (subfolders are included), press *Create & analyse*.
-   Switch between holidays with the project dropdown in the header.
-2. **Analysis runs in two passes** (progress in the *Library* tab):
-   - *Scanning*: local checks for blur, exposure, contrast, monotony, same-scene shots; fast.
-   - *Describing with AI*: each remaining photo goes to the model 2 at a time by default (choose 1–8 next to *Analyse again*);
-     captions and tags appear live. Very blurry photos and the non-best shots of a scene are
-     never sent (marked *no AI*). Interrupted? Press *Analyse again* – it continues where it stopped.
-3. **Browse the Library**: filter by quality flag or click a card to see details, all metrics,
-   other shots of the same scene and the AI description. Click a tag to filter by it.
-4. **Slideshow tab**: describe the show in your own words, e.g.
-   *"10-minute show for my parents, chronological, mostly landscapes and the two of us, little food"*,
-   and press *Select photos*. The model picks and orders photos and says why.
-   Reorder with ↑ ↓, remove with ×, add photos via *Add to slideshow* in the Library detail panel.
-5. **Export**: choose a new folder outside the photo folder and press *Export*. You get
-   `001_2026-08-11_church-fog.jpg`, `002_…` in show order plus `selection.json`.
-   Originals are never moved or modified.
+### How long does it take?
 
-Each project keeps one slideshow selection; to make a second show from the same holiday,
-export the first one, then select again.
-
-## Runtime
-
-For a holiday of ~900 photos and videos (laptop + self-hosted GLM endpoint):
+For a trip of ~900 photos and videos (laptop + self-hosted GLM endpoint):
 
 | Step | Time |
 |---|---|
@@ -54,19 +113,54 @@ For a holiday of ~900 photos and videos (laptop + self-hosted GLM endpoint):
 | AI descriptions, 1 at a time | ~70 min (~5 s per file) |
 | Slideshow selection | ~5 min |
 
-AI descriptions are made once per file and cached; re-runs only process new or changed files.
+AI descriptions are made once per file; later runs take seconds.
+
+## Supported files
+
+JPEG photos (`.jpg`, `.jpeg`) and MP4 videos. Dates come from the photo's EXIF data; for videos
+from phone-style file names (`20260725_130945.mp4`), else the file date. HEIC and RAW are on the roadmap.
+
+## Configuration
+
+Set in `.env` or as environment variables:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `OPENAI_BASE_URL` | – (required) | OpenAI-compatible endpoint, e.g. `http://localhost:11434/v1` |
+| `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth |
+| `MODEL` | `glm-5.3-flash` | model id as the server lists it |
+| `AI_CONCURRENCY` | `2` | parallel AI requests (1 = strictly one by one); also selectable in the UI |
+| `IMGSORT_CACHE` | `~/.local/share/imgsort` | data folder for projects, AI results and thumbnails |
+| `IMGSORT_PORT` | `8000` | port of the web UI |
 
 ## Command line
 
 ```bash
-uv run imgsort-scan ~/Pictures/holiday     # both analysis passes, printed as a table
-uv run imgsort-smoke [photo.jpg]           # test the AI endpoint with one image
-uv run imgsort-testdata demo_images        # synthetic test photos with known defects
-uv run pytest
+uv run imgsort-web [--no-browser]              # the web UI
+uv run imgsort-scan ~/Pictures/trip [--parallel N]  # both analysis passes, printed as a table
+uv run imgsort-smoke [photo.jpg]               # test the AI endpoint with one image
+uv run imgsort-testdata demo_images            # synthetic test photos with known defects
 ```
 
-Settings (`.env` or environment): `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL`,
-`AI_CONCURRENCY` (default 2; 1 = strictly one by one; selectable in the UI and via `imgsort-scan --parallel N`), `IMGSORT_CACHE` (data folder, default `~/.local/share/imgsort`), `IMGSORT_PORT` (default 8000).
-Projects, AI results and thumbnails live in that data folder, never in your photo folder.
+## Roadmap
 
-See [PLAN.md](PLAN.md) for the roadmap.
+Planned, roughly in this order of interest:
+
+- HEIC and RAW support
+- Several saved slideshows per project; projects spanning several folders; drag & drop reordering
+- Face detection and grouping ("everyone appears at least once")
+- Map and location grouping from GPS
+- Local semantic search (CLIP) and smarter duplicate grouping
+- Deeper video handling (scene detection, picking clips)
+
+[PLAN.md](PLAN.md) has the design notes and decisions behind the current version.
+
+## Contributing
+
+Bug reports, model experiences and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+The tests run without an AI endpoint: `uv run pytest`.
+
+## License
+
+[GPL-3.0](LICENSE). You may use, change and share this tool; if you distribute a modified
+version, you must publish its source under the same license.
