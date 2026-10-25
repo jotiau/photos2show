@@ -1,6 +1,6 @@
 # ai-image-sorting
 
-**Turn a folder of 900 holiday photos into a slideshow by describing the show you want.**
+**Turn a folder of 1000 holiday photos into a slideshow by describing the show you want.**
 
 [![Tests](https://github.com/jotiau/ai-image-sorting/actions/workflows/tests.yml/badge.svg)](https://github.com/jotiau/ai-image-sorting/actions/workflows/tests.yml)
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
@@ -12,7 +12,7 @@ describe the rest, and then builds a slideshow from a plain sentence like:
 
 > *"10-minute show for my parents, chronological, mostly landscapes and the two of us, little food"*
 
-You get a new folder with numbered copies (`001_2026-08-11_church-fog.jpg`, `002_…`) ready for any
+You get a new folder with numbered copies (`001_2026-08-11_landscape.jpg`, `002_…`) ready for any
 slideshow app, TV or photo frame. **Your originals are never moved or changed.**
 
 It works with any OpenAI-compatible vision model: a hosted API, or a local model via Ollama or
