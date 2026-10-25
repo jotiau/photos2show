@@ -42,6 +42,7 @@ imgsort-testdata = "imgsort.testdata:main"
 dev = [
     "httpx>=0.28.1",
     "pytest>=8",
+    "ruff>=0.17.2",
 ]
 
 [build-system]

@@ -192,7 +192,7 @@ def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
     while not start.is_dir():
         start = start.parent
     cmd = _folder_dialog(start)
-    done = subprocess.run(cmd, capture_output=True, text=True)
+    done = subprocess.run(cmd, capture_output=True, text=True, check=False)
     cancelled = done.returncode == 1 and cmd[0] != sys.executable  # zenity/kdialog exit 1 on cancel
     if done.returncode and not cancelled:
         reason = (done.stderr.strip().splitlines() or ["unknown error"])[-1]
