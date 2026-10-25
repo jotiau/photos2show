@@ -29,5 +29,19 @@
   </form>
 {% endif %}
 </main>
+<dialog id="lightbox"></dialog>
+<script>
+  // Picks are swapped in by htmx, so listen on the document. Click the enlarged photo, outside it or Esc to close.
+  const box = document.getElementById("lightbox");
+  document.addEventListener("click", e => {
+    const img = e.target.closest(".picks img");
+    if (img) {
+      box.innerHTML = "video" in img.dataset
+        ? `<video src="${img.dataset.full}" controls autoplay></video>` : `<img src="${img.dataset.full}" alt="">`;
+      box.showModal();
+    } else if (e.target === box || e.target.matches("#lightbox img")) box.close();
+  });
+  box.addEventListener("close", () => box.innerHTML = "");
+</script>
 </body>
 </html>

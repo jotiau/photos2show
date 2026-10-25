@@ -12,7 +12,8 @@
 <ol class="picks">
   {% for p in picks %}
   <li>
-    <img src="/thumb/{{ p.item.id }}" alt="" loading="lazy">
+    <img src="/thumb/{{ p.item.id }}" alt="" loading="lazy" title="Click to enlarge"
+         data-full="/original/{{ p.item.id }}"{% if p.item.kind == 'video' %} data-video{% endif %}>
     <div>
       <strong>#{{ p.item.id }} {{ p.item.path | basename }}</strong>{% if p.item.kind == 'video' %} ▶{% endif %}
       <div class="meta">{{ p.reason }}</div>

@@ -66,7 +66,7 @@ header details form { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;
 select { font: inherit; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
 .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 16px 0; }
 .bar .path { color: var(--muted); word-break: break-all; }
-main.slideshow { flex-direction: column; align-items: stretch; max-width: 900px; }
+main.slideshow { flex-direction: column; align-items: stretch; max-width: 1100px; }
 main.slideshow form { display: flex; flex-direction: column; gap: 6px; }
 main.slideshow form.export { flex-direction: row; flex-wrap: wrap; align-items: center; }
 main.slideshow form.export label { width: 100%; }
@@ -76,7 +76,12 @@ main.slideshow button { align-self: flex-start; }
 textarea { font: inherit; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); width: 100%; }
 .picks { padding-left: 2em; display: flex; flex-direction: column; gap: 6px; }
 .picks li { display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px; }
-.picks img { width: 96px; aspect-ratio: 4/3; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.picks img { width: 320px; max-width: 45%; aspect-ratio: 4/3; object-fit: contain; background: #0002;
+             border-radius: 4px; flex-shrink: 0; cursor: zoom-in; }
+#lightbox { padding: 0; border: 0; background: none; max-width: 95vw; max-height: 95vh; }
+#lightbox::backdrop { background: #000d; }
+#lightbox img, #lightbox video { display: block; max-width: 95vw; max-height: 95vh; object-fit: contain; }
+#lightbox img { cursor: zoom-out; }
 .picks li > div:nth-child(2) { flex: 1; min-width: 0; }
 .picks .meta { color: var(--muted); font-size: 12px; }
 .picks .actions { display: flex; gap: 4px; }
