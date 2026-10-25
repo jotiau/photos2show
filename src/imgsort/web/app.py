@@ -1,6 +1,8 @@
 """Local web UI: holiday projects, analysis, browsing, slideshow selection and export."""
+import argparse
 import os
 import threading
+import webbrowser
 from html import escape
 from pathlib import Path
 
@@ -228,6 +230,12 @@ def edit(request: Request, action: str, media_id: int):
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(prog="imgsort-web", description="Start the local imgsort web UI.")
+    parser.add_argument("--no-browser", action="store_true", help="don't open the UI in the browser on start")
+    args = parser.parse_args()
     port = int(os.environ.get("IMGSORT_PORT", "8000"))
-    print(f"imgsort UI on http://127.0.0.1:{port}")
+    url = f"http://127.0.0.1:{port}"
+    print(f"imgsort UI on {url}")
+    if not args.no_browser:
+        threading.Timer(1.0, webbrowser.open, [url]).start()  # give uvicorn a moment to bind the port
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")

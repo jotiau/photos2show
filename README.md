@@ -15,7 +15,7 @@ cp .env.example .env   # fill in your OpenAI-compatible endpoint, key and model
 
 ## How to use
 
-Start the UI and open http://127.0.0.1:8000:
+Start the UI; it opens http://127.0.0.1:8000 in your browser (add `--no-browser` to skip that):
 
 ```bash
 uv run imgsort-web
