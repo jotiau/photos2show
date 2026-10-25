@@ -43,6 +43,36 @@
     } else if (e.target === box || e.target.matches("#lightbox img")) box.close();
   });
   box.addEventListener("close", () => box.innerHTML = "");
+
+  // Drag and drop: tiles move live while dragging; on drop the new position is saved, on cancel the server order is reloaded.
+  let dragged = null, dropped = false;
+  document.addEventListener("dragstart", e => {
+    dragged = e.target.closest(".picks li");
+    if (!dragged) return;
+    dropped = false;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dragged.dataset.id);  // Firefox needs data to start a drag
+    dragged.classList.add("dragging");
+  });
+  document.addEventListener("dragover", e => {
+    if (!dragged || !e.target.closest(".picks")) return;
+    e.preventDefault();
+    const li = e.target.closest(".picks li");
+    if (!li || li === dragged) return;
+    const r = li.getBoundingClientRect();
+    li.parentNode.insertBefore(dragged, e.clientX > r.left + r.width / 2 ? li.nextSibling : li);
+  });
+  document.addEventListener("drop", e => {
+    if (dragged && e.target.closest(".picks")) { e.preventDefault(); dropped = true; }
+  });
+  document.addEventListener("dragend", () => {
+    if (!dragged) return;
+    dragged.classList.remove("dragging");
+    const to = [...dragged.parentNode.children].indexOf(dragged);
+    if (dropped) htmx.ajax("POST", "/slideshow/move", {target: "#picks", values: {id: dragged.dataset.id, to}});
+    else htmx.ajax("GET", "/slideshow/picks", {target: "#picks"});
+    dragged = null;
+  });
 </script>
 </body>
 </html>
