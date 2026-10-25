@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from imgsort import db, testdata
+from imgsort import db, scan, testdata
 from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 
@@ -115,6 +115,14 @@ def test_relative_path_keeps_results_and_missing_folder_is_refused(library, monk
     with pytest.raises(FileNotFoundError):
         analyse_folder(folder / "unplugged")
     assert items_by_name(folder)  # nothing deleted
+
+
+def test_file_vanishing_during_scan_is_reported_not_fatal(library, monkeypatch):
+    folder = library[0]
+    found = scan.find_media
+    monkeypatch.setattr(scan, "find_media", lambda root: found(root) + [root / "synced_away.jpg"])
+    summary = analyse_folder(folder)
+    assert summary["analysed"] == 0 and summary["errors"][0].startswith("synced_away.jpg: ")
 
 
 def test_rescan_uses_cache_and_drops_removed_files(library):

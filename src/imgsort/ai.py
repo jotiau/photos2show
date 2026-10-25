@@ -34,12 +34,15 @@ def encode_image(img: Image.Image, edge: int = LLM_EDGE) -> str:
 def parse_json(text: str) -> dict:
     """Parse a JSON object, tolerating markdown fences or surrounding prose."""
     try:
-        return json.loads(text)
+        result = json.loads(text)
     except json.JSONDecodeError:
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if not match:
             raise
-        return json.loads(match.group(0))
+        result = json.loads(match.group(0))
+    if not isinstance(result, dict):  # e.g. [{...}]: would be cached and break every later .get()
+        raise ValueError(f"expected a JSON object, got {type(result).__name__}")
+    return result
 
 
 def make_client(settings: Settings) -> OpenAI:

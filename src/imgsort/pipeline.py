@@ -59,13 +59,13 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     known = {r["path"]: (r["size"], r["mtime"]) for r in conn.execute("SELECT path, size, mtime FROM media")}
     errors, analysed = [], 0
     for i, path in enumerate(paths):
-        st = path.stat()
-        if known.get(str(path)) != (st.st_size, st.st_mtime):
-            try:
-                row = analyse_file(path, thumbs)
-            except Exception as e:  # one broken file must not stop the whole scan
-                errors.append(f"{path.name}: {e}")
-            else:
+        try:
+            st = path.stat()  # inside: the file may vanish during the scan (phone sync)
+            row = analyse_file(path, thumbs) if known.get(str(path)) != (st.st_size, st.st_mtime) else None
+        except Exception as e:  # one broken file must not stop the whole scan
+            errors.append(f"{path.name}: {e}")
+        else:
+            if row:
                 conn.execute(UPSERT, [row[c] for c in COLUMNS])
                 conn.commit()
                 analysed += 1
