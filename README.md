@@ -122,7 +122,7 @@ AI_CONCURRENCY=1
 
 Tips for local models:
 - **Context length matters for the slideshow.** The selection step sends one line per photo to the
-  model, which is roughly 20–40k tokens for a trip of 900 files. With the small default context of
+  model, which is roughly 20–40k tokens for a trip of 1000 files. With the small default context of
   Ollama or LM Studio, the start of the list is cut off silently. Set 32k or more.
 - **Start with `AI_CONCURRENCY=1`.** A single local GPU rarely gets faster with parallel requests;
   raise it only if your server is set up for parallel slots (`OLLAMA_NUM_PARALLEL` in Ollama).
@@ -149,15 +149,15 @@ then select again.
 
 ### How long does it take?
 
-For a trip of ~900 photos and videos (laptop + self-hosted GLM endpoint):
+For a trip of ~1000 photos and videos (laptop + self-hosted GLM endpoint):
 
 | Step | Time |
 |---|---|
 | Local scan (blur, exposure, repeats) | ~2–3 min first run, seconds afterwards |
-| AI descriptions, 2 parallel (default) | ~45 min (~3 s per file) |
-| AI descriptions, 4 parallel | ~30 min (~2 s per file) |
-| AI descriptions, 1 at a time | ~70 min (~5 s per file) |
-| Slideshow selection | ~5 min |
+| AI descriptions, 2 parallel (default) | ~50 min (~3 s per file) |
+| AI descriptions, 4 parallel | ~33 min (~2 s per file) |
+| AI descriptions, 1 at a time | ~80 min (~5 s per file) |
+| Slideshow selection | ~5–6 min |
 
 AI descriptions are made once per file; later runs take seconds.
 
