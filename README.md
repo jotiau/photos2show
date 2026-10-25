@@ -83,6 +83,52 @@ differently. If you try one, please share how it went in an issue.
 
 `.env` may reference existing environment variables, e.g. `OPENAI_BASE_URL=${MY_BASE_URL}`.
 
+### Local model examples
+
+These are vision models that run on a single consumer GPU or a recent Mac. They haven't been
+tested with this tool yet, so treat them as starting points:
+
+| Model | Ollama | Rough memory | Notes |
+|---|---|---|---|
+| Qwen2.5-VL 7B | `qwen2.5vl:7b` | ~6 GB | good all-rounder, follows the JSON format well |
+| Qwen3-VL 8B | `qwen3-vl:8b` | ~6 GB | newer Qwen, more detailed captions |
+| Gemma 3 12B | `gemma3:12b` | ~9 GB | good descriptions; `gemma3:4b` for small GPUs |
+| MiniCPM-V 8B | `minicpm-v:8b` | ~6 GB | fast, fine for tagging |
+| Llama 3.2 Vision 11B | `llama3.2-vision:11b` | ~8 GB | solid, slower than the ones above |
+
+**Ollama**
+
+```bash
+ollama pull qwen2.5vl:7b
+OLLAMA_CONTEXT_LENGTH=32768 ollama serve   # larger context for the slideshow step, see below
+```
+
+```ini
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=
+MODEL=qwen2.5vl:7b
+AI_CONCURRENCY=1
+```
+
+**LM Studio**: download a vision model (e.g. *Qwen2.5-VL-7B-Instruct*, marked with an eye icon),
+load it with a context length of 32k or more, and start the server in the *Developer* tab.
+
+```ini
+OPENAI_BASE_URL=http://localhost:1234/v1
+OPENAI_API_KEY=
+MODEL=qwen2.5-vl-7b-instruct    # the id LM Studio shows; imgsort-smoke lists it too
+AI_CONCURRENCY=1
+```
+
+Tips for local models:
+- **Context length matters for the slideshow.** The selection step sends one line per photo to the
+  model, which is roughly 20–40k tokens for a trip of 900 files. With the small default context of
+  Ollama or LM Studio, the start of the list is cut off silently. Set 32k or more.
+- **Start with `AI_CONCURRENCY=1`.** A single local GPU rarely gets faster with parallel requests;
+  raise it only if your server is set up for parallel slots (`OLLAMA_NUM_PARALLEL` in Ollama).
+- **Expect it to be slower than the timings below** on a laptop GPU; a 7–8B model on a mid-range
+  GPU typically needs a few seconds per photo, CPU-only can take a minute or more.
+
 ## How to use
 
 1. **Create a project**: one per trip. Click *New project*, enter a name (e.g. "Norway 2026") and
