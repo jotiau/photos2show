@@ -6,15 +6,15 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from imgsort import db, scan, testdata
-from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
+from photos2show import db, scan, testdata
+from photos2show.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 
 @pytest.fixture(scope="module")
 def library(tmp_path_factory):
     folder = testdata.generate(tmp_path_factory.mktemp("photos"))
     mp = pytest.MonkeyPatch()
-    mp.setenv("IMGSORT_CACHE", str(tmp_path_factory.mktemp("cache")))
+    mp.setenv("PHOTOS2SHOW_CACHE", str(tmp_path_factory.mktemp("cache")))
     summary = analyse_folder(folder)
     yield folder, summary
     mp.undo()
@@ -82,7 +82,7 @@ def test_video_is_described_from_its_sharpest_frame(library, monkeypatch):
     flat = Image.new("RGB", (30, 30), "grey")  # shaky middle of the clip
     monkeypatch.setattr(scan, "read_video_frames", lambda path: ([sharp, flat, flat], (40, 40)))
     sent = []
-    monkeypatch.setattr("imgsort.ai.analyse_image", lambda client, s, img: sent.append(img.size) or {"caption": "v"})
+    monkeypatch.setattr("photos2show.ai.analyse_image", lambda client, s, img: sent.append(img.size) or {"caption": "v"})
     monkeypatch.setenv("OPENAI_BASE_URL", "http://fake.invalid/v1")
     assert describe_folder(folder)["described"] == 1
     assert sent == [(40, 40)]
@@ -93,10 +93,10 @@ def test_describe_failure_is_reported_and_retried(library, fake_ai, monkeypatch)
     conn = db.connect(folder)
     conn.execute("UPDATE media SET ai = NULL WHERE path LIKE '%scene_1.jpg'")
     conn.commit()
-    monkeypatch.setattr("imgsort.ai.analyse_image", lambda *a: 1 / 0)
+    monkeypatch.setattr("photos2show.ai.analyse_image", lambda *a: 1 / 0)
     assert describe_folder(folder) == {"described": 0, "errors": ["scene_1.jpg: division by zero"]}
     assert items_by_name(folder)["scene_1.jpg"]["ai"] is None
-    monkeypatch.setattr("imgsort.ai.analyse_image", lambda *a: {"caption": "retry"})
+    monkeypatch.setattr("photos2show.ai.analyse_image", lambda *a: {"caption": "retry"})
     assert describe_folder(folder)["described"] == 1
     assert items_by_name(folder)["scene_1.jpg"]["ai"] == {"caption": "retry"}
 
@@ -112,7 +112,7 @@ def test_failed_requests_do_not_keep_images_in_memory(library, fake_ai, monkeypa
         refs.append(weakref.ref(img))
         raise ConnectionError("server down")
 
-    monkeypatch.setattr("imgsort.ai.analyse_image", failing)
+    monkeypatch.setattr("photos2show.ai.analyse_image", failing)
     alive = []
 
     def progress(done, total):

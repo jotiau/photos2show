@@ -1,5 +1,5 @@
 [project]
-name = "imgsort"
+name = "photos2show"
 version = "0.1.0"
 description = "Sort out bad holiday photos and build a slideshow by describing it, with any OpenAI-compatible vision model"
 readme = "README.md"
@@ -29,14 +29,14 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jotiau/ai-image-sorting"
-Issues = "https://github.com/jotiau/ai-image-sorting/issues"
+Homepage = "https://github.com/jotiau/photos2show"
+Issues = "https://github.com/jotiau/photos2show/issues"
 
 [project.scripts]
-imgsort-smoke = "imgsort.smoke:main"
-imgsort-scan = "imgsort.cli:main"
-imgsort-web = "imgsort.web.app:main"
-imgsort-testdata = "imgsort.testdata:main"
+photos2show-smoke = "photos2show.smoke:main"
+photos2show-scan = "photos2show.cli:main"
+photos2show-web = "photos2show.web.app:main"
+photos2show-testdata = "photos2show.testdata:main"
 
 [dependency-groups]
 dev = [

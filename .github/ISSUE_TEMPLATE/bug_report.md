@@ -13,6 +13,6 @@ labels: bug
 - AI server and model (e.g. Ollama + gemma3, OpenAI + …):
 - Number of photos / videos (roughly):
 
-**Output of `uv run imgsort-smoke`** (remove your API key if it shows up)
+**Output of `uv run photos2show-smoke`** (remove your API key if it shows up)
 ```
 ```

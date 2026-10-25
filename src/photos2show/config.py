@@ -38,5 +38,13 @@ def cache_root() -> Path:
     A data dir, not ~/.cache: the AI results cost ~30-70 min per holiday to recreate.
     """
     load_dotenv()
-    default = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "imgsort"
-    return Path(os.environ.get("IMGSORT_CACHE", default))
+    data = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))
+    default = data / "photos2show"
+    if not default.exists() and (data / "imgsort").exists():
+        default = data / "imgsort"  # data from before the rename to photos2show stays in use
+    return Path(env("CACHE", default))
+
+
+def env(name: str, default):
+    """PHOTOS2SHOW_<name>, or IMGSORT_<name> as set up before the rename."""
+    return os.environ.get(f"PHOTOS2SHOW_{name}", os.environ.get(f"IMGSORT_{name}", default))

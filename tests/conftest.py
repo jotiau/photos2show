@@ -12,5 +12,5 @@ def fake_ai(monkeypatch):
         return {"caption": "fake caption", "tags": ["beach", "sunset"], "scene": "landscape",
                 "people_count": 0, "aesthetic": 7, "interest": 6, "issues": []}
 
-    monkeypatch.setattr("imgsort.ai.analyse_image", analyse_image)
+    monkeypatch.setattr("photos2show.ai.analyse_image", analyse_image)
     return calls

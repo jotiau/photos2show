@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from imgsort.scan import file_time
+from photos2show.scan import file_time
 
 
 def test_file_time_prefers_name_over_mtime(tmp_path):

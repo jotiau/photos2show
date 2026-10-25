@@ -6,7 +6,7 @@ import re
 from openai import BadRequestError, OpenAI
 from PIL import Image, ImageOps
 
-from imgsort.config import Settings
+from photos2show.config import Settings
 
 LLM_EDGE = 1024
 

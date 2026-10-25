@@ -1,4 +1,4 @@
-from imgsort.dedup import same_scene
+from photos2show.dedup import same_scene
 
 BASE = "0" * 16
 

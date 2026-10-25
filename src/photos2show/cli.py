@@ -1,15 +1,15 @@
-"""Command line: imgsort-scan FOLDER [--parallel N] prints the analysis as a table."""
+"""Command line: photos2show-scan FOLDER [--parallel N] prints the analysis as a table."""
 import argparse
 import sys
 from pathlib import Path
 
-from imgsort import db
-from imgsort.config import default_concurrency
-from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
+from photos2show import db
+from photos2show.config import default_concurrency
+from photos2show.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="imgsort-scan", description="Scan and describe a photo folder.")
+    parser = argparse.ArgumentParser(prog="photos2show-scan", description="Scan and describe a photo folder.")
     parser.add_argument("folder", type=Path)
     parser.add_argument("--parallel", type=int, choices=range(1, 17), metavar="N", default=default_concurrency(),
                         help="parallel AI requests, 1-16 (default: %(default)s, from AI_CONCURRENCY)")

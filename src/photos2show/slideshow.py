@@ -4,8 +4,8 @@ import re
 import shutil
 from pathlib import Path
 
-from imgsort import ai, db
-from imgsort.config import load_settings
+from photos2show import ai, db
+from photos2show.config import load_settings
 
 SECONDS_PER_PHOTO = 5
 

@@ -16,12 +16,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from imgsort import db, slideshow
-from imgsort.config import default_concurrency
-from imgsort.pipeline import analyse_folder, describe_folder, skip_ai_reason
+from photos2show import db, slideshow
+from photos2show.config import default_concurrency, env
+from photos2show.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 HERE = Path(__file__).parent
-app = FastAPI(title="imgsort")
+app = FastAPI(title="photos2show")
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
 templates.env.filters["basename"] = lambda p: Path(p).name
@@ -309,12 +309,12 @@ def edit(request: Request, action: str, media_id: int):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="imgsort-web", description="Start the local imgsort web UI.")
+    parser = argparse.ArgumentParser(prog="photos2show-web", description="Start the local photos2show web UI.")
     parser.add_argument("--no-browser", action="store_true", help="don't open the UI in the browser on start")
     args = parser.parse_args()
-    port = int(os.environ.get("IMGSORT_PORT", "8000"))
+    port = int(env("PORT", "8000"))
     url = f"http://127.0.0.1:{port}"
-    print(f"imgsort UI on {url}")
+    print(f"photos2show UI on {url}")
     if not args.no_browser:
         threading.Timer(1.0, webbrowser.open, [url]).start()  # give uvicorn a moment to bind the port
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from imgsort.ai import analyse_image, encode_image, parse_json
+from photos2show.ai import analyse_image, encode_image, parse_json
 
 
 def test_parse_json_plain_and_fenced():
@@ -16,7 +16,7 @@ def test_parse_json_plain_and_fenced():
 
 
 def test_text_tags_become_a_list(monkeypatch):
-    monkeypatch.setattr("imgsort.ai.complete_json", lambda c, s, m: {"tags": "beach, Sunset ,"})
+    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: {"tags": "beach, Sunset ,"})
     client = SimpleNamespace(with_options=lambda **kw: None)
     assert analyse_image(client, None, Image.new("RGB", (8, 8)))["tags"] == ["beach", "Sunset"]
 

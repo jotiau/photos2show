@@ -1,8 +1,8 @@
-# ai-image-sorting
+# photos2show
 
 **Turn a folder of 1000 holiday photos into a slideshow by describing the show you want.**
 
-[![Tests](https://github.com/jotiau/ai-image-sorting/actions/workflows/tests.yml/badge.svg)](https://github.com/jotiau/ai-image-sorting/actions/workflows/tests.yml)
+[![Tests](https://github.com/jotiau/photos2show/actions/workflows/tests.yml/badge.svg)](https://github.com/jotiau/photos2show/actions/workflows/tests.yml)
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)
 
@@ -55,12 +55,12 @@ You need [uv](https://docs.astral.sh/uv/getting-started/installation/) (installs
 and access to a vision-capable AI model (see [Choosing a model](#choosing-a-model)).
 
 ```bash
-git clone https://github.com/jotiau/ai-image-sorting.git
-cd ai-image-sorting
+git clone https://github.com/jotiau/photos2show.git
+cd photos2show
 uv sync
 cp .env.example .env      # then enter your endpoint, key and model
-uv run imgsort-smoke      # sends one test picture to check that the model answers
-uv run imgsort-web        # opens http://127.0.0.1:8000 in your browser
+uv run photos2show-smoke      # sends one test picture to check that the model answers
+uv run photos2show-web        # opens http://127.0.0.1:8000 in your browser
 ```
 
 Everything is plain Python, so it should run on Linux, macOS and Windows (on Windows use `copy`
@@ -77,7 +77,7 @@ Any server that speaks the OpenAI chat API and accepts images works. Set three v
 | [LM Studio](https://lmstudio.ai) (local) | `http://localhost:1234/v1` | leave empty | the model id LM Studio shows |
 | Self-hosted (vLLM, SGLang, …) | your server's `/v1` URL | your key, if any | as the server lists it |
 
-`imgsort-smoke` lists the model ids your server offers, so you can copy the right one.
+`photos2show-smoke` lists the model ids your server offers, so you can copy the right one.
 Development used a self-hosted GLM-5.3 Flash; other models should work but may describe photos
 differently. If you try one, please share how it went in an issue.
 
@@ -116,7 +116,7 @@ load it with a context length of 32k or more, and start the server in the *Devel
 ```ini
 OPENAI_BASE_URL=http://localhost:1234/v1
 OPENAI_API_KEY=
-MODEL=qwen2.5-vl-7b-instruct    # the id LM Studio shows; imgsort-smoke lists it too
+MODEL=qwen2.5-vl-7b-instruct    # the id LM Studio shows; photos2show-smoke lists it too
 AI_CONCURRENCY=1
 ```
 
@@ -179,16 +179,19 @@ Set in `.env` or as environment variables:
 | `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth |
 | `MODEL` | `glm-5.3-flash` | model id as the server lists it |
 | `AI_CONCURRENCY` | `2` | parallel AI requests (1 = strictly one by one); also selectable in the UI |
-| `IMGSORT_CACHE` | `~/.local/share/imgsort` | data folder for projects, AI results and thumbnails |
-| `IMGSORT_PORT` | `8000` | port of the web UI |
+| `PHOTOS2SHOW_CACHE` | `~/.local/share/photos2show` | data folder for projects, AI results and thumbnails |
+| `PHOTOS2SHOW_PORT` | `8000` | port of the web UI |
+
+Used the tool when it was still called imgsort? `IMGSORT_CACHE` and `IMGSORT_PORT` still work, and an
+existing `~/.local/share/imgsort` folder keeps being used, so your projects and AI results stay.
 
 ## Command line
 
 ```bash
-uv run imgsort-web [--no-browser]              # the web UI
-uv run imgsort-scan ~/Pictures/trip [--parallel N]  # both analysis passes, printed as a table
-uv run imgsort-smoke [photo.jpg]               # test the AI endpoint with one image
-uv run imgsort-testdata demo_images            # synthetic test photos with known defects
+uv run photos2show-web [--no-browser]              # the web UI
+uv run photos2show-scan ~/Pictures/trip [--parallel N]  # both analysis passes, printed as a table
+uv run photos2show-smoke [photo.jpg]               # test the AI endpoint with one image
+uv run photos2show-testdata demo_images            # synthetic test photos with known defects
 ```
 
 ## Roadmap

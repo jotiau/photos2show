@@ -5,7 +5,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from imgsort.config import cache_root
+from photos2show.config import cache_root
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS media (
@@ -37,7 +37,7 @@ def library_dir(root: Path) -> Path:
 
 
 def connect(root: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(library_dir(root) / "imgsort.db", check_same_thread=False)
+    conn = sqlite3.connect(library_dir(root) / "photos2show.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)

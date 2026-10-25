@@ -3,14 +3,14 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from imgsort import testdata
-from imgsort.web import app as web
+from photos2show import testdata
+from photos2show.web import app as web
 
 LOCAL = "http://127.0.0.1"
 
 
 def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
-    monkeypatch.setenv("IMGSORT_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     folder = testdata.generate(tmp_path / "photos")
     client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
     assert TestClient(web.app, base_url=LOCAL).post("/analyse", data={"parallel": "1"}).status_code == 403  # CSRF guard
@@ -50,7 +50,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
 
     # Slideshow: GLM picks, edit by hand, export
     answer = {"picks": [{"id": items["scene_1.jpg"], "reason": "great view"}, {"id": items["scene_2.jpg"]}]}
-    monkeypatch.setattr("imgsort.ai.complete_json", lambda c, s, m: answer)
+    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: answer)
     assert "Describe the slideshow" in client.get("/slideshow").text
     picks = client.post("/slideshow/select", data={"description": "short"}).text
     assert "great view" in picks and "2 photos" in picks
@@ -102,7 +102,7 @@ def test_pick_folder(tmp_path, monkeypatch):
 
 
 def test_settings(tmp_path, monkeypatch):
-    monkeypatch.setenv("IMGSORT_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
     assert 'data-theme="auto"' in client.get("/settings").text
     assert client.post("/settings", data={"key": "theme", "value": "pink"}).status_code == 400

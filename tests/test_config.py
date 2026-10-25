@@ -1,6 +1,6 @@
 import pytest
 
-from imgsort.config import load_settings
+from photos2show.config import cache_root, load_settings
 
 
 def test_env_references_are_expanded_and_bad_urls_refused(monkeypatch):
@@ -14,3 +14,19 @@ def test_env_references_are_expanded_and_bad_urls_refused(monkeypatch):
     monkeypatch.delenv("BLUM_BASE_URL")  # e.g. started from PyCharm without ~/.bashrc
     with pytest.raises(SystemExit, match="not a URL"):
         load_settings()
+
+
+def test_data_folder_and_settings_from_before_the_rename_are_kept(tmp_path, monkeypatch):
+    monkeypatch.setattr("photos2show.config.load_dotenv", lambda: None)  # ignore a developer's .env
+    for name in ("PHOTOS2SHOW_CACHE", "IMGSORT_CACHE"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    assert cache_root() == tmp_path / "photos2show"
+    (tmp_path / "imgsort").mkdir()
+    assert cache_root() == tmp_path / "imgsort"
+    (tmp_path / "photos2show").mkdir()
+    assert cache_root() == tmp_path / "photos2show"
+    monkeypatch.setenv("IMGSORT_CACHE", str(tmp_path / "old"))
+    assert cache_root() == tmp_path / "old"
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "new"))
+    assert cache_root() == tmp_path / "new"

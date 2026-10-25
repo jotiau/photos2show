@@ -1,6 +1,6 @@
 """M0 smoke test: send one image to the configured model and print the analysis.
 
-Usage: imgsort-smoke [IMAGE]   (without IMAGE a synthetic test picture is used)
+Usage: photos2show-smoke [IMAGE]   (without IMAGE a synthetic test picture is used)
 """
 import json
 import sys
@@ -8,8 +8,8 @@ import time
 
 from PIL import Image, ImageDraw
 
-from imgsort.ai import analyse_image, make_client
-from imgsort.config import load_settings
+from photos2show.ai import analyse_image, make_client
+from photos2show.config import load_settings
 
 
 def synthetic_image() -> Image.Image:

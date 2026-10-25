@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from imgsort import db, slideshow, testdata
-from imgsort.pipeline import analyse_folder, describe_folder
+from photos2show import db, slideshow, testdata
+from photos2show.pipeline import analyse_folder, describe_folder
 
 
 @pytest.fixture
 def described(tmp_path, monkeypatch, fake_ai):
-    monkeypatch.setenv("IMGSORT_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     folder = testdata.generate(tmp_path / "photos")
     analyse_folder(folder)
     describe_folder(folder)
@@ -20,7 +20,7 @@ def test_select_keeps_only_valid_picks(described, monkeypatch):
     answer = {"picks": [{"id": ids["scene_2.jpg"], "reason": "nice"}, {"id": str(ids["scene_1.jpg"])},
                         {"id": ids["scene_2.jpg"]}, {"id": 9999}, {"id": ids["burst_2.jpg"]}, {"no": "id"}, "junk"]}
     prompts = []
-    monkeypatch.setattr("imgsort.ai.complete_json", lambda c, s, messages: prompts.append(messages) or answer)
+    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, messages: prompts.append(messages) or answer)
     picks = slideshow.select(db.connect(folder), "short show")
     assert picks == [{"id": ids["scene_2.jpg"], "reason": "nice"}, {"id": ids["scene_1.jpg"], "reason": ""}]
     prompt = prompts[0][0]["content"]

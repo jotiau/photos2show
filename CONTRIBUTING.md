@@ -14,8 +14,8 @@ Thanks for wanting to help! Every kind of contribution counts:
 ```bash
 uv sync
 uv run pytest                          # runs without an AI endpoint
-uv run imgsort-testdata demo_images    # synthetic photos with known defects to try the scan
-uv run imgsort-scan demo_images
+uv run photos2show-testdata demo_images    # synthetic photos with known defects to try the scan
+uv run photos2show-scan demo_images
 ```
 
 [PLAN.md](PLAN.md) describes the pipeline and the reasoning behind thresholds and design decisions.

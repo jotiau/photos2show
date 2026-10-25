@@ -113,12 +113,12 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
 - SQLite via stdlib `sqlite3`
 - `pytest` for tests
 - Config via `.env`: `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL` (`prod` on the BLUM server),
-  `AI_CONCURRENCY`, `IMGSORT_CACHE` (data folder, default `~/.local/share/imgsort`)
+  `AI_CONCURRENCY`, `PHOTOS2SHOW_CACHE` (data folder, default `~/.local/share/photos2show`)
 
 ## Project layout
 ```
 pyproject.toml
-src/imgsort/
+src/photos2show/
   config.py     # settings from .env
   db.py         # SQLite schema + cache, projects
   scan.py       # file walk, EXIF, video frames
@@ -170,8 +170,8 @@ Reviewed with the user on 2026-10-23.
 | Selection on a full holiday (~850 candidates, ~60k-token prompt) | Resolved – tested on all 857 Norway files: 104 good picks in 294 s, well under the 10-min client timeout |
 | Video dates from mtime off by 1 h | Fixed – date from file name, mtime fallback |
 | AI scores compressed (mostly 6–8) | Accepted – selection works via captions/tags; prompt unchanged |
-| AI results lost if a cache cleaner runs | Fixed – data moved from `~/.cache` to `~/.local/share/imgsort` |
-| No backup of the code | Resolved – on GitHub (`jotiau/ai-image-sorting`) |
+| AI results lost if a cache cleaner runs | Fixed – data moved from `~/.cache` to `~/.local/share/photos2show` |
+| No backup of the code | Resolved – on GitHub (`jotiau/photos2show`) |
 | Very large folders (5,000+): pairwise dedup is O(n²) | Accepted – minutes at worst, fine for holidays |
 | "Photos of us" without face recognition | Accepted – people count + captions; faces are a future feature |
 | Motion blur with one sharp tile not detected | Accepted – GLM usually lists it under issues |

@@ -8,8 +8,8 @@ from pathlib import Path
 import imagehash
 from PIL import Image
 
-from imgsort import ai, db, dedup, quality, scan, slideshow
-from imgsort.config import default_concurrency, load_settings
+from photos2show import ai, db, dedup, quality, scan, slideshow
+from photos2show.config import default_concurrency, load_settings
 
 THUMB_EDGE = 400
 COLUMNS = ("path", "kind", "size", "mtime", "taken_at", "width", "height",
