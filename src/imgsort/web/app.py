@@ -23,6 +23,7 @@ app = FastAPI(title="imgsort")
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
 templates.env.filters["basename"] = lambda p: Path(p).name
+templates.env.globals["settings"] = db.load_settings
 
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
            "low_contrast", "monotone", "duplicate", "video")
@@ -188,6 +189,19 @@ def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
     if picked and keep_name and Path(path).name:
         picked = str(Path(picked) / Path(path).name)
     return str(Path(picked)) if picked else ""
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request):
+    return _page(request, "settings.html", page="settings", fields=db.SETTINGS)
+
+
+@app.post("/settings", response_class=HTMLResponse)
+def save_setting(key: str = Form(...), value: str = Form(...)):
+    if key not in db.SETTINGS or value not in db.SETTINGS[key][1]:
+        raise HTTPException(400)
+    db.save_setting(key, value)
+    return HTMLResponse("", headers=REFRESH)
 
 
 @app.get("/thumb/{media_id}")

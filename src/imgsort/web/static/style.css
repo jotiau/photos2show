@@ -3,8 +3,9 @@
   --accent: #2f6fdb; --warn: #c77700; --bad: #c0392b; --ok: #2e8b57;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #161615; --panel: #222220; --text: #ececea; --muted: #9a9a94; --border: #3a3a37; }
+  :root:not([data-theme="light"]) { --bg: #161615; --panel: #222220; --text: #ececea; --muted: #9a9a94; --border: #3a3a37; }
 }
+:root[data-theme="dark"] { --bg: #161615; --panel: #222220; --text: #ececea; --muted: #9a9a94; --border: #3a3a37; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--text); }
 header { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px;
@@ -87,3 +88,4 @@ form button.browse { background: var(--panel); color: var(--text); border-color:
 .picks .meta { color: var(--muted); font-size: 12px; }
 .picks .actions { display: flex; gap: 4px; }
 .bar form { display: flex; gap: 6px; align-items: center; }
+.settings { display: grid; grid-template-columns: max-content auto; gap: 8px 16px; align-items: center; }

@@ -3,6 +3,7 @@
   <nav class="tabs">
     <a href="/" class="{{ 'active' if page == 'library' }}">Library</a>
     <a href="/slideshow" class="{{ 'active' if page == 'slideshow' }}">Slideshow</a>
+    <a href="/settings" class="{{ 'active' if page == 'settings' }}">Settings</a>
   </nav>
   {% if projects %}
   <form hx-post="/projects/open" hx-target="#project-msg" hx-trigger="change">

@@ -85,3 +85,12 @@ def test_pick_folder(tmp_path, monkeypatch):
     monkeypatch.setattr(web.subprocess, "run", no_display)
     resp = client.post("/pick-folder", data={"path": ""})
     assert resp.status_code == 500 and "no display name" in resp.text
+
+
+def test_settings(tmp_path, monkeypatch):
+    monkeypatch.setenv("IMGSORT_CACHE", str(tmp_path / "cache"))
+    client = TestClient(web.app, headers={"HX-Request": "true"})
+    assert 'data-theme="auto"' in client.get("/settings").text
+    assert client.post("/settings", data={"key": "theme", "value": "pink"}).status_code == 400
+    assert client.post("/settings", data={"key": "theme", "value": "dark"}).headers["HX-Refresh"] == "true"
+    assert 'data-theme="dark"' in client.get("/slideshow").text

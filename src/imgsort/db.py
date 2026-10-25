@@ -67,6 +67,23 @@ def load_projects() -> dict[str, str]:
     return json.loads(f.read_text()) if f.exists() else {}
 
 
+# App settings: key -> (label, choices, default). Add a line here and it shows up on the settings page.
+SETTINGS = {
+    "theme": ("Theme", ("auto", "light", "dark"), "auto"),
+}
+
+
+def load_settings() -> dict[str, str]:
+    f = cache_root() / "settings.json"
+    saved = json.loads(f.read_text()) if f.exists() else {}
+    return {k: saved[k] if saved.get(k) in choices else default for k, (_, choices, default) in SETTINGS.items()}
+
+
+def save_setting(key: str, value: str) -> None:
+    cache_root().mkdir(parents=True, exist_ok=True)
+    (cache_root() / "settings.json").write_text(json.dumps(load_settings() | {key: value}, indent=2))
+
+
 def save_project(name: str, folder: Path) -> None:
     cache_root().mkdir(parents=True, exist_ok=True)
     projects = load_projects() | {name: str(folder)}
