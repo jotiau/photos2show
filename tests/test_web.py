@@ -70,6 +70,7 @@ def test_pick_folder(tmp_path, monkeypatch):
         calls.append(cmd[-1])
         return web.subprocess.CompletedProcess(cmd, 0, stdout=answer + "\n", stderr="")
 
+    monkeypatch.setattr(web.shutil, "which", lambda name: None)  # Tk dialog, whatever is installed
     monkeypatch.setattr(web.subprocess, "run", fake_run)
     assert client.post("/pick-folder", data={"path": str(tmp_path / "new" / "deeper")}).text == answer
     assert calls == [str(tmp_path.resolve())]  # dialog starts at the nearest existing folder
@@ -80,7 +81,7 @@ def test_pick_folder(tmp_path, monkeypatch):
     assert TestClient(web.app).post("/pick-folder").status_code == 403  # CSRF guard
 
     def no_display(cmd, **kwargs):
-        raise web.subprocess.CalledProcessError(1, cmd, stderr="_tkinter.TclError: no display name")
+        return web.subprocess.CompletedProcess(cmd, 1, stdout="", stderr="_tkinter.TclError: no display name")
 
     monkeypatch.setattr(web.subprocess, "run", no_display)
     resp = client.post("/pick-folder", data={"path": ""})
@@ -94,3 +95,25 @@ def test_settings(tmp_path, monkeypatch):
     assert client.post("/settings", data={"key": "theme", "value": "pink"}).status_code == 400
     assert client.post("/settings", data={"key": "theme", "value": "dark"}).headers["HX-Refresh"] == "true"
     assert 'data-theme="dark"' in client.get("/slideshow").text
+
+
+def test_pick_folder_linux_uses_desktop_dialog(tmp_path, monkeypatch):
+    client = TestClient(web.app, headers={"HX-Request": "true"})
+    monkeypatch.setattr(web.sys, "platform", "linux")
+    monkeypatch.setattr(web.shutil, "which", lambda name: f"/usr/bin/{name}" if name == "zenity" else None)
+    calls, code = [], 0
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return web.subprocess.CompletedProcess(cmd, code, stdout="" if code else f"{tmp_path}\n", stderr="")
+
+    monkeypatch.setattr(web.subprocess, "run", fake_run)
+    assert client.post("/pick-folder", data={"path": str(tmp_path)}).text == str(tmp_path)
+    assert calls[0][0] == "zenity" and calls[0][-1] == f"--filename={tmp_path.resolve()}{web.os.sep}"
+    code = 1  # zenity's cancel, not an error
+    resp = client.post("/pick-folder", data={"path": str(tmp_path)})
+    assert resp.status_code == 200 and resp.text == ""
+
+    monkeypatch.setattr(web.shutil, "which", lambda name: f"/usr/bin/{name}" if name == "kdialog" else None)
+    client.post("/pick-folder", data={"path": str(tmp_path)})
+    assert calls[-1] == ["kdialog", "--getexistingdirectory", str(tmp_path.resolve())]

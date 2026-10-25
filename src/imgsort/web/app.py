@@ -1,6 +1,7 @@
 """Local web UI: holiday projects, analysis, browsing, slideshow selection and export."""
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -173,6 +174,17 @@ root = tkinter.Tk(); root.withdraw(); root.attributes("-topmost", True)
 print(tkinter.filedialog.askdirectory(initialdir=sys.argv[1], parent=root) or "")"""
 
 
+def _folder_dialog(start: Path) -> list[str]:
+    """On Linux Tk draws its own Motif-era dialog, so prefer the desktop's (GTK via zenity, KDE via kdialog).
+    Windows and macOS get their native dialog through Tk."""
+    if sys.platform.startswith("linux"):
+        if shutil.which("zenity"):
+            return ["zenity", "--file-selection", "--directory", f"--filename={start}{os.sep}"]
+        if shutil.which("kdialog"):
+            return ["kdialog", "--getexistingdirectory", str(start)]
+    return [sys.executable, "-c", PICK_FOLDER, str(start)]
+
+
 @app.post("/pick-folder", response_class=PlainTextResponse)
 def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
     """Open the system's folder dialog on this computer – the browser's own dialog never reveals real paths.
@@ -180,12 +192,13 @@ def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
     start = (Path(path).expanduser() if path.strip() else Path.home()).resolve()
     while not start.is_dir():
         start = start.parent
-    try:
-        picked = subprocess.run([sys.executable, "-c", PICK_FOLDER, str(start)],
-                                capture_output=True, text=True, check=True).stdout.strip()
-    except subprocess.CalledProcessError as e:
-        reason = (e.stderr.strip().splitlines() or ["unknown error"])[-1]
+    cmd = _folder_dialog(start)
+    done = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    cancelled = done.returncode == 1 and cmd[0] != sys.executable  # zenity/kdialog exit 1 on cancel
+    if done.returncode and not cancelled:
+        reason = (done.stderr.strip().splitlines() or ["unknown error"])[-1]
         return PlainTextResponse(f"Could not open the folder dialog ({reason}). Type the path instead.", status_code=500)
+    picked = "" if cancelled else done.stdout.strip()
     if picked and keep_name and Path(path).name:
         picked = str(Path(picked) / Path(path).name)
     return str(Path(picked)) if picked else ""
