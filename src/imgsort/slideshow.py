@@ -102,7 +102,7 @@ def load(root: Path) -> dict:
 
 
 def save(root: Path, selection: dict) -> None:
-    (db.library_dir(root) / "selection.json").write_text(json.dumps(selection, indent=2, ensure_ascii=False))
+    db.write_json(db.library_dir(root) / "selection.json", selection)
 
 
 def export(root: Path, target: Path) -> int:
@@ -121,5 +121,5 @@ def export(root: Path, target: Path) -> int:
         src = Path(it["path"])
         slug = re.sub(r"[^a-z0-9]+", "-", " ".join(((it["ai"] or {}).get("tags") or [])[:2]).lower()).strip("-")
         shutil.copy2(src, target / f"{n:03d}_{(it['taken_at'] or '')[:10]}_{slug or 'photo'}{src.suffix.lower()}")
-    (target / "selection.json").write_text(json.dumps(selection, indent=2, ensure_ascii=False))
+    db.write_json(target / "selection.json", selection)
     return len(items)

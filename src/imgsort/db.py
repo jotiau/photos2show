@@ -1,6 +1,7 @@
 """SQLite cache per library folder, stored outside the photo folder."""
 import hashlib
 import json
+import os
 import sqlite3
 from pathlib import Path
 
@@ -61,6 +62,14 @@ def get_media(conn: sqlite3.Connection, media_id: int) -> dict | None:
     return row_to_dict(row) if row else None
 
 
+def write_json(path: Path, data) -> None:
+    """Write a temp file, then swap it in: a crash mid-write must not leave an empty file that breaks every page."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    os.replace(tmp, path)
+
+
 def load_projects() -> dict[str, str]:
     """Holiday projects: name -> photo folder."""
     f = cache_root() / "projects.json"
@@ -80,11 +89,8 @@ def load_settings() -> dict[str, str]:
 
 
 def save_setting(key: str, value: str) -> None:
-    cache_root().mkdir(parents=True, exist_ok=True)
-    (cache_root() / "settings.json").write_text(json.dumps(load_settings() | {key: value}, indent=2))
+    write_json(cache_root() / "settings.json", load_settings() | {key: value})
 
 
 def save_project(name: str, folder: Path) -> None:
-    cache_root().mkdir(parents=True, exist_ok=True)
-    projects = load_projects() | {name: str(folder)}
-    (cache_root() / "projects.json").write_text(json.dumps(projects, indent=2, ensure_ascii=False))
+    write_json(cache_root() / "projects.json", load_projects() | {name: str(folder)})

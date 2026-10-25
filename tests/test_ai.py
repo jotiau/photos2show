@@ -1,10 +1,11 @@
 import base64
 import io
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image
 
-from imgsort.ai import encode_image, parse_json
+from imgsort.ai import analyse_image, encode_image, parse_json
 
 
 def test_parse_json_plain_and_fenced():
@@ -12,6 +13,12 @@ def test_parse_json_plain_and_fenced():
     assert parse_json('Sure:\n```json\n{"a": [1, 2]}\n```') == {"a": [1, 2]}
     with pytest.raises(ValueError, match="got list"):
         parse_json('[{"a": 1}]')
+
+
+def test_text_tags_become_a_list(monkeypatch):
+    monkeypatch.setattr("imgsort.ai.complete_json", lambda c, s, m: {"tags": "beach, Sunset ,"})
+    client = SimpleNamespace(with_options=lambda **kw: None)
+    assert analyse_image(client, None, Image.new("RGB", (8, 8)))["tags"] == ["beach", "Sunset"]
 
 
 def test_encode_image_downscales():

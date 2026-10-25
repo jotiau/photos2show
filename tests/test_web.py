@@ -64,6 +64,13 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     picks = client.post("/slideshow/sort", data={"by": "name"}).text
     assert picks.index("scene_1.jpg") < picks.index("scene_2.jpg") and "Sort by" in picks
     assert client.post("/slideshow/sort", data={"by": "nope"}).status_code == 400
+    def disk_full(src, dst):
+        raise OSError(28, "No space left on device")
+
+    with monkeypatch.context() as m:
+        m.setattr(web.slideshow.shutil, "copy2", disk_full)
+        resp = client.post("/slideshow/export", data={"target": str(tmp_path / "stick")})
+    assert resp.status_code == 200 and "No space left" in resp.text  # shown, not a silent 500
     assert "Exported 2 files" in client.post("/slideshow/export", data={"target": str(tmp_path / "show")}).text
     assert sorted(p.name for p in (tmp_path / "show").iterdir())[0].startswith("001_2026-08-11")
 

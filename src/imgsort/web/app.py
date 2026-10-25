@@ -292,7 +292,7 @@ def move(request: Request, id: int = Form(...), to: int = Form(...)):
 def export(target: str = Form(...)):
     try:
         n = slideshow.export(Path(job["folder"]), Path(target))
-    except ValueError as e:
+    except (ValueError, OSError) as e:  # OSError: full USB stick, no write rights – htmx shows nothing for a 500
         return HTMLResponse(f'<span class="error">{escape(str(e))}</span>')
     return HTMLResponse(f"Exported {n} files to {escape(str(Path(target).expanduser()))}")
 

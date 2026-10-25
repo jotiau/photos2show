@@ -51,13 +51,16 @@ def make_client(settings: Settings) -> OpenAI:
 
 def analyse_image(client: OpenAI, settings: Settings, img: Image.Image) -> dict:
     # Image calls take 2-12 s; a hung one must not block a worker for the 10 min default.
-    return complete_json(client.with_options(timeout=90), settings, [{
+    result = complete_json(client.with_options(timeout=90), settings, [{
         "role": "user",
         "content": [
             {"type": "text", "text": ANALYSE_PROMPT},
             {"type": "image_url", "image_url": {"url": encode_image(img)}},
         ],
     }])
+    if isinstance(result.get("tags"), str):  # "beach, sunset": every loop over tags would see single letters
+        result["tags"] = [t.strip() for t in result["tags"].split(",") if t.strip()]
+    return result
 
 
 def complete_json(client: OpenAI, settings: Settings, messages: list) -> dict:
