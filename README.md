@@ -194,6 +194,8 @@ Planned, roughly in this order of interest:
 
 - HEIC and RAW support
 - Several saved slideshows per project; projects spanning several folders
+- Project overview page: add, edit and delete projects and keep track of them (status, photo
+  count, picks, last analysed)
 - Face detection and grouping ("everyone appears at least once")
 - Map and location grouping from GPS
 - Local semantic search (CLIP) and smarter duplicate grouping
