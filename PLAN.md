@@ -95,7 +95,7 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
   dropdown in the header to switch, "New project" to create and analyse.
 - **Library view**: progress bar → thumbnail grid with badges (score, flags, tags, video icon);
   filter by flag/tag; click for detail (caption, metrics, frames for videos, "Add to slideshow").
-- **Slideshow view**: prompt box → "Select" → ordered list of picks with reasons; up/down to
+- **Slideshow view**: prompt box → "Select" → ordered tiles of picks with reasons; drag & drop to
   reorder, × to remove; "Export".
 
 ### 7. Export
@@ -155,7 +155,7 @@ tests/
 - Deeper video handling (scene detection, picking clips)
 - HEIC / RAW support
 - Map / location grouping from GPS
-- Several saved slideshows per project; projects spanning several folders; drag & drop reordering
+- Several saved slideshows per project; projects spanning several folders
 
 ## Risks / open points
 Reviewed with the user on 2026-10-23.

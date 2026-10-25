@@ -66,6 +66,16 @@ def edit(picks: list[dict], action: str, media_id: int) -> list[dict]:
     return picks
 
 
+def move(picks: list[dict], media_id: int, index: int) -> list[dict]:
+    """Move one item to position index (clamped, as in the list without it); returns a new list."""
+    moved = [p for p in picks if p["id"] == media_id]
+    if not moved:
+        return picks
+    rest = [p for p in picks if p["id"] != media_id]
+    index = max(0, min(index, len(rest)))
+    return rest[:index] + moved + rest[index:]
+
+
 def _number(v) -> float | None:
     try:  # AI scores are raw LLM output: may be missing or a string
         return float(v)

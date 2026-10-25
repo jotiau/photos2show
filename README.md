@@ -140,8 +140,8 @@ Tips for local models:
      *no AI*. Interrupted? Press *Analyse again* and it continues where it stopped.
 3. **Browse the Library**: filter by quality flag, click a card for details, click a tag to filter by it.
 4. **Build the slideshow** in the *Slideshow* tab: describe the show and press *Select photos*.
-   Reorder with ↑ ↓, remove with ×, sort the whole list, or add photos via *Add to slideshow* in the
-   Library detail panel.
+   The picks are shown as tiles: drag them to reorder (or use ← →), remove with ×, sort the whole
+   set, or add photos via *Add to slideshow* in the Library detail panel.
 5. **Export**: choose a new folder outside the photo folder and press *Export*.
 
 Each project keeps one slideshow; to make a second show from the same trip, export the first one,
@@ -193,7 +193,7 @@ uv run imgsort-testdata demo_images            # synthetic test photos with know
 Planned, roughly in this order of interest:
 
 - HEIC and RAW support
-- Several saved slideshows per project; projects spanning several folders; drag & drop reordering
+- Several saved slideshows per project; projects spanning several folders
 - Face detection and grouping ("everyone appears at least once")
 - Map and location grouping from GPS
 - Local semantic search (CLIP) and smarter duplicate grouping

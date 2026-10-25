@@ -39,6 +39,17 @@ def test_edit():
     assert ids(picks) == [1, 2]  # input untouched
 
 
+def test_move():
+    picks = [{"id": i, "reason": ""} for i in (1, 2, 3, 4)]
+    ids = lambda ps: [p["id"] for p in ps]  # noqa: E731
+    assert ids(slideshow.move(picks, 4, 0)) == [4, 1, 2, 3]
+    assert ids(slideshow.move(picks, 1, 2)) == [2, 3, 1, 4]
+    assert ids(slideshow.move(picks, 2, 99)) == [1, 3, 4, 2]
+    assert ids(slideshow.move(picks, 3, -5)) == [3, 1, 2, 4]
+    assert ids(slideshow.move(picks, 9, 0)) == [1, 2, 3, 4]
+    assert ids(picks) == [1, 2, 3, 4]  # input untouched
+
+
 def test_sort():
     items = {1: {"taken_at": "2026-08-12", "ai": {"aesthetic": 5, "interest": "9"}, "score": 0.2, "path": "/x/b.jpg"},
              2: {"taken_at": "2026-08-10", "ai": {"aesthetic": 8}, "score": 0.9, "path": "/x/C.jpg"},

@@ -1,5 +1,5 @@
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
-<p>{{ picks | length }} photos · about {{ '%.1f' % minutes }} min at 5 s per photo. Add more from the Library detail panel.</p>
+<p>{{ picks | length }} photos · about {{ '%.1f' % minutes }} min at 5 s per photo. Drag tiles to reorder, add more from the Library detail panel.</p>
 {% if picks | length > 1 %}
 <form class="sort" hx-post="/slideshow/sort" hx-target="#picks" hx-trigger="change">
   <label for="sort-by">Sort by</label>
@@ -11,16 +11,16 @@
 {% endif %}
 <ol class="picks">
   {% for p in picks %}
-  <li>
-    <img src="/thumb/{{ p.item.id }}" alt="" loading="lazy" title="Click to enlarge"
+  <li class="card" draggable="true" data-id="{{ p.item.id }}" title="Drag to reorder">
+    <img src="/thumb/{{ p.item.id }}" alt="" loading="lazy" draggable="false" title="Click to enlarge"
          data-full="/original/{{ p.item.id }}"{% if p.item.kind == 'video' %} data-video{% endif %}>
-    <div>
-      <strong>#{{ p.item.id }} {{ p.item.path | basename }}</strong>{% if p.item.kind == 'video' %} ▶{% endif %}
-      <div class="meta">{{ p.reason }}</div>
-    </div>
+    <span class="num">{{ loop.index }}</span>
+    {% if p.item.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
+    <div class="name">#{{ p.item.id }} {{ p.item.path | basename }}</div>
+    <div class="meta" title="{{ p.reason }}">{{ p.reason }}</div>
     <div class="actions">
-      <button hx-post="/slideshow/up/{{ p.item.id }}" hx-target="#picks" aria-label="Move up">↑</button>
-      <button hx-post="/slideshow/down/{{ p.item.id }}" hx-target="#picks" aria-label="Move down">↓</button>
+      <button hx-post="/slideshow/up/{{ p.item.id }}" hx-target="#picks" aria-label="Move earlier">←</button>
+      <button hx-post="/slideshow/down/{{ p.item.id }}" hx-target="#picks" aria-label="Move later">→</button>
       <button hx-post="/slideshow/remove/{{ p.item.id }}" hx-target="#picks" aria-label="Remove">×</button>
     </div>
   </li>

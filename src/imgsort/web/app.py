@@ -274,6 +274,15 @@ def sort(request: Request, by: str = Form(...)):
     return _picks(request)
 
 
+@app.post("/slideshow/move", response_class=HTMLResponse)
+def move(request: Request, id: int = Form(...), to: int = Form(...)):
+    root = Path(job["folder"])
+    selection = slideshow.load(root)
+    selection["picks"] = slideshow.move(selection["picks"], id, to)
+    slideshow.save(root, selection)
+    return _picks(request)
+
+
 @app.post("/slideshow/export", response_class=HTMLResponse)
 def export(target: str = Form(...)):
     try:
