@@ -117,13 +117,19 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
             img = frames[len(frames) // 2]
         else:
             img = scan.read_image(path)[0]
-        return ai.analyse_image(client, settings, img)
+        try:
+            return ai.analyse_image(client, settings, img)
+        except Exception as e:
+            # The traceback's frames hold the decoded image (~30 MB); failed futures waiting in
+            # as_completed would keep every one of them alive (20 GB with 857 failures).
+            del img
+            raise e.with_traceback(None)
 
     errors = []
     with ThreadPoolExecutor(concurrency or default_concurrency()) as pool:
         futures = {pool.submit(describe, it): it for it in todo}
         for i, fut in enumerate(as_completed(futures)):
-            # pop: a failed future keeps its traceback and with it the decoded image (~30 MB)
+            # pop: don't keep every finished future (and its result or error) until the run ends
             it = futures.pop(fut)
             try:
                 conn.execute("UPDATE media SET ai = ? WHERE id = ?", (json.dumps(fut.result()), it["id"]))

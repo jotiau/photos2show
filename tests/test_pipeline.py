@@ -1,3 +1,4 @@
+import time
 import weakref
 from pathlib import Path
 
@@ -96,7 +97,12 @@ def test_failed_requests_do_not_keep_images_in_memory(library, fake_ai, monkeypa
 
     monkeypatch.setattr("imgsort.ai.analyse_image", failing)
     alive = []
-    result = describe_folder(folder, lambda d, n: alive.append(sum(r() is not None for r in refs)), 2)
+
+    def progress(done, total):
+        alive.append(sum(r() is not None for r in refs))
+        time.sleep(0.05)  # slow main loop (as on the Windows CI runner): failed futures queue up meanwhile
+
+    result = describe_folder(folder, progress, 2)
     assert len(result["errors"]) == len(refs) > 4
     assert max(alive) <= 2  # only images still in flight, not every failed one (was: all of them, 20 GB OOM)
     describe_folder(folder)  # restore descriptions for the following tests

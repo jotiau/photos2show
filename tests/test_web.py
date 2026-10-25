@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -36,7 +37,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     skipped = client.get("/grid?flag=skips_ai").text
     assert "very_blurry.jpg" in skipped and "burst_2.jpg" in skipped and "scene_1.jpg" not in skipped
 
-    items = {it["path"].rsplit("/", 1)[1]: it["id"] for it in web._items()}
+    items = {Path(it["path"]).name: it["id"] for it in web._items()}
     assert "fake caption" in client.get(f"/media/{items['video.mp4']}").text
     tagged = client.get("/grid?flag=tag:beach").text
     assert "burst_1.jpg" in tagged and "burst_2.jpg" not in tagged
