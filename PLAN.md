@@ -156,6 +156,8 @@ tests/
 - HEIC / RAW support
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
+- Project overview page: add / edit / delete projects and track their state (status, photo
+  count, picks, last analysed) instead of only the header dropdown
 
 ## Risks / open points
 Reviewed with the user on 2026-10-23.
