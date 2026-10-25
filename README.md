@@ -198,6 +198,8 @@ Planned, roughly in this order of interest:
 - Map and location grouping from GPS
 - Local semantic search (CLIP) and smarter duplicate grouping
 - Deeper video handling (scene detection, picking clips)
+- Fit the slideshow step to the model's context size: send less per photo (e.g. shorter captions,
+  fewer tags) for small local models, more detail for large ones
 
 [PLAN.md](PLAN.md) has the design notes and decisions behind the current version.
 
