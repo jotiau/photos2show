@@ -60,3 +60,28 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert client.post("/slideshow/sort", data={"by": "nope"}).status_code == 400
     assert "Exported 2 files" in client.post("/slideshow/export", data={"target": str(tmp_path / "show")}).text
     assert sorted(p.name for p in (tmp_path / "show").iterdir())[0].startswith("001_2026-08-11")
+
+
+def test_pick_folder(tmp_path, monkeypatch):
+    client = TestClient(web.app, headers={"HX-Request": "true"})
+    answer, calls = str(tmp_path / "picked"), []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd[-1])
+        return web.subprocess.CompletedProcess(cmd, 0, stdout=answer + "\n", stderr="")
+
+    monkeypatch.setattr(web.subprocess, "run", fake_run)
+    assert client.post("/pick-folder", data={"path": str(tmp_path / "new" / "deeper")}).text == answer
+    assert calls == [str(tmp_path.resolve())]  # dialog starts at the nearest existing folder
+    resp = client.post("/pick-folder", data={"path": str(tmp_path / "show"), "keep_name": "true"})
+    assert resp.text == str(tmp_path / "picked" / "show")
+    answer = ""  # cancelled
+    assert client.post("/pick-folder", data={"path": ""}).text == ""
+    assert TestClient(web.app).post("/pick-folder").status_code == 403  # CSRF guard
+
+    def no_display(cmd, **kwargs):
+        raise web.subprocess.CalledProcessError(1, cmd, stderr="_tkinter.TclError: no display name")
+
+    monkeypatch.setattr(web.subprocess, "run", no_display)
+    resp = client.post("/pick-folder", data={"path": ""})
+    assert resp.status_code == 500 and "no display name" in resp.text

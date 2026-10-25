@@ -1,6 +1,8 @@
 """Local web UI: holiday projects, analysis, browsing, slideshow selection and export."""
 import argparse
 import os
+import subprocess
+import sys
 import threading
 import webbrowser
 from html import escape
@@ -8,7 +10,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -163,6 +165,29 @@ def detail(request: Request, media_id: int):
     best = item["duplicate_of"] or item["id"]
     scene = [it for it in _items() if (it["duplicate_of"] or it["id"]) == best and it["id"] != item["id"]]
     return templates.TemplateResponse(request, "_detail.html", {"it": item, "scene": scene})
+
+
+PICK_FOLDER = """import sys, tkinter, tkinter.filedialog
+root = tkinter.Tk(); root.withdraw(); root.attributes("-topmost", True)
+print(tkinter.filedialog.askdirectory(initialdir=sys.argv[1], parent=root) or "")"""
+
+
+@app.post("/pick-folder", response_class=PlainTextResponse)
+def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
+    """Open the system's folder dialog on this computer – the browser's own dialog never reveals real paths.
+    A subprocess, because Tk must own the main thread (macOS). keep_name appends the typed folder name."""
+    start = (Path(path).expanduser() if path.strip() else Path.home()).resolve()
+    while not start.is_dir():
+        start = start.parent
+    try:
+        picked = subprocess.run([sys.executable, "-c", PICK_FOLDER, str(start)],
+                                capture_output=True, text=True, check=True).stdout.strip()
+    except subprocess.CalledProcessError as e:
+        reason = (e.stderr.strip().splitlines() or ["unknown error"])[-1]
+        return PlainTextResponse(f"Could not open the folder dialog ({reason}). Type the path instead.", status_code=500)
+    if picked and keep_name and Path(path).name:
+        picked = str(Path(picked) / Path(path).name)
+    return str(Path(picked)) if picked else ""
 
 
 @app.get("/thumb/{media_id}")

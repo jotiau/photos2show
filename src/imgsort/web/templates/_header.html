@@ -15,9 +15,29 @@
     <summary>New project</summary>
     <form hx-post="/projects" hx-target="#project-msg">
       <input name="name" placeholder="Norway 2026" required aria-label="Project name">
-      <input name="folder" placeholder="~/Pictures/norway" required size="36" aria-label="Photo folder">
+      <input id="folder" name="folder" placeholder="~/Pictures/norway" required size="36" aria-label="Photo folder">
+      <button type="button" class="browse" data-browse="folder">Browse…</button>
       <button>Create &amp; analyse</button>
     </form>
   </details>
   <span id="project-msg"></span>
 </header>
+<script>
+  // Browse… opens the system folder dialog via the app and fills the input named by data-browse.
+  // With data-keep-name on the input, the typed folder name is kept inside the picked folder.
+  document.addEventListener("click", async e => {
+    const browse = e.target.closest("[data-browse]");
+    if (!browse) return;
+    const field = document.getElementById(browse.dataset.browse);
+    browse.disabled = true;
+    try {
+      const resp = await fetch("/pick-folder", {method: "POST", headers: {"HX-Request": "true"},
+        body: new URLSearchParams({path: field.value, keep_name: "keepName" in field.dataset})});
+      const picked = await resp.text();
+      if (!resp.ok) alert(picked);
+      else if (picked) field.value = picked;
+    } finally {
+      browse.disabled = false;
+    }
+  });
+</script>

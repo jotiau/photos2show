@@ -78,6 +78,7 @@ textarea { font: inherit; padding: 8px; border: 1px solid var(--border); border-
 .picks li { display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px; }
 .picks img { width: 320px; max-width: 45%; aspect-ratio: 4/3; object-fit: contain; background: #0002;
              border-radius: 4px; flex-shrink: 0; cursor: zoom-in; }
+form button.browse { background: var(--panel); color: var(--text); border-color: var(--border); }
 #lightbox { padding: 0; border: 0; background: none; max-width: 95vw; max-height: 95vh; }
 #lightbox::backdrop { background: #000d; }
 #lightbox img, #lightbox video { display: block; max-width: 95vw; max-height: 95vh; object-fit: contain; }
