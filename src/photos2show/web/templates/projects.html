@@ -35,8 +35,12 @@
     <div class="actions">
       {% if name == job.project %}<span class="open">Open</span>
       {% else %}<button hx-post="/projects/open" hx-vals='{"name": {{ name|tojson }}}' hx-target="#msg-{{ loop.index }}">Open</button>{% endif %}
-      <button class="remove" hx-post="/projects/remove" hx-vals='{"name": {{ name|tojson }}}' hx-target="#msg-{{ loop.index }}"
-        hx-confirm="Remove the project {{ name }}? Your photos and the saved AI results stay; adding the folder again reuses them.">Remove</button>
+      <form hx-post="/projects/remove" hx-target="#msg-{{ loop.index }}"
+        hx-confirm="Remove the project {{ name }}? Your photos stay untouched.">
+        <input type="hidden" name="name" value="{{ name }}">
+        <button class="remove">Remove</button>
+        <label><input type="checkbox" name="delete_results" value="true"> also delete saved AI results and thumbnails</label>
+      </form>
       <span id="msg-{{ loop.index }}"></span>
     </div>
   </section>

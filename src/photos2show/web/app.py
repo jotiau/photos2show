@@ -191,9 +191,11 @@ def change_folder(name: str = Form(...), folder: str = Form(...)):
 
 
 @app.post("/projects/remove", response_class=HTMLResponse)
-def remove_project(name: str = Form(...)):
+def remove_project(name: str = Form(...), delete_results: bool = Form(False)):
     def change(projects):
-        del projects[name]
+        folder = projects.pop(name)
+        if delete_results and folder not in projects.values():  # another project on the same folder keeps them
+            shutil.rmtree(db.library_path(Path(folder)), ignore_errors=True)
         if job["project"] == name:
             job.update(project="", folder="", summary=None, error=None)  # the library opens the newest one left
 

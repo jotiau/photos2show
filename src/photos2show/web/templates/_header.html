@@ -1,9 +1,9 @@
 <header>
   <h1>photos2show</h1>
   <nav class="tabs">
+    <a href="/projects" class="{{ 'active' if page == 'projects' }}">Projects</a>
     <a href="/" class="{{ 'active' if page == 'library' }}">Library</a>
     <a href="/slideshow" class="{{ 'active' if page == 'slideshow' }}">Slideshow</a>
-    <a href="/projects" class="{{ 'active' if page == 'projects' }}">Projects</a>
     <a href="/settings" class="{{ 'active' if page == 'settings' }}">Settings</a>
   </nav>
   {% if projects %}

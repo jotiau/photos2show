@@ -153,6 +153,7 @@ def test_projects_page(tmp_path, monkeypatch):
 
     assert "Not a folder" in client.post("/projects/folder", data={"name": "Alps 2026", "folder": str(tmp_path / "x")}).text
     client.post("/projects/folder", data={"name": "Alps 2026", "folder": str(b)})
+    web.db.library_dir(b)  # as if analysed
     assert web.db.load_projects()["Alps 2026"] == str(b.resolve()) and web.job["folder"] == str(b.resolve())
 
     monkeypatch.setitem(web.job, "running", True)
@@ -161,3 +162,10 @@ def test_projects_page(tmp_path, monkeypatch):
     client.post("/projects/remove", data={"name": "Alps 2026"})
     assert list(web.db.load_projects()) == ["Coast"] and web.job["project"] == ""
     assert "Coast" in client.get("/").text and web.job["project"] == "Coast"  # the library opens the one left
+    assert web.db.library_path(b).exists()  # kept unless asked to delete
+
+    web.db.save_projects({"One": str(b), "Two": str(b), "Coast": str(tmp_path / "gone")})
+    client.post("/projects/remove", data={"name": "One", "delete_results": "true"})
+    assert web.db.library_path(b).exists()  # still used by Two
+    client.post("/projects/remove", data={"name": "Two", "delete_results": "true"})
+    assert not web.db.library_path(b).exists() and b.exists()  # results gone, photos untouched

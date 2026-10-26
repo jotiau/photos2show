@@ -95,7 +95,8 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
 - **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
   dropdown in the header to switch, "New project" to create and analyse; the *Projects* page lists
   them with their state (files, described, picks, folder missing) to rename, change the folder or remove.
-  Removing keeps the cached AI results (they are keyed by folder, not by project name).
+  Removing keeps the cached AI results (they are keyed by folder, not by project name) unless
+  "also delete saved AI results" is ticked and no other project uses that folder.
 - **Library view**: progress bar → thumbnail grid with badges (score, flags, tags, video icon);
   filter by flag/tag; click for detail (caption, metrics, frames for videos, "Add to slideshow").
 - **Slideshow view**: prompt box → "Select" → ordered tiles of picks with reasons; drag & drop to

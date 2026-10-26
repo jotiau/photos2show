@@ -43,7 +43,7 @@ LM Studio if you'd rather keep your photos on your own computer.
 **Library browser**
 - Thumbnail grid with filters by quality flag and tag; a detail panel with all metrics, the other
   shots of the same scene and the AI description.
-- One project per trip; switch between them in the header, rename, re-point or remove them in the *Projects* tab.
+- One project per trip; switch between them in the header, rename, re-point or remove them in the *Projects* tab (the first tab).
 
 **Your photos stay yours**
 - Runs locally in your browser; projects, AI results and thumbnails live in a data folder, never in your photo folder.
@@ -150,8 +150,9 @@ then select again.
 
 The *Projects* tab lists all projects with their state (files, AI-described, picks, missing folder).
 Rename a project, point it to another photo folder (e.g. after moving the photos; press *Analyse again*
-afterwards) or remove it. Removing never deletes photos, and the saved AI results stay in the data folder,
-so creating a project for the same folder again picks them up.
+afterwards) or remove it. Removing never deletes photos. The saved AI results and thumbnails stay in the
+data folder, so creating a project for the same folder again picks them up, unless you tick *also delete saved
+AI results* (kept anyway while another project uses the same folder).
 
 The *Settings* tab has the colour theme (auto follows your system, or light / dark).
 
