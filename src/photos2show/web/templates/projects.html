@@ -10,9 +10,17 @@
 <body>
 {% include "_header.html" %}
 <main class="projects">
-{% if not projects %}
-  <p class="empty">No projects yet: use <em>New project</em> above.</p>
-{% endif %}
+  <section class="project new">
+    <h2>New project</h2>
+    {% if not projects %}<p class="empty">One project per trip: give it a name and the folder with your photos.</p>{% endif %}
+    <form hx-post="/projects" hx-target="#new-msg">
+      <input name="name" placeholder="Norway 2026" required aria-label="Project name">
+      <input id="folder" name="folder" placeholder="~/Pictures/norway" required size="40" aria-label="Photo folder">
+      <button type="button" class="browse" data-browse="folder">Browse…</button>
+      <button>Create &amp; analyse</button>
+      <span id="new-msg"></span>
+    </form>
+  </section>
 {% for name, folder in projects.items() %}
   {% set s = stats[name] %}
   <section class="project {{ 'current' if name == job.project }}">

@@ -93,7 +93,7 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
 ### 6. Review UI
 Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
 - **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
-  dropdown in the header to switch, "New project" to create and analyse; the *Projects* page lists
+  dropdown in the header to switch; the *Projects* page has "New project" to create and analyse and lists
   them with their state (files, described, picks, folder missing) to rename, change the folder or remove.
   Removing keeps the cached AI results (they are keyed by folder, not by project name) unless
   "also delete saved AI results" is ticked and no other project uses that folder.

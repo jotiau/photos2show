@@ -13,15 +13,6 @@
     </select>
   </form>
   {% endif %}
-  <details {{ 'open' if not projects }}>
-    <summary>New project</summary>
-    <form hx-post="/projects" hx-target="#project-msg">
-      <input name="name" placeholder="Norway 2026" required aria-label="Project name">
-      <input id="folder" name="folder" placeholder="~/Pictures/norway" required size="36" aria-label="Photo folder">
-      <button type="button" class="browse" data-browse="folder">Browse…</button>
-      <button>Create &amp; analyse</button>
-    </form>
-  </details>
   <span id="project-msg"></span>
 </header>
 <script>

@@ -126,7 +126,7 @@ def create_project(name: str = Form(...), folder: str = Form(...)):
     db.save_project(name.strip(), root.resolve())
     _open(name.strip())
     _start()
-    return HTMLResponse("", headers=REFRESH)
+    return HTMLResponse("", headers={"HX-Redirect": "/"})  # the library shows the analysis progress
 
 
 @app.post("/projects/open", response_class=HTMLResponse)
