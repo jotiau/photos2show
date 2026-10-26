@@ -49,8 +49,9 @@ async def htmx_only(request: Request, call_next):
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 
 
-def _open(name: str) -> None:
-    job.update(project=name, folder=db.load_projects()[name], flag="all", summary=None, error=None)
+def _open(name: str, projects: dict[str, str] | None = None) -> None:
+    folder = (projects or db.load_projects())[name]
+    job.update(project=name, folder=folder, flag="all", summary=None, error=None)
 
 
 def _run(root: Path) -> None:
@@ -136,6 +137,67 @@ def open_project(name: str = Form(...)):
         raise HTTPException(404)
     _open(name)
     return HTMLResponse("", headers=REFRESH)
+
+
+@app.get("/projects", response_class=HTMLResponse)
+def projects_page(request: Request):
+    stats = {name: db.project_stats(Path(folder)) for name, folder in db.load_projects().items()}
+    return _page(request, "projects.html", page="projects", stats=stats)
+
+
+def _edit_projects(name: str, change) -> HTMLResponse:
+    """Apply change(projects) -> error or None to the saved projects; the page reloads on success."""
+    if job["running"]:
+        return HTMLResponse('<span class="error">Wait until the running analysis is finished.</span>')
+    projects = db.load_projects()
+    if name not in projects:
+        raise HTTPException(404)
+    if error := change(projects):
+        return HTMLResponse(f'<span class="error">{escape(error)}</span>')
+    db.save_projects(projects)
+    return HTMLResponse("", headers=REFRESH)
+
+
+@app.post("/projects/rename", response_class=HTMLResponse)
+def rename_project(name: str = Form(...), new_name: str = Form(...)):
+    new_name = new_name.strip()
+
+    def change(projects):
+        if not new_name:
+            return "Name missing"
+        if new_name != name and new_name in projects:
+            return f"A project called {new_name} already exists."
+        renamed = {new_name if k == name else k: v for k, v in projects.items()}  # keeps the order
+        projects.clear()
+        projects.update(renamed)
+        if job["project"] == name:
+            job["project"] = new_name
+
+    return _edit_projects(name, change)
+
+
+@app.post("/projects/folder", response_class=HTMLResponse)
+def change_folder(name: str = Form(...), folder: str = Form(...)):
+    root = Path(folder).expanduser()
+
+    def change(projects):
+        if not root.is_dir():
+            return f"Not a folder: {folder}"
+        projects[name] = str(root.resolve())
+        if job["project"] == name:
+            _open(name, projects)
+
+    return _edit_projects(name, change)
+
+
+@app.post("/projects/remove", response_class=HTMLResponse)
+def remove_project(name: str = Form(...)):
+    def change(projects):
+        del projects[name]
+        if job["project"] == name:
+            job.update(project="", folder="", summary=None, error=None)  # the library opens the newest one left
+
+    return _edit_projects(name, change)
 
 
 @app.post("/analyse", response_class=HTMLResponse)

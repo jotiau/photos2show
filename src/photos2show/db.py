@@ -29,9 +29,14 @@ CREATE TABLE IF NOT EXISTS media (
 """
 
 
-def library_dir(root: Path) -> Path:
+def library_path(root: Path) -> Path:
+    """The cache folder of a photo folder, without creating it."""
     key = hashlib.sha1(str(root.resolve()).encode()).hexdigest()[:12]
-    d = cache_root() / f"{root.resolve().name}-{key}"
+    return cache_root() / f"{root.resolve().name}-{key}"
+
+
+def library_dir(root: Path) -> Path:
+    d = library_path(root)
     (d / "thumbs").mkdir(parents=True, exist_ok=True)
     return d
 
@@ -93,4 +98,21 @@ def save_setting(key: str, value: str) -> None:
 
 
 def save_project(name: str, folder: Path) -> None:
-    write_json(cache_root() / "projects.json", load_projects() | {name: str(folder)})
+    save_projects(load_projects() | {name: str(folder)})
+
+
+def save_projects(projects: dict[str, str]) -> None:
+    write_json(cache_root() / "projects.json", projects)
+
+
+def project_stats(folder: Path) -> dict:
+    """State for the projects page; reads only, so a missing or never analysed folder creates no cache."""
+    d = library_path(folder)
+    stats = {"exists": folder.is_dir(), "files": 0, "described": 0, "picks": 0}
+    if (d / "photos2show.db").exists():
+        conn = sqlite3.connect(d / "photos2show.db")
+        stats["files"], stats["described"] = conn.execute("SELECT COUNT(*), COUNT(ai) FROM media").fetchone()
+        conn.close()
+    if (d / "selection.json").exists():
+        stats["picks"] = len(json.loads((d / "selection.json").read_text())["picks"])
+    return stats
