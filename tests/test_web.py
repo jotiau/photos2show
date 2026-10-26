@@ -110,6 +110,25 @@ def test_settings(tmp_path, monkeypatch):
     assert 'data-theme="dark"' in client.get("/slideshow").text
 
 
+def test_cleanup_unused_data(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setitem(web.job, "running", False)
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    used, old = tmp_path / "used", tmp_path / "old"
+    assert "None – all saved data" in client.get("/settings").text
+    web.db.save_projects({"Used": str(used)})
+    web.db.library_dir(used), web.db.library_dir(old)
+    (web.db.library_dir(old) / "photos2show.db").write_bytes(b"x" * 2_000_000)
+    other = tmp_path / "cache" / "notes-0123456789ab"  # looks like a cache name, but no thumbs/: not ours
+    other.mkdir()
+
+    page = client.get("/settings").text
+    assert "1 folder of saved AI results and thumbnails (2.0 MB)" in page
+    assert client.post("/settings/cleanup").headers["HX-Refresh"] == "true"
+    assert not web.db.library_path(old).exists()
+    assert web.db.library_path(used).exists() and other.exists() and (tmp_path / "cache" / "projects.json").exists()
+
+
 def test_pick_folder_linux_uses_desktop_dialog(tmp_path, monkeypatch):
     client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
     monkeypatch.setattr(web.sys, "platform", "linux")
@@ -130,3 +149,42 @@ def test_pick_folder_linux_uses_desktop_dialog(tmp_path, monkeypatch):
     monkeypatch.setattr(web.shutil, "which", lambda name: f"/usr/bin/{name}" if name == "kdialog" else None)
     client.post("/pick-folder", data={"path": str(tmp_path)})
     assert calls[-1] == ["kdialog", "--getexistingdirectory", str(tmp_path.resolve())]
+
+
+def test_projects_page(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    for key, value in {"running": False, "project": "", "folder": ""}.items():
+        monkeypatch.setitem(web.job, key, value)  # restored afterwards: job is shared by all tests
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    a, b = tmp_path / "a", tmp_path / "b"
+    a.mkdir(), b.mkdir()
+    web.db.save_projects({"Alps": str(a), "Coast": str(tmp_path / "gone")})
+    web._open("Alps")
+
+    page = client.get("/projects").text
+    assert "Folder not found" in page and "not analysed yet" in page
+    assert not web.db.library_path(tmp_path / "gone").exists()  # looking creates no cache folder
+
+    assert "already exists" in client.post("/projects/rename", data={"name": "Alps", "new_name": "Coast"}).text
+    assert client.post("/projects/rename", data={"name": "Alps", "new_name": " Alps 2026 "}).headers["HX-Refresh"]
+    assert list(web.db.load_projects()) == ["Alps 2026", "Coast"] and web.job["project"] == "Alps 2026"
+    assert client.post("/projects/rename", data={"name": "nope", "new_name": "x"}).status_code == 404
+
+    assert "Not a folder" in client.post("/projects/folder", data={"name": "Alps 2026", "folder": str(tmp_path / "x")}).text
+    client.post("/projects/folder", data={"name": "Alps 2026", "folder": str(b)})
+    web.db.library_dir(b)  # as if analysed
+    assert web.db.load_projects()["Alps 2026"] == str(b.resolve()) and web.job["folder"] == str(b.resolve())
+
+    monkeypatch.setitem(web.job, "running", True)
+    assert "Wait until" in client.post("/projects/remove", data={"name": "Coast"}).text
+    monkeypatch.setitem(web.job, "running", False)
+    client.post("/projects/remove", data={"name": "Alps 2026"})
+    assert list(web.db.load_projects()) == ["Coast"] and web.job["project"] == ""
+    assert "Coast" in client.get("/").text and web.job["project"] == "Coast"  # the library opens the one left
+    assert web.db.library_path(b).exists()  # kept unless asked to delete
+
+    web.db.save_projects({"One": str(b), "Two": str(b), "Coast": str(tmp_path / "gone")})
+    client.post("/projects/remove", data={"name": "One", "delete_results": "true"})
+    assert web.db.library_path(b).exists()  # still used by Two
+    client.post("/projects/remove", data={"name": "Two", "delete_results": "true"})
+    assert not web.db.library_path(b).exists() and b.exists()  # results gone, photos untouched

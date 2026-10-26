@@ -93,7 +93,10 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
 ### 6. Review UI
 Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
 - **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
-  dropdown in the header to switch, "New project" to create and analyse.
+  dropdown in the header to switch, "New project" to create and analyse; the *Projects* page lists
+  them with their state (files, described, picks, folder missing) to rename, change the folder or remove.
+  Removing keeps the cached AI results (they are keyed by folder, not by project name) unless
+  "also delete saved AI results" is ticked and no other project uses that folder.
 - **Library view**: progress bar → thumbnail grid with badges (score, flags, tags, video icon);
   filter by flag/tag; click for detail (caption, metrics, frames for videos, "Add to slideshow").
 - **Slideshow view**: prompt box → "Select" → ordered tiles of picks with reasons; drag & drop to
@@ -157,8 +160,7 @@ tests/
 - HEIC / RAW support
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
-- Project overview page: add / edit / delete projects and track their state (status, photo
-  count, picks, last analysed) instead of only the header dropdown
+- Projects page: last-analysed date
 
 ## Risks / open points
 Reviewed with the user on 2026-10-23.

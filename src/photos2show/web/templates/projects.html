@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="{{ settings().theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>photos2show – Projects</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+{% include "_header.html" %}
+<main class="projects">
+{% if not projects %}
+  <p class="empty">No projects yet: use <em>New project</em> above.</p>
+{% endif %}
+{% for name, folder in projects.items() %}
+  {% set s = stats[name] %}
+  <section class="project {{ 'current' if name == job.project }}">
+    <form hx-post="/projects/rename" hx-target="#msg-{{ loop.index }}">
+      <input type="hidden" name="name" value="{{ name }}">
+      <input name="new_name" value="{{ name }}" required aria-label="Project name">
+      <button>Rename</button>
+    </form>
+    <form hx-post="/projects/folder" hx-target="#msg-{{ loop.index }}">
+      <input type="hidden" name="name" value="{{ name }}">
+      <input id="folder-{{ loop.index }}" name="folder" value="{{ folder }}" required size="40" aria-label="Photo folder">
+      <button type="button" class="browse" data-browse="folder-{{ loop.index }}">Browse…</button>
+      <button>Change folder</button>
+    </form>
+    <p class="state">
+      {% if not s.exists %}<span class="error">Folder not found</span> ·{% endif %}
+      {% if s.files %}{{ s.files }} files · {{ s.described }} described by AI · {{ s.picks }} in slideshow
+      {% else %}not analysed yet{% endif %}
+    </p>
+    <div class="actions">
+      {% if name == job.project %}<span class="open">Open</span>
+      {% else %}<button hx-post="/projects/open" hx-vals='{"name": {{ name|tojson }}}' hx-target="#msg-{{ loop.index }}">Open</button>{% endif %}
+      <form hx-post="/projects/remove" hx-target="#msg-{{ loop.index }}"
+        hx-confirm="Remove the project {{ name }}? Your photos stay untouched.">
+        <input type="hidden" name="name" value="{{ name }}">
+        <button class="remove">Remove</button>
+        <label><input type="checkbox" name="delete_results" value="true"> also delete saved AI results and thumbnails</label>
+      </form>
+      <span id="msg-{{ loop.index }}"></span>
+    </div>
+  </section>
+{% endfor %}
+</main>
+</body>
+</html>

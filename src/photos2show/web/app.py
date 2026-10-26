@@ -49,8 +49,9 @@ async def htmx_only(request: Request, call_next):
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 
 
-def _open(name: str) -> None:
-    job.update(project=name, folder=db.load_projects()[name], flag="all", summary=None, error=None)
+def _open(name: str, projects: dict[str, str] | None = None) -> None:
+    folder = (projects or db.load_projects())[name]
+    job.update(project=name, folder=folder, flag="all", summary=None, error=None)
 
 
 def _run(root: Path) -> None:
@@ -138,6 +139,69 @@ def open_project(name: str = Form(...)):
     return HTMLResponse("", headers=REFRESH)
 
 
+@app.get("/projects", response_class=HTMLResponse)
+def projects_page(request: Request):
+    stats = {name: db.project_stats(Path(folder)) for name, folder in db.load_projects().items()}
+    return _page(request, "projects.html", page="projects", stats=stats)
+
+
+def _edit_projects(name: str, change) -> HTMLResponse:
+    """Apply change(projects) -> error or None to the saved projects; the page reloads on success."""
+    if job["running"]:
+        return HTMLResponse('<span class="error">Wait until the running analysis is finished.</span>')
+    projects = db.load_projects()
+    if name not in projects:
+        raise HTTPException(404)
+    if error := change(projects):
+        return HTMLResponse(f'<span class="error">{escape(error)}</span>')
+    db.save_projects(projects)
+    return HTMLResponse("", headers=REFRESH)
+
+
+@app.post("/projects/rename", response_class=HTMLResponse)
+def rename_project(name: str = Form(...), new_name: str = Form(...)):
+    new_name = new_name.strip()
+
+    def change(projects):
+        if not new_name:
+            return "Name missing"
+        if new_name != name and new_name in projects:
+            return f"A project called {new_name} already exists."
+        renamed = {new_name if k == name else k: v for k, v in projects.items()}  # keeps the order
+        projects.clear()
+        projects.update(renamed)
+        if job["project"] == name:
+            job["project"] = new_name
+
+    return _edit_projects(name, change)
+
+
+@app.post("/projects/folder", response_class=HTMLResponse)
+def change_folder(name: str = Form(...), folder: str = Form(...)):
+    root = Path(folder).expanduser()
+
+    def change(projects):
+        if not root.is_dir():
+            return f"Not a folder: {folder}"
+        projects[name] = str(root.resolve())
+        if job["project"] == name:
+            _open(name, projects)
+
+    return _edit_projects(name, change)
+
+
+@app.post("/projects/remove", response_class=HTMLResponse)
+def remove_project(name: str = Form(...), delete_results: bool = Form(False)):
+    def change(projects):
+        folder = projects.pop(name)
+        if delete_results and folder not in projects.values():  # another project on the same folder keeps them
+            shutil.rmtree(db.library_path(Path(folder)), ignore_errors=True)
+        if job["project"] == name:
+            job.update(project="", folder="", summary=None, error=None)  # the library opens the newest one left
+
+    return _edit_projects(name, change)
+
+
 @app.post("/analyse", response_class=HTMLResponse)
 def analyse(request: Request, parallel: int = Form(ge=1, le=16)):
     if not job["running"]:
@@ -211,7 +275,18 @@ def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request):
-    return _page(request, "settings.html", page="settings", fields=db.SETTINGS)
+    unused = db.unused_libraries()
+    size = sum(f.stat().st_size for d in unused for f in d.rglob("*") if f.is_file())
+    return _page(request, "settings.html", page="settings", fields=db.SETTINGS, unused=len(unused), unused_mb=size / 1e6)
+
+
+@app.post("/settings/cleanup", response_class=HTMLResponse)
+def cleanup():
+    if job["running"]:
+        return HTMLResponse('<span class="error">Wait until the running analysis is finished.</span>')
+    for d in db.unused_libraries():
+        shutil.rmtree(d, ignore_errors=True)
+    return HTMLResponse("", headers=REFRESH)
 
 
 @app.post("/settings", response_class=HTMLResponse)

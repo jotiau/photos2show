@@ -43,7 +43,7 @@ LM Studio if you'd rather keep your photos on your own computer.
 **Library browser**
 - Thumbnail grid with filters by quality flag and tag; a detail panel with all metrics, the other
   shots of the same scene and the AI description.
-- One project per trip; switch between them in the header.
+- One project per trip; switch between them in the header, rename, re-point or remove them in the *Projects* tab (the first tab).
 
 **Your photos stay yours**
 - Runs locally in your browser; projects, AI results and thumbnails live in a data folder, never in your photo folder.
@@ -148,7 +148,14 @@ Tips for local models:
 Each project keeps one slideshow; to make a second show from the same trip, export the first one,
 then select again.
 
-The *Settings* tab has the colour theme (auto follows your system, or light / dark).
+The *Projects* tab lists all projects with their state (files, AI-described, picks, missing folder).
+Rename a project, point it to another photo folder (e.g. after moving the photos; press *Analyse again*
+afterwards) or remove it. Removing never deletes photos. The saved AI results and thumbnails stay in the
+data folder, so creating a project for the same folder again picks them up, unless you tick *also delete saved
+AI results* (kept anyway while another project uses the same folder).
+
+The *Settings* tab has the colour theme (auto follows your system, or light / dark), and *Delete unused data*: it removes saved AI
+results and thumbnails of folders no project uses any more (also folders only analysed with `photos2show-scan`).
 
 ### How long does it take?
 
@@ -200,8 +207,7 @@ Planned, roughly in this order of interest:
 
 - HEIC and RAW support
 - Several saved slideshows per project; projects spanning several folders
-- Project overview page: add, edit and delete projects and keep track of them (status, photo
-  count, picks, last analysed)
+- Projects page: show when a project was last analysed
 - Face detection and grouping ("everyone appears at least once")
 - Map and location grouping from GPS
 - Local semantic search (CLIP) and smarter duplicate grouping
