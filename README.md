@@ -131,7 +131,7 @@ Tips for local models:
 
 ## How to use
 
-1. **Create a project**: one per trip. Click *New project*, enter a name (e.g. "Norway 2026") and
+1. **Create a project**: one per trip. In the *Projects* tab, enter a name (e.g. "Norway 2026") and
    the folder with the photos and videos (type the path or pick it with *Browse…*; subfolders are
    included), then press *Create & analyse*.
 2. **Let it analyse** (progress in the *Library* tab):

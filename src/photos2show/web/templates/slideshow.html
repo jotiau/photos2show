@@ -11,7 +11,7 @@
 {% include "_header.html" %}
 <main class="slideshow">
 {% if selection is none %}
-  <p class="empty">Create a project first.</p>
+  <p class="empty"><a href="/projects">Create a project</a> first.</p>
 {% else %}
   <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking" hx-disabled-elt="find button">
     <label for="description">Describe the slideshow</label>

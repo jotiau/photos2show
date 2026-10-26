@@ -26,8 +26,9 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
                 return resp
             time.sleep(0.1)
 
+    assert "Create &amp; analyse" in client.get("/projects").text
     resp = client.post("/projects", data={"name": "Norway 2026", "folder": str(folder)})
-    assert resp.headers["HX-Refresh"] == "true"
+    assert resp.headers["HX-Redirect"] == "/"  # to the library, where the progress shows
     resp = wait()
     assert f"{len(testdata.EXPECTED)} files" in resp.text and "9 described by AI" in resp.text
     assert "Norway 2026" in client.get("/").text
