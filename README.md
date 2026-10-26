@@ -154,7 +154,8 @@ afterwards) or remove it. Removing never deletes photos. The saved AI results an
 data folder, so creating a project for the same folder again picks them up, unless you tick *also delete saved
 AI results* (kept anyway while another project uses the same folder).
 
-The *Settings* tab has the colour theme (auto follows your system, or light / dark).
+The *Settings* tab has the colour theme (auto follows your system, or light / dark), and *Delete unused data*: it removes saved AI
+results and thumbnails of folders no project uses any more (also folders only analysed with `photos2show-scan`).
 
 ### How long does it take?
 

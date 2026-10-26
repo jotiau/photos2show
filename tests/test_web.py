@@ -110,6 +110,25 @@ def test_settings(tmp_path, monkeypatch):
     assert 'data-theme="dark"' in client.get("/slideshow").text
 
 
+def test_cleanup_unused_data(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setitem(web.job, "running", False)
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    used, old = tmp_path / "used", tmp_path / "old"
+    assert "None – all saved data" in client.get("/settings").text
+    web.db.save_projects({"Used": str(used)})
+    web.db.library_dir(used), web.db.library_dir(old)
+    (web.db.library_dir(old) / "photos2show.db").write_bytes(b"x" * 2_000_000)
+    other = tmp_path / "cache" / "notes-0123456789ab"  # looks like a cache name, but no thumbs/: not ours
+    other.mkdir()
+
+    page = client.get("/settings").text
+    assert "1 folder of saved AI results and thumbnails (2.0 MB)" in page
+    assert client.post("/settings/cleanup").headers["HX-Refresh"] == "true"
+    assert not web.db.library_path(old).exists()
+    assert web.db.library_path(used).exists() and other.exists() and (tmp_path / "cache" / "projects.json").exists()
+
+
 def test_pick_folder_linux_uses_desktop_dialog(tmp_path, monkeypatch):
     client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
     monkeypatch.setattr(web.sys, "platform", "linux")

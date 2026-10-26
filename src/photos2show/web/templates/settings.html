@@ -16,6 +16,17 @@
     {% for c in choices %}<option {{ 'selected' if c == settings()[key] }}>{{ c }}</option>{% endfor %}
   </select>
   {% endfor %}
+  <span>Unused data</span>
+  <div>
+    {% if unused %}
+    {{ unused }} folder{{ 's' if unused != 1 }} of saved AI results and thumbnails ({{ '%.1f' % unused_mb }} MB) belong to no project.
+    <button class="remove" hx-post="/settings/cleanup" hx-target="#cleanup-msg"
+      hx-confirm="Delete saved AI results and thumbnails of {{ unused }} folder{{ 's' if unused != 1 }} that no project uses? Photos stay untouched, but analysing those folders again takes time.">Delete unused data</button>
+    {% else %}
+    None – all saved data belongs to a project.
+    {% endif %}
+    <span id="cleanup-msg"></span>
+  </div>
 </main>
 </body>
 </html>

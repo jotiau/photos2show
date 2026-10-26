@@ -275,7 +275,18 @@ def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request):
-    return _page(request, "settings.html", page="settings", fields=db.SETTINGS)
+    unused = db.unused_libraries()
+    size = sum(f.stat().st_size for d in unused for f in d.rglob("*") if f.is_file())
+    return _page(request, "settings.html", page="settings", fields=db.SETTINGS, unused=len(unused), unused_mb=size / 1e6)
+
+
+@app.post("/settings/cleanup", response_class=HTMLResponse)
+def cleanup():
+    if job["running"]:
+        return HTMLResponse('<span class="error">Wait until the running analysis is finished.</span>')
+    for d in db.unused_libraries():
+        shutil.rmtree(d, ignore_errors=True)
+    return HTMLResponse("", headers=REFRESH)
 
 
 @app.post("/settings", response_class=HTMLResponse)

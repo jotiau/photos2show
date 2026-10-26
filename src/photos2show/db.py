@@ -105,6 +105,14 @@ def save_projects(projects: dict[str, str]) -> None:
     write_json(cache_root() / "projects.json", projects)
 
 
+def unused_libraries() -> list[Path]:
+    """Cache folders (<name>-<12 hex>/thumbs) that no project points to, e.g. left after removing a project."""
+    used = {library_path(Path(f)) for f in load_projects().values()}
+    root = cache_root()
+    found = root.glob("*-" + "[0-9a-f]" * 12) if root.is_dir() else []
+    return sorted(d for d in found if (d / "thumbs").is_dir() and d not in used)
+
+
 def project_stats(folder: Path) -> dict:
     """State for the projects page; reads only, so a missing or never analysed folder creates no cache."""
     d = library_path(folder)
