@@ -227,7 +227,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
      button plus an out-of-band swap (`hx-swap-oob`) for the card badge.
    - Done when: you can curate the show from the Library without switching to the Slideshow tab to check.
 
-4. **Stop the grid jumping during AI analysis**
+4. **Stop the grid jumping during AI analysis** – **done 2026-11-01 (option b)**
+   - Built: the grid reloads when a phase starts and once at the end; in between the progress bar
+     shows "Show N new results".
    - Today: `/progress` sends `HX-Trigger: analysed` every 2 s while the AI runs, and the whole
      `#grid` (filters + up to ~1000 cards) is re-rendered each time. That is heavy and can move
      the scroll position, change the hovered card and reset what you were looking at.

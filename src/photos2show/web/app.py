@@ -35,7 +35,7 @@ REFRESH = {"HX-Refresh": "true"}
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
        "stopping": False, "summary": None, "error": None, "flag": "all", "query": "",
-       "parallel": default_concurrency()}
+       "parallel": default_concurrency(), "grid_phase": "", "grid_done": 0}
 lock = threading.Lock()
 stop = threading.Event()
 
@@ -263,8 +263,10 @@ def stop_analysis(request: Request):
 @app.get("/progress", response_class=HTMLResponse)
 def progress(request: Request):
     resp = templates.TemplateResponse(request, "_progress.html", {"job": job})
-    if not job["running"] or job["phase"] != "Scanning":
-        resp.headers["HX-Trigger"] = "analysed"  # tells the grid to reload, live while AI results come in
+    # Reload the grid when a phase starts and once at the end; in between a "Show N new results" button,
+    # so browsing during a long AI run doesn't jump.
+    if not job["running"] or job["phase"] != job["grid_phase"]:
+        resp.headers["HX-Trigger"] = "analysed"
     return resp
 
 
@@ -272,6 +274,7 @@ def progress(request: Request):
 def grid(request: Request, flag: str | None = None, q: str | None = None):
     flag = job["flag"] = flag or job["flag"]  # remembered so live reloads keep the filter
     query = job["query"] = (job["query"] if q is None else q).strip()  # q="" clears the search
+    job.update(grid_phase=job["phase"], grid_done=job["done"])  # what the grid shows: newer = "new results"
     items = [it for it in _items() if _found(it, query)]
     counts = {f: sum(_matches(it, f) for it in items) for f in FILTERS}
     if flag.startswith("tag:"):

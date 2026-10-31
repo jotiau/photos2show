@@ -134,8 +134,15 @@ def test_stop_and_time_left(tmp_path, monkeypatch, fake_ai):
     monkeypatch.setitem(web.job, "started", time.monotonic() - 120)  # 4 of 10 done in 2 min: 3 min left
     monkeypatch.setitem(web.job, "done", 4)
     monkeypatch.setitem(web.job, "total", 10)
-    page = client.get("/progress").text
-    assert "about 3 min left" in page and "Stop" in page
+    monkeypatch.setitem(web.job, "phase", "Describing with AI")
+    monkeypatch.setitem(web.job, "grid_phase", "Scanning")
+    resp = client.get("/progress")
+    assert "about 3 min left" in resp.text and "Stop" in resp.text
+    assert resp.headers["HX-Trigger"] == "analysed"  # a new phase: the grid reloads once
+    monkeypatch.setitem(web.job, "grid_phase", "Describing with AI")
+    monkeypatch.setitem(web.job, "grid_done", 1)
+    resp = client.get("/progress")
+    assert "HX-Trigger" not in resp.headers and "Show 3 new results" in resp.text  # no jumping, a button instead
     monkeypatch.setitem(web.job, "done", 2)
     assert web.time_left() == ""  # too early to tell
     assert "Stopping" in client.post("/analyse/stop").text and web.stop.is_set()
