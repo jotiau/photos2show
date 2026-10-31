@@ -199,7 +199,7 @@ Set in `.env` or as environment variables:
 | `OPENAI_BASE_URL` | – (required) | OpenAI-compatible endpoint, e.g. `http://localhost:11434/v1` |
 | `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth |
 | `MODEL` | `glm-5.3-flash` | model id as the server lists it |
-| `AI_CONCURRENCY` | `2` | parallel AI requests (1 = strictly one by one); also selectable in the UI |
+| `AI_CONCURRENCY` | `2` | parallel AI requests (1 = strictly one by one); default for the setting in Settings |
 | `PHOTOS2SHOW_CACHE` | `~/.local/share/photos2show` | data folder for projects, AI results and thumbnails |
 | `PHOTOS2SHOW_PORT` | `8000` | port of the web UI |
 

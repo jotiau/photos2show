@@ -6,7 +6,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from photos2show.config import cache_root
+from photos2show.config import cache_root, default_concurrency
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS media (
@@ -82,16 +82,21 @@ def load_projects() -> dict[str, str]:
     return json.loads(f.read_text()) if f.exists() else {}
 
 
-# App settings: key -> (label, choices, default). Add a line here and it shows up on the settings page.
+_PARALLEL = str(default_concurrency())  # AI_CONCURRENCY from .env, kept as a choice even if not 1/2/4/8
+
+# App settings: key -> (label, choices, default, help). Add a line here and it shows up on the settings page.
 SETTINGS = {
-    "theme": ("Theme", ("auto", "light", "dark"), "auto"),
+    "theme": ("Theme", ("auto", "light", "dark"), "auto", "Light or dark colours; auto follows your system."),
+    "parallel": ("Parallel AI requests", tuple(sorted({"1", "2", "4", "8", _PARALLEL}, key=int)), _PARALLEL,
+                 "How many photos are sent to the AI at once. More is faster if the server keeps up; "
+                 "a local model on your own computer often works best with 1."),
 }
 
 
 def load_settings() -> dict[str, str]:
     f = cache_root() / "settings.json"
     saved = json.loads(f.read_text()) if f.exists() else {}
-    return {k: saved[k] if saved.get(k) in choices else default for k, (_, choices, default) in SETTINGS.items()}
+    return {k: saved[k] if saved.get(k) in choices else default for k, (_, choices, default, _) in SETTINGS.items()}
 
 
 def save_setting(key: str, value: str) -> None:

@@ -6,6 +6,8 @@
   <title>photos2show – Library</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/htmx.min.js"></script>
+  <!-- Back/forward reload the URL (the server restores filter and photo) instead of caching ~1000 cards in localStorage. -->
+  <meta name="htmx-config" content='{"historyCacheSize": 0, "refreshOnHistoryMiss": true}'>
 </head>
 <body>
 {% include "_header.html" %}
@@ -13,23 +15,60 @@
 <div class="bar">
   <span class="path">{{ job.folder }}</span>
   <form hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">
-    <label>Parallel AI requests
-      <select name="parallel">
-        {% for n in (1, 2, 4, 8, job.parallel) | unique | sort %}<option {{ 'selected' if n == job.parallel }}>{{ n }}</option>{% endfor %}
-      </select>
-    </label>
-    <button>Analyse again</button>
+    <button class="primary" title="{{ settings().parallel }} parallel AI requests (see Settings)">Analyse again</button>
   </form>
   {% include "_progress.html" %}
 </div>
 <div class="search">
   <input type="search" name="q" value="{{ job.query }}" placeholder="Search captions, tags, file names… (e.g. boat sunset)"
     aria-label="Search" hx-get="/grid" hx-target="#grid" hx-trigger="input changed delay:300ms, search">
+  <label>Sort by
+    <select name="sort" hx-get="/grid" hx-target="#grid" hx-trigger="change">
+      {% for key, label in sorts.items() %}<option value="{{ key }}" {{ 'selected' if key == job.sort }}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
 </div>
 <main>
   <section id="grid" hx-get="/grid" hx-trigger="load, analysed from:body"></section>
-  <aside id="detail"></aside>
+  <aside id="detail"{% if photo %} hx-get="/media/{{ photo }}" hx-trigger="load"{% endif %}></aside>
 </main>
+<div id="bulk" hidden>
+  <span></span>
+  <button data-action="add" class="primary">Add to slideshow</button>
+  <button data-action="remove" class="remove">Remove from slideshow</button>
+  <button data-action="">Clear</button>
+</div>
+<script>
+  // Bulk: Ctrl/⌘-click toggles a card, Shift-click adds the range from the last one; the bar acts on all of them.
+  const bulk = document.getElementById("bulk");
+  const checked = () => [...document.querySelectorAll(".cards .card.checked")];
+  const showBulk = () => {
+    const n = checked().length;
+    bulk.hidden = !n;
+    bulk.querySelector("span").textContent = `${n} selected`;
+  };
+  let lastChecked = null;
+  document.addEventListener("click", e => {
+    const card = e.target.closest(".cards .card");
+    if (!card || !(e.ctrlKey || e.metaKey || e.shiftKey)) return;
+    e.preventDefault();  // no text selection, no detail panel
+    const cards = [...document.querySelectorAll(".cards .card")];
+    if (e.shiftKey && cards.includes(lastChecked)) {
+      const [a, b] = [cards.indexOf(lastChecked), cards.indexOf(card)].sort((x, y) => x - y);
+      cards.slice(a, b + 1).forEach(c => c.classList.add("checked"));
+    } else card.classList.toggle("checked");
+    lastChecked = card;
+    showBulk();
+  });
+  bulk.addEventListener("click", e => {
+    const action = e.target.closest("button")?.dataset.action;
+    if (action) htmx.ajax("POST", "/slideshow/bulk", {source: bulk, swap: "none",
+      values: {action, ids: checked().map(c => c.dataset.id).join(",")}});
+    else if (action === "") checked().forEach(c => c.classList.remove("checked"));
+    showBulk();
+  });
+  document.body.addEventListener("htmx:afterSwap", showBulk);  // a reloaded grid starts without a selection
+</script>
 <script>
   // Keyboard: ← → step through the cards in grid order, A adds the open photo to the slideshow, Esc closes.
   const detail = document.getElementById("detail");

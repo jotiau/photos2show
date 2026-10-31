@@ -33,13 +33,16 @@ folder ─► 1 Scan ─► 2 Quality ─► 3 Dedup ─► 4 AI analysis ─►
 ### 1. Scan
 - Walk folder recursively for `.jpg/.jpeg` and `.mp4`.
 - Read EXIF `DateTimeOriginal` with Pillow; apply EXIF orientation (camera/GPS not read yet).
-- Create thumbnails: ~400px for the UI, ~1024px long edge for the LLM (keeps token use low).
+- Thumbnails: ~400 px for the grid, saved in the cache. The ~1024 px image for the LLM is only
+  encoded in memory; a ~1024 px preview for the detail panel is made on first view and cached.
+  A changed or deleted file loses its thumbnail, video frames and preview.
 - Videos: OpenCV `VideoCapture` grabs frames at 10 % / 50 % / 90 % of duration; the sharpest
   frame represents the video. Date: from the phone-style file name (`YYYYMMDD_HHMMSS`), else
   the MP4 movie header `creation_time` (UTC, shown in local time), else file mtime (mtime was 1 h
   off for copied Norway videos). The name goes first: it is the phone's local time like the photo
   EXIF, while the header is absolute and differed by 1 h for 2 Norway clips. Cached videos are
-  re-dated on every scan without a full re-analysis.
+  re-dated on every scan without a full re-analysis. Video length (for the slideshow) is read
+  when needed and cached by path + mtime.
 - Cache key: path + size + mtime.
 
 ### 2. Classic quality (OpenCV + NumPy, no AI)
@@ -62,7 +65,7 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
 - Best of cluster = highest technical score (sharpness, exposure); others flagged `duplicate_of`.
 
 ### 4. AI analysis (GLM-5.3 Flash, per image)
-- Send the 1024px thumbnail (base64 `image_url`) with a fixed prompt; request JSON:
+- Send the 1024px image (base64 `image_url`) with a fixed prompt; request JSON:
   ```json
   {"caption": "...", "tags": ["beach", "sunset", "people"], "scene": "landscape|people|food|city|...",
    "people_count": 2, "aesthetic": 1-10, "interest": 1-10, "issues": ["closed eyes", "tilted horizon"]}
@@ -72,8 +75,9 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
   counts as failed and is retried on the next run.
 - **Two passes:** pass 1 (steps 1–3, local, fast) runs over all files first, because the best
   image of a scene is only known once its neighbours are scanned. Pass 2 then sends the remaining
-  images to the LLM in small parallel batches (`AI_CONCURRENCY`, default 2, selectable in the UI and CLI; 4 was 2.4× faster than 1 in the test); each result is saved
-  immediately, shows up live in the UI, and an interrupted run resumes where it stopped.
+  images to the LLM in small parallel batches (Settings → *Parallel AI requests*, default from
+  `AI_CONCURRENCY` = 2; CLI `--parallel`; 4 was 2.4× faster than 1 in the test). Each result is
+  saved immediately and an interrupted run resumes where it stopped.
   *Stop* lets running requests finish (saved) and skips the queued ones; a stopped scan ends
   early and does not count as "last analysed". Time left = speed of the current phase so far.
 - **Save tokens – only send what is worth analysing:**
@@ -86,33 +90,47 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
 2. Candidates: every described, non-duplicate item. Flagged ones stay in, with their flags in
    the prompt; GLM is told to avoid them (no separate hard filter).
 3. Send GLM one prompt: the description + a compact line per candidate
-   (`id | date | kind | scene | tags | caption | aesthetic | interest | flags`), ~70 tokens each
-   (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k).
+   (`id | date | kind | scene | tags | caption | aesthetic | interest | flags`, videos as
+   `video 12s`), ~70 tokens each (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k).
 4. GLM returns JSON: ordered list of ids with a short reason per pick (count from the description,
-   ~5 s per photo).
+   at the chosen seconds per photo, 2–15 s, default 5; videos run their full length).
 5. Validate: unknown, repeated or malformed ids are dropped; only described, non-duplicate items.
    No score-based fallback – on a bad answer the UI shows the error and you press *Select* again.
 6. Default order chronological unless the description says otherwise.
-7. One selection per project (`selection.json` in the project cache); editing by hand in the UI.
+7. One selection per project (`selection.json` in the project cache: description, picks,
+   refinements, seconds per photo, last export folder); editing by hand in the UI. All edits run
+   under one lock, so parallel requests, a rescan or an export never drop a change.
 8. *Refine*: an instruction plus the current picks in order (id | reason) is appended to the same
    prompt; the LLM returns the complete new list. Current picks stay valid even if added by hand
    (duplicates, undescribed); a pick without a new reason keeps its old one. Instructions are kept in
-   `refinements`. Every change of the picks (select, refine, sort, move, add, remove) saves the list
-   before it to `selection.prev.json` for one step of *Undo*.
+   `refinements`. Every change of the picks (select, refine, sort, move, add, remove, bulk) saves
+   the list before it to `selection.prev.json` for one step of *Undo*.
 
 ### 6. Review UI
-Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
+Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step). One primary (blue) button
+per page; destructive actions red.
 - **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
-  dropdown in the header to switch; the *Projects* page has "New project" to create and analyse and lists
-  them with their state (files, described, picks, last analysed, folder missing) to rename, change the folder or remove.
-  Removing keeps the cached AI results (they are keyed by folder, not by project name) unless
-  "also delete saved AI results" is ticked and no other project uses that folder.
-- **Library view**: progress bar → thumbnail grid with badges (score, flags, tags, video icon);
-  filter by flag/tag and search (every word in caption, tags, scene, issues or file name); click for
-  detail (caption, metrics, frames for videos, "Add to slideshow"); keys ← → step through the grid
-  order, A adds, Esc closes.
-- **Slideshow view**: prompt box → "Select" → ordered tiles of picks with reasons; "Refine picks"
-  with an instruction, "Undo"; drag & drop to reorder, × to remove; "Export", "Open folder".
+  dropdown in the header to switch; the *Projects* page has "New project" to create and analyse
+  (names must be unique) and lists them with their state (files, described, picks, last analysed,
+  folder missing) to rename, change the folder or remove. Removing keeps the cached AI results
+  (they are keyed by folder, not by project name) unless "also delete saved AI results" is ticked
+  and no other project uses that folder.
+- **Library**: progress bar with *Stop* and time left; during the AI pass the grid stays still and
+  a "Show N new results" button reloads it (automatic reload only when a phase starts and ends).
+  Grid cards: date, 1–5 stars from aesthetic + interest, caption, flags, "✓ 3" pick number, video
+  icon. Same-scene shots are stacked (best shot with "+N"; *Show all shots* toggle). Filters by
+  flag, "in slideshow", tag list (30 most common) and search (every word in caption, tags, scene,
+  issues or file name); sort by date, scores, quality or name. Filter and open photo are in the
+  URL (reload, back/forward, bookmarks). Detail panel: 1024 px preview (click → original), caption,
+  metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: ← → step
+  through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a
+  bulk add/remove bar.
+- **Slideshow**: description → *Select photos* (spinner, elapsed time, picks locked meanwhile) →
+  ordered tiles with reasons; *Refine picks*, *Undo*, sort, drag & drop or ← → to reorder, × to
+  remove; seconds per photo with the length estimate (videos at their length); lightbox with
+  ← → through the picks; *▶ Play* full screen (← → Space Esc); *Export*, *Open folder*.
+- **Settings**: theme, parallel AI requests (each with a help line); delete cached data of folders
+  no project uses.
 
 ### 7. Export
 - Copy to a new, empty folder outside the photo folder (default: the last export folder, else
@@ -140,8 +158,8 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
 pyproject.toml
 src/photos2show/
   config.py     # settings from .env
-  db.py         # SQLite schema + cache, projects
-  scan.py       # file walk, EXIF, video frames
+  db.py         # SQLite schema + cache, projects, app settings
+  scan.py       # file walk, EXIF, video frames, dates and length
   quality.py    # classic metrics + flags
   dedup.py      # phash clustering
   pipeline.py   # pass 1 (scan, thumbnails, flags) and pass 2 (LLM descriptions)
@@ -150,23 +168,34 @@ src/photos2show/
   cli.py, smoke.py, testdata.py
   web/
     app.py      # FastAPI routes, background analysis job
-    templates/  # library.html, slideshow.html, settings.html, partials
+    templates/  # projects, library, slideshow, settings pages + partials
     static/     # htmx.min.js, style.css
 tests/
 ```
 
 ## Milestones
-- **M0 – Skeleton & API smoke test**: `uv` project, config, a script that sends one image to
-  the GLM instance and prints JSON. Confirms vision + JSON mode work on the self-hosted
-  instance and measures seconds/image.
-- **M1 – Scan, quality, dedup + Library UI**: grid with metric badges and flags, no AI yet.
-- **M2 – AI analysis**: captions/tags/scores in DB and UI, filtering by tag.
-- **M3 – Selection, review, export**: prompt → picks → toggle/reorder → sorted folder;
-  holiday projects. *(M0–M3 done)*
-- **M4 – Calibration**: rate ~100 own photos (keep/reject), tune thresholds and the combined
-  score; small regression test set. *(done: 848 Norway photos reviewed via contact sheets plus
-  user spot-check → `BLURRY` 200, same-scene = same orientation and phash ≤14 within 60 s or
-  ≤18 within 10 s; motion blur with one sharp tile is a known gap)*
+- **M0–M3** *(done)*: API smoke test; scan, quality, dedup and Library UI; AI analysis with
+  captions/tags/scores; selection, review, export and holiday projects.
+- **M4 – Calibration** *(done)*: 848 Norway photos reviewed via contact sheets plus user
+  spot-check → `BLURRY` 200, same-scene = same orientation and phash ≤14 within 60 s or ≤18
+  within 10 s; motion blur with one sharp tile is a known gap.
+- **M5 – Usability and UI review** *(done 2026-11-01)*: stop/time left, export again, refine/undo,
+  search, Play preview, keyboard, picks shown in the Library, calm grid during analysis, stacks,
+  sort and tag list, readable cards, preview images, bulk select, state in the URL, lightbox
+  navigation, seconds per photo, AI wait feedback, button hierarchy, settings with help;
+  plus the fixes of a code audit (selection lock, 404s, duplicate project names).
+
+## Open
+Small UI items (from the 2026-11-01 review, not yet built):
+- **Calmer Projects page**: every project shows rename + change-folder forms, Open, Remove and the
+  "also delete saved AI results" checkbox next to Remove (easy to tick by mistake). Proposal:
+  cards with a cover thumbnail, name, stats and *Open* as the main action; rename/change folder
+  behind an *Edit* toggle (`<details>`); the delete choice moves into the remove confirmation
+  (a small `<dialog>` instead of `hx-confirm`).
+- **Swap a pick** for another shot of the same scene, right on the slideshow tile.
+- **Player**: show the pick's reason on hover/tap.
+- **Library keyboard access**: cards are not Tab-focusable (Enter/Space to open).
+- **URL**: search and sort are kept server-side, not in the URL.
 
 ## Future features
 - Face detection / clustering ("everyone appears at least once")
@@ -178,167 +207,13 @@ tests/
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
 
-### Usability (suggested 2026-10-31; stop/time left, export again, refine/undo, search, preview and keyboard done)
-- Seconds per photo selectable; length estimate counts real video durations (fixed 5 s today)
-- Swap a pick for another shot of the same scene, right on the slideshow tile
-
-### UI improvements (suggested 2026-11-01, not yet prioritised)
-From a review of all templates, `style.css` and the grid/detail routes. Ordered by expected value;
-the first four are the suggested starting point. Items marked *(see Usability)* expand an entry above.
-All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, no build step).
-
-#### Biggest wins
-1. **Slideshow "Play" preview** *(see Usability)* – **done 2026-11-01**
-   - Built: *▶ Play*, full screen, ← / → / Space / Esc, videos to their end, "12 / 104", next photo
-     preloaded. Left out: the reason on hover, and the speed is still the fixed 5 s (see 12).
-   - Today: the only way to see the show as a show is to export it and open it in another app.
-   - Proposal: a *Play* button on the Slideshow page opens a fullscreen player that steps through
-     the picks in order at the chosen seconds per photo (see 12). Videos play to their end (or a cap),
-     then the next pick follows. Keys: ← / → previous/next, Space pause/resume, Esc closes.
-     Shows "12 / 104" and the pick's reason on hover/tap.
-   - How: reuse the existing `<dialog id="lightbox">` in `slideshow.html`; the picks list is
-     already in the DOM (`.picks li[data-id]`, `img[data-full]`), so the player needs no new route.
-     Use `requestFullscreen()` on the dialog; preload the next image.
-   - Done when: the full show can be watched from the first to the last pick without leaving the app.
-
-2. **Keyboard navigation in the Library** *(see Usability)* – **done 2026-11-01**
-   - Built: ← / → through the current filter and search, `a` adds, Esc closes, active card
-     highlighted and scrolled into view. Left out: cards are not Tab-focusable; `a` does not remove (see 3).
-   - Today: every photo needs a mouse click; `.card` is an `<article>` with `hx-get` and no
-     `tabindex`, so the grid can't be reached with the keyboard at all.
-   - Proposal: ← / → load the previous/next card of the *current filter* into the detail panel,
-     Esc closes it, `a` adds/removes the photo from the slideshow (see 3). The active card gets a
-     visible focus ring and is scrolled into view.
-   - How: make cards focusable (`tabindex="0"`, `role="button"`, Enter/Space open them) or render
-     them as `<button>`s; a small document-level `keydown` handler finds the active card's
-     sibling and triggers its `hx-get`. Ignore keys while focus is in an input/select.
-   - Done when: a whole filtered set can be reviewed and curated with the keyboard only.
-
-3. **Show what is already in the slideshow** – **done 2026-11-01**
-   - Built: "✓ 3" badge (pick number) on cards, *Add* / *Remove from slideshow* toggle in the detail
-     panel (also on `a`) that renumbers every badge, filter "in slideshow".
-   - Today: Library cards don't show if a photo is a pick, and the detail panel always offers
-     "Add to slideshow", even for photos already picked.
-   - Proposal: a ✓ badge (with the pick number) on cards that are in the slideshow; in the detail
-     panel an *Add* / *Remove from slideshow* toggle that updates the card badge too.
-     Optional filter "in slideshow".
-   - How: `/grid` and `/media/{id}` read the current selection ids once and pass a set to the
-     template; the toggle posts to the existing `/slideshow/add|remove/{id}` and returns the new
-     button plus an out-of-band swap (`hx-swap-oob`) for the card badge.
-   - Done when: you can curate the show from the Library without switching to the Slideshow tab to check.
-
-4. **Stop the grid jumping during AI analysis** – **done 2026-11-01 (option b)**
-   - Built: the grid reloads when a phase starts and once at the end; in between the progress bar
-     shows "Show N new results".
-   - Today: `/progress` sends `HX-Trigger: analysed` every 2 s while the AI runs, and the whole
-     `#grid` (filters + up to ~1000 cards) is re-rendered each time. That is heavy and can move
-     the scroll position, change the hovered card and reset what you were looking at.
-   - Proposal (pick one):
-     a) incremental: `/grid?since=<last id or timestamp>` returns only cards whose AI result
-        changed, swapped in by id (`hx-swap-oob` per card) plus updated filter counts; or
-     b) opt-in: a small "23 new results – refresh" pill instead of the automatic swap; the grid
-        reloads only when clicked and once when the run ends.
-   - b) is simpler and enough; a) is nicer if live updates are wanted.
-   - Done when: scrolling and browsing during a 50-minute run doesn't jump.
-
-5. **Collapse same-scene shots into stacks**
-   - Today: every burst shot is its own card; duplicates are only marked with a grey flag. The
-     scene grouping (`duplicate_of`) is already used in the detail panel's "Same scene".
-   - Proposal: by default show only the best shot of each scene with a "+4" badge; clicking the
-     badge expands the stack in place (or opens the detail panel on the "Same scene" strip).
-     A toggle "show all shots" restores today's view. Filter counts follow the setting.
-   - Done when: the grid of a ~850-photo holiday shrinks to the distinct scenes.
-
-#### Library
-6. **Sort and search** *(search: see Usability)* – **done 2026-11-01 (search only)**
-   - Built: search over caption, tags, scene, issues and file name, combined with the flag filter
-     and remembered across live reloads. Still open: the sort select and the tag list.
-   - Today: no sort order other than the default; tags can only be filtered by clicking one inside
-     the detail panel; no text search.
-   - Proposal: a sort select (date, aesthetic, interest, sharpness/score, file name) and a search
-     box matching caption, tags and file name (`hx-trigger="input changed delay:300ms"`), combined
-     with the current flag filter. A tag list (top tags with counts, collapsible) next to the flag
-     filters.
-   - Remember sort/search the same way `job["flag"]` is remembered, so live reloads keep them.
-
-7. **Easier-to-read card info**
-   - Today: card meta shows "sharp 412" (raw Laplacian value) and "★ 7/6" (aesthetic/interest
-     without labels) – both need explaining.
-   - Proposal: one simple quality indicator (e.g. 1–5 stars or a coloured dot from the combined
-     score), the date, and the caption as tooltip/second line. Raw metrics stay in the detail table.
-
-8. **Smaller image in the detail panel**
-   - Today: the 380 px panel loads `/original/{id}` – the full camera file, often several MB.
-   - Proposal: a new `/preview/{id}` route serving a ~1024 px JPEG (EXIF-rotated, cached next to
-     the thumbnails on first request – today the 1024 px AI image is only encoded in memory, never
-     saved), and keep the link to the original on click. Makes keyboard stepping (2) fast.
-
-9. **Bulk select**
-   - Proposal: a "Select" mode (or Shift/Ctrl-click) with checkboxes on cards and an action bar:
-     *Add N to slideshow*, *Remove from slideshow*. One new route taking a list of ids.
-
-10. **State in the URL**
-    - Today: filter and open photo live only in server state; reload and the back button lose them.
-    - Proposal: `hx-push-url` on filter buttons and card clicks (`/?flag=tag:fjord&photo=123`);
-      `index` reads the query to restore filter and detail panel. Also makes a view shareable as a bookmark.
-
-#### Slideshow
-11. **Next/previous in the lightbox**
-    - Today: the lightbox shows one photo; you have to close it and click the next tile.
-    - Proposal: ← / → and on-screen arrows step through the picks; shows the pick number and
-      reason. Shares code with the player (1).
-
-12. **Adjustable seconds per photo** *(see Usability)*
-    - Today: "about X min at 5 s per photo" is hard-coded in `_picks.html`.
-    - Proposal: a small number input (2–15 s) next to the estimate, saved with the selection, used
-      by the estimate, the player (1) and passed to the AI as context ("the show should be ~10 min").
-      Videos count with their real duration.
-
-13. **Better feedback while the AI chooses**
-    - Today: only the text "The AI is choosing… this can take a minute" appears.
-    - Proposal: a spinner, the picks area dimmed and disabled (no edits that would be overwritten),
-      and the elapsed time ("1:12"). Same for *Refine picks*.
-
-#### Projects, Settings, general
-14. **Calmer Projects page**
-    - Today: every project always shows a rename form, a change-folder form with Browse…, Open,
-      Remove and the "also delete saved AI results" checkbox – a wall of inputs. The checkbox sits
-      right next to Remove and is easy to tick by mistake.
-    - Proposal: project cards with a cover thumbnail (best-scored photo), name, stats and *Open*
-      as the main action; rename/change folder behind an *Edit* toggle (`<details>`); the
-      "also delete AI results" choice moves into the remove confirmation (a small `<dialog>`
-      instead of `hx-confirm`).
-
-15. **Clear button hierarchy**
-    - Today: `form button { background: var(--accent) }` makes nearly every button look like the
-      main action (Rename, Change folder, Analyse again, Refine, Export…).
-    - Proposal: a `.primary` class for the one main action per page (Create & analyse, Select photos,
-      Export) and a neutral default style for the rest; destructive actions keep `.remove`.
-
-16. **Move "Parallel AI requests" to Settings**
-    - Today: a technical option shown in the Library bar on every visit.
-    - Proposal: a setting (default 2) in the Settings page; the Library bar keeps only
-      *Analyse again* and the progress.
-
-17. **Fix outdated empty-state text** – **done 2026-11-01**
-    - Today: `_grid.html` says "Nothing here yet – enter a folder and press Analyse", but folders
-      are now set on the Projects page.
-    - Proposal: "Nothing here yet – analyse the project to see its photos" (or the filter-specific
-      "No photos match this filter" when items exist but the filter is empty).
-
-18. **Short help text in Settings**
-    - Today: `db.SETTINGS` has only *Theme*; the page grows with 12 (seconds per photo) and
-      16 (parallel AI requests), and *Unused data* already needs explaining.
-    - Proposal: one muted line under each setting explaining what it changes, stored as a fourth
-      element in the `db.SETTINGS` tuples next to label, choices and default.
-
 ## Risks / open points
 Reviewed with the user on 2026-10-23.
 
 | Risk | Status / decision |
 |---|---|
 | Endpoint: vision, JSON mode, image size | Resolved – works; JSON mode supported (1 request per image) |
-| Throughput | Resolved – ~30–70 min per ~900-file holiday once, then cached; parallel requests selectable |
+| Throughput | Resolved – ~30–70 min per ~900-file holiday once, then cached; parallel requests in Settings |
 | Selection on a full holiday (~850 candidates, ~60k-token prompt) | Resolved – tested on all 857 Norway files: 104 good picks in 294 s, well under the 10-min client timeout |
 | Video dates from mtime off by 1 h | Fixed – date from file name, then MP4 header, mtime last |
 | AI scores compressed (mostly 6–8) | Accepted – selection works via captions/tags; prompt unchanged |

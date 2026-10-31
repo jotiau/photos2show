@@ -1,7 +1,10 @@
+import io
+import os
 import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from photos2show import testdata
 from photos2show.web import app as web
@@ -13,7 +16,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     folder = testdata.generate(tmp_path / "photos")
     client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
-    assert TestClient(web.app, base_url=LOCAL).post("/analyse", data={"parallel": "1"}).status_code == 403  # CSRF guard
+    assert TestClient(web.app, base_url=LOCAL).post("/analyse").status_code == 403  # CSRF guard
     assert TestClient(web.app, base_url="http://rebound.example").get("/").status_code == 400  # DNS rebinding
 
     assert "Create a project" in client.get("/").text
@@ -35,19 +38,39 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert "Norway 2026" in client.get("/").text
     assert "already exists" in client.post("/projects", data={"name": "Norway 2026", "folder": str(tmp_path)}).text
     assert web.db.load_projects()["Norway 2026"] == str(folder.resolve())
-    assert client.post("/analyse", data={"parallel": "99"}).status_code == 422
-    client.post("/analyse", data={"parallel": "1"})
-    assert web.job["parallel"] == 1 and "0 described by AI" in wait().text  # all cached
-    client.post("/analyse", data={"parallel": "3"})  # e.g. AI_CONCURRENCY=3: not one of 1/2/4/8
-    wait()
-    assert "<option selected>3</option>" in client.get("/").text
+    used, describe = [], web.describe_folder
+    monkeypatch.setattr(web, "describe_folder", lambda *a: used.append(a[2:3]) or describe(*a))
+    client.post("/settings", data={"key": "parallel", "value": "1"})
+    client.post("/analyse")
+    assert "0 described by AI" in wait().text and used == [(1,)]  # all cached; the setting is used
+    assert client.post("/settings", data={"key": "parallel", "value": "99"}).status_code == 400
 
     grid = client.get("/grid").text
     assert "burst_1.jpg" in grid and "▶ video" in grid
+    assert "burst_2.jpg" not in grid and ">+2</span>" in grid and "Show all shots" in grid  # stacked by default
+    assert "burst_2.jpg" in client.get("/grid?q=burst_2").text  # its best shot doesn't match: shown alone
+    everything = client.get("/grid?stacks=false&q=").text
+    assert "burst_2.jpg" in everything and "+2" not in everything
+    assert "burst_2.jpg" in client.get("/grid").text  # remembered
+    client.get("/grid?stacks=true")
+    by_name = client.get("/grid?sort=name").text
+    assert by_name.index("blurry.jpg") < by_name.index("bright.jpg") < by_name.index("video.mp4")
+    assert by_name.index("video.mp4") > by_name.index("scene_3.jpg")
+    assert client.get("/grid?sort=nope").text == by_name and web.job["sort"] == "name"  # unknown: kept
+    assert "#beach <span>" in by_name  # tag list with counts
+    assert ">★★★</span>" in by_name and "fake caption" in by_name  # aesthetic 7, interest 6
+    assert web.stars({"aesthetic": "10", "interest": 10}) == "★★★★★" and web.stars({"aesthetic": 0}) == "★"
+    assert web.stars({"aesthetic": "great"}) == web.stars({"aesthetic": "inf"}) == web.stars(None) == ""  # raw LLM output
+    assert '<option value="name" selected>' in client.get("/").text
+    items = {Path(it["path"]).name: it["id"] for it in web._items()}
+    page = client.get(f"/?flag=video&photo={items['video.mp4']}").text  # a pushed URL, reloaded
+    assert f'hx-get="/media/{items["video.mp4"]}" hx-trigger="load"' in page and web.job["flag"] == "video"
+    assert f'hx-push-url="/?flag=video&amp;photo={items["video.mp4"]}"' in client.get("/grid").text
+    client.get("/grid?flag=all")
+    client.get("/grid?sort=date")
     skipped = client.get("/grid?flag=skips_ai").text
     assert "very_blurry.jpg" in skipped and "burst_2.jpg" in skipped and "scene_1.jpg" not in skipped
 
-    items = {Path(it["path"]).name: it["id"] for it in web._items()}
     assert "fake caption" in client.get(f"/media/{items['video.mp4']}").text
     tagged = client.get("/grid?flag=tag:beach").text
     assert "burst_1.jpg" in tagged and "burst_2.jpg" not in tagged
@@ -62,6 +85,14 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert client.get(f"/thumb/{items['video.mp4']}?frame=2").headers["content-type"] == "image/jpeg"
     assert client.get(f"/original/{items['video.mp4']}").status_code == 200
     assert client.get("/media/9999").status_code == 404
+    resp = client.get(f"/preview/{items['scene_1.jpg']}")
+    assert resp.headers["content-type"] == "image/jpeg" and max(Image.open(io.BytesIO(resp.content)).size) <= 1024
+    cached = next((web.db.library_dir(folder) / "thumbs").glob("*_preview.jpg"))
+    assert client.get(f"/preview/{items['video.mp4']}").status_code == 404  # videos play the original
+    os.utime(folder / "scene_1.jpg", (1, 1))  # counts as changed
+    web.analyse_folder(folder)
+    assert not cached.exists()  # the next request makes a new one
+    web.describe_folder(folder)
     (folder / "burst_3.jpg").rename(tmp_path / "away.jpg")  # deleted after the scan
     assert client.get(f"/original/{items['burst_3.jpg']}").status_code == 404
     (tmp_path / "away.jpg").rename(folder / "burst_3.jpg")
@@ -80,10 +111,22 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     client.get("/grid?flag=all")
     picks = client.post("/slideshow/move", data={"id": items["scene_2.jpg"], "to": 0}).text  # ← button
     assert picks.index("scene_2.jpg") < picks.index("scene_1.jpg") and "3 photos" in picks
+    assert "about 0.2 min" in picks  # 5 + 5 s photos + the 3 s video
+    picks = client.post("/slideshow/seconds", data={"seconds": "10"}).text
+    assert "about 0.4 min" in picks and 'value="10"' in picks and 'data-seconds="10"' in picks
+    assert client.post("/slideshow/seconds", data={"seconds": "99"}).status_code == 422
     assert '"to": 2}' in picks  # → button of the 2nd tile
     picks = client.post("/slideshow/move", data={"id": items["video.mp4"], "to": 0}).text
     assert picks.index("video.mp4") < picks.index("scene_2.jpg") < picks.index("scene_1.jpg")
     assert "Add to slideshow" in client.post(f"/slideshow/remove/{items['burst_1.jpg']}").text  # not a pick: no-op
+    some = f"{items['burst_1.jpg']},{items['scene_3.jpg']},9999"  # 9999: unknown, skipped
+    resp = client.post("/slideshow/bulk", data={"action": "add", "ids": some})
+    assert resp.headers["HX-Trigger"] == "analysed"  # the grid reloads its badges
+    assert [p["id"] for p in web.slideshow.load(folder)["picks"]][-2:] == [items["burst_1.jpg"], items["scene_3.jpg"]]
+    client.post("/slideshow/bulk", data={"action": "remove", "ids": some})
+    assert len(web.slideshow.load(folder)["picks"]) == 3
+    assert client.post("/slideshow/bulk", data={"action": "add", "ids": "1,x"}).status_code == 400
+    assert client.post("/slideshow/bulk", data={"action": "move", "ids": "1"}).status_code == 400
     assert "2 photos" in client.post(f"/slideshow/remove/{items['video.mp4']}", headers={"HX-Target": "picks"}).text
     picks = client.post("/slideshow/sort", data={"by": "name"}).text
     assert picks.index("scene_1.jpg") < picks.index("scene_2.jpg") and "Sort by" in picks

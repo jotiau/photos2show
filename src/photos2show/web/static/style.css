@@ -15,7 +15,9 @@ input, button { font: inherit; padding: 6px 10px; border: 1px solid var(--border
                 background: var(--panel); color: var(--text); }
 input { max-width: 100%; }
 button { cursor: pointer; }
-form button { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button:not(.primary, .remove, :disabled):hover { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
 .error { color: var(--bad); }
 main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 #grid { flex: 1; min-width: 0; }
@@ -31,11 +33,16 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .card .name, .card .meta, .card .flags { padding: 4px 8px; }
 .card .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .meta { color: var(--muted); font-size: 12px; padding-top: 0; }
+.card .caption { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .stars { color: var(--warn); letter-spacing: 1px; }
 .video { position: absolute; top: 6px; left: 6px; background: #000a; color: #fff; padding: 2px 6px;
          border-radius: 4px; font-size: 12px; }
 .card .pick { position: absolute; top: 6px; right: 6px; background: var(--ok); color: #fff; padding: 2px 7px;
               border-radius: 10px; font-size: 12px; font-weight: 600; }
 .card .pick:empty { display: none; }
+.card .stack { position: absolute; top: 6px; left: 6px; background: #000a; color: #fff; padding: 2px 7px;
+               border-radius: 10px; font-size: 12px; font-weight: 600; box-shadow: 3px 3px 0 #fff8; }
+.filters .stacks { margin-left: auto; }
 .flags { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 8px; }
 .flag { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: var(--warn); color: #fff; }
 .flag.very_blurry, .flag.too_dark, .flag.too_bright { background: var(--bad); }
@@ -72,8 +79,22 @@ select { font: inherit; padding: 6px; border: 1px solid var(--border); border-ra
 #player img, #player video { max-width: 100%; max-height: 100%; object-fit: contain; }
 #player .status { position: fixed; bottom: 8px; right: 16px; margin: 0; color: #bbb; font-size: 0.9em; }
 .search { padding: 8px 16px 0; }
-.search input { width: 100%; max-width: 480px; }
+.search { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.search input { flex: 1; max-width: 480px; }
+.tags { margin: -4px 0 12px; }
+.tags summary { cursor: pointer; color: var(--muted); margin-bottom: 6px; }
+.tags .tag { margin: 0 4px 4px 0; }
+.tags .tag span { color: var(--muted); }
+.tags .tag.active { border-color: var(--accent); }
 .card.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card.checked { outline: 3px solid var(--ok); outline-offset: 2px; }
+.card.checked::after { content: "✔"; position: absolute; inset: 6px auto auto 50%; translate: -50%; background: var(--ok);
+                       color: #fff; border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; }
+.cards { user-select: none; }
+#bulk { position: fixed; bottom: 16px; left: 50%; translate: -50%; z-index: 3; display: flex; gap: 8px; align-items: center;
+        background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
+        box-shadow: 0 4px 16px #0004; }
+#bulk[hidden] { display: none; }
 .keys { color: var(--muted); font-size: 0.85em; margin: 0 0 6px; }
 main.slideshow { flex-direction: column; align-items: stretch; max-width: 1100px; }
 main.slideshow form { display: flex; flex-direction: column; gap: 6px; }
@@ -81,6 +102,13 @@ main.slideshow form.export { flex-direction: row; flex-wrap: wrap; align-items: 
 main.slideshow form.export label[for] { width: 100%; }
 main.slideshow form.export input#target { flex: 1; min-width: 200px; }
 main.slideshow form.sort { flex-direction: row; align-items: center; }
+main.slideshow form.seconds { display: block; margin: 8px 0; }
+#picks.htmx-request { opacity: .4; pointer-events: none; transition: opacity .3s; }  /* edits now would be overwritten */
+#thinking .elapsed { font-variant-numeric: tabular-nums; color: var(--muted); }
+.spinner { display: inline-block; width: 1em; height: 1em; vertical-align: -2px; border: 2px solid var(--border);
+           border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+form.seconds input { width: 4em; padding: 2px 4px; }
 .refine { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
 main.slideshow .refine form { flex-direction: row; flex: 1; align-items: center; }
 .refine input { flex: 1; min-width: 200px; }
@@ -95,13 +123,19 @@ textarea { font: inherit; padding: 8px; border: 1px solid var(--border); border-
 .picks .video { left: auto; right: 6px; }
 .picks .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picks .actions { display: flex; gap: 4px; padding: 0 8px 8px; }
-form button.browse { background: var(--panel); color: var(--text); border-color: var(--border); }
 #lightbox { padding: 0; border: 0; background: none; max-width: 95vw; max-height: 95vh; }
 #lightbox::backdrop { background: #000d; }
 #lightbox img, #lightbox video { display: block; max-width: 95vw; max-height: 95vh; object-fit: contain; }
 #lightbox img { cursor: zoom-out; }
+#lightbox p { position: fixed; bottom: 8px; left: 50%; translate: -50%; margin: 0; padding: 4px 10px; border-radius: 6px;
+              background: #000a; color: #fff; max-width: 90vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#lightbox .prev, #lightbox .next { position: fixed; top: 50%; translate: 0 -50%; font-size: 32px; line-height: 1;
+                                   padding: 8px 14px; background: #000a; color: #fff; border: none; }
+#lightbox .prev { left: 12px; }
+#lightbox .next { right: 12px; }
 .bar form { display: flex; gap: 6px; align-items: center; }
-.settings { display: grid; grid-template-columns: max-content auto; gap: 8px 16px; align-items: center; justify-items: start; }
+.settings { display: grid; grid-template-columns: max-content auto; gap: 12px 16px; align-items: baseline; justify-items: start; }
+.settings .help { color: var(--muted); font-size: 12px; margin: 4px 0 0; max-width: 60ch; }
 main.projects { flex-direction: column; align-items: stretch; max-width: 1100px; }
 .project { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
            display: flex; flex-direction: column; gap: 8px; }

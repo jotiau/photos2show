@@ -152,6 +152,15 @@ def test_export_again_replaces_only_an_earlier_export(described, tmp_path):
     assert (show / "my notes.txt").exists() and (other / "001_mine.jpg").exists()
 
 
+def test_videos_count_with_their_length(described):
+    folder, ids = described
+    conn = db.connect(folder)
+    video, photo = db.get_media(conn, ids["video.mp4"]), db.get_media(conn, ids["scene_1.jpg"])
+    assert slideshow.on_screen(video, 5) == pytest.approx(3.0) and slideshow.on_screen(photo, 8) == 8  # 3 s clip
+    assert " | video 3s | " in slideshow._line(video)  # the AI sees the length too
+    assert slideshow.on_screen({**video, "path": str(folder / "gone.mp4")}, 7) == 7  # unreadable: like a photo
+
+
 def test_parallel_edits_are_not_lost(tmp_path, monkeypatch):
     monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     add = lambda i: slideshow.update(tmp_path, lambda s: {**s, "picks": slideshow.edit(s["picks"], "add", i)})  # noqa: E731

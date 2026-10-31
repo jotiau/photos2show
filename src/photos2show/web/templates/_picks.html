@@ -2,7 +2,7 @@
 {% if picks or can_undo %}
 <div class="refine">
   {% if picks %}
-  <form hx-post="/slideshow/refine" hx-target="#picks" hx-indicator="#thinking" hx-disabled-elt="find button">
+  <form hx-post="/slideshow/refine" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button">
     <input name="instruction" required size="50" aria-label="Change the picks"
       placeholder="add 10 more sunsets, fewer people, start with the ferry">
     <button>Refine picks</button>
@@ -12,7 +12,11 @@
 </div>
 {% endif %}
 {% if picks %}<button type="button" class="play" data-seconds="{{ seconds }}">▶ Play</button>{% endif %}
-<p>{{ picks | length }} photos · about {{ '%.1f' % minutes }} min at {{ seconds }} s per photo. Drag tiles to reorder, add more from the Library detail panel.</p>
+<form class="seconds" hx-post="/slideshow/seconds" hx-target="#picks" hx-trigger="change">
+  {{ picks | length }} photos · about {{ '%.1f' % minutes }} min at
+  <input type="number" name="seconds" value="{{ seconds }}" min="2" max="15" aria-label="Seconds per photo"> s per photo
+  (videos at their length). Drag tiles to reorder, add more from the Library detail panel.
+</form>
 {% if picks | length > 1 %}
 <form class="sort" hx-post="/slideshow/sort" hx-target="#picks" hx-trigger="change">
   <label for="sort-by">Sort by</label>

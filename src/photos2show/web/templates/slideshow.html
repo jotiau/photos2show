@@ -13,12 +13,13 @@
 {% if selection is none %}
   <p class="empty"><a href="/projects">Create a project</a> first.</p>
 {% else %}
-  <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking" hx-disabled-elt="find button">
+  <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button">
     <label for="description">Describe the slideshow</label>
     <textarea id="description" name="description" rows="4" required
       placeholder="10-minute show for my parents, chronological, mostly landscapes and the two of us, little food">{{ selection.description }}</textarea>
-    <button>Select photos</button>
-    <span id="thinking" class="htmx-indicator">The AI is choosing… this can take a minute</span>
+    <button class="primary">Select photos</button>
+    <span id="thinking" class="htmx-indicator"><span class="spinner"></span> The AI is choosing… this can take a minute
+      <span class="elapsed"></span></span>
   </form>
   <div id="picks" hx-get="/slideshow/picks" hx-trigger="load"></div>
   <form class="export" hx-post="/slideshow/export" hx-target="#export-msg">
@@ -26,7 +27,7 @@
     <input id="target" name="target" value="{{ default_target }}" required data-keep-name>
     <button type="button" class="browse" data-browse="target">Browse…</button>
     <label><input type="checkbox" name="replace" value="true"> replace previous export in this folder</label>
-    <button>Export</button>
+    <button class="primary">Export</button>
     <span id="export-msg"></span>
   </form>
 {% endif %}
@@ -34,6 +35,22 @@
 <dialog id="lightbox"></dialog>
 <dialog id="player"><div class="stage"></div><p class="status"></p></dialog>
 <script>
+  // Elapsed time while the AI selects or refines (both forms indicate on #thinking and #picks).
+  let ticker = null;
+  const isAiForm = e => e.detail.elt.matches?.("form[hx-indicator]");
+  document.body.addEventListener("htmx:beforeRequest", e => {
+    if (!isAiForm(e)) return;
+    const start = Date.now(), out = document.querySelector("#thinking .elapsed");
+    const tick = () => {
+      const s = Math.floor((Date.now() - start) / 1000);
+      out.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    };
+    tick();
+    clearInterval(ticker);
+    ticker = setInterval(tick, 1000);
+  });
+  document.body.addEventListener("htmx:afterRequest", e => isAiForm(e) && clearInterval(ticker));
+
   // Preview: the picks full screen in their order; photos for data-seconds, videos to their end.
   // ← → step, Space pauses, Esc (or leaving full screen) ends.
   const player = document.getElementById("player"), stage = player.querySelector(".stage");
@@ -78,15 +95,32 @@
   });
   document.addEventListener("fullscreenchange", () => !document.fullscreenElement && player.open && player.close());
 
-  // Picks are swapped in by htmx, so listen on the document. Click the enlarged photo, outside it or Esc to close.
+  // Picks are swapped in by htmx, so listen on the document. ← → or the arrows step through the picks;
+  // click the enlarged photo, outside it or Esc to close.
   const box = document.getElementById("lightbox");
+  let boxAt = 0;
+  const boxShow = i => {
+    const imgs = [...document.querySelectorAll(".picks img")];
+    if (!imgs.length) return box.close();
+    boxAt = Math.max(0, Math.min(imgs.length - 1, i));
+    const img = imgs[boxAt];
+    const media = document.createElement("video" in img.dataset ? "video" : "img");
+    Object.assign(media, {src: img.dataset.full, controls: true, autoplay: true});
+    const caption = document.createElement("p");  // the reason is LLM text: textContent, never HTML
+    caption.textContent = `${boxAt + 1} / ${imgs.length} · ${img.closest("li").querySelector(".meta").textContent}`;
+    box.replaceChildren(media, caption);
+    box.insertAdjacentHTML("beforeend", '<button class="prev" aria-label="Previous">‹</button><button class="next" aria-label="Next">›</button>');
+  };
   document.addEventListener("click", e => {
     const img = e.target.closest(".picks img");
     if (img) {
-      box.innerHTML = "video" in img.dataset
-        ? `<video src="${img.dataset.full}" controls autoplay></video>` : `<img src="${img.dataset.full}" alt="">`;
+      boxShow([...document.querySelectorAll(".picks img")].indexOf(img));
       box.showModal();
-    } else if (e.target === box || e.target.matches("#lightbox img")) box.close();
+    } else if (e.target.matches("#lightbox .prev, #lightbox .next")) boxShow(boxAt + (e.target.matches(".next") ? 1 : -1));
+    else if (e.target === box || e.target.matches("#lightbox img")) box.close();
+  });
+  box.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") boxShow(boxAt + (e.key === "ArrowRight" ? 1 : -1));
   });
   box.addEventListener("close", () => box.innerHTML = "");
 

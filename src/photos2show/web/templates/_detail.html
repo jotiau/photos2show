@@ -7,7 +7,7 @@
   {% for i in range(it.frames) %}<img src="/thumb/{{ it.id }}?frame={{ i }}" alt="frame {{ i }}">{% endfor %}
 </div>
 {% else %}
-<a href="/original/{{ it.id }}" target="_blank"><img src="/original/{{ it.id }}" alt=""></a>
+<a href="/original/{{ it.id }}" target="_blank" title="Open the original"><img src="/preview/{{ it.id }}" alt=""></a>
 {% endif %}
 {% with id = it.id, picks = {it.id: it.pick} if it.pick else {} %}{% include "_toggle.html" %}{% endwith %}
 <p class="path">{{ it.path }}</p>
@@ -19,7 +19,7 @@
 <p class="caption">{{ it.ai.caption }}</p>
 <p>{{ it.ai.scene }} · {{ it.ai.people_count }} people · aesthetic {{ it.ai.aesthetic }}/10 · interest {{ it.ai.interest }}/10</p>
 <div class="flags">
-  {% for t in it.ai.tags or [] %}<button class="tag" hx-get="/grid?flag=tag:{{ t | urlencode }}" hx-target="#grid">#{{ t }}</button>{% endfor %}
+  {% for t in it.ai.tags or [] %}<button class="tag" hx-get="/grid?flag={{ ('tag:' ~ t) | urlencode }}" hx-target="#grid" hx-push-url="/?flag={{ ('tag:' ~ t) | urlencode }}">#{{ t }}</button>{% endfor %}
 </div>
 {% if it.ai.issues %}<p>Issues: {{ it.ai.issues | join(', ') }}</p>{% endif %}
 {% elif it.skip_ai %}<p>Not sent to AI: {{ it.skip_ai }}</p>

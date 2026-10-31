@@ -34,10 +34,10 @@ def _sharpest(frames: list[Image.Image]) -> tuple[dict, Image.Image]:
 
 def analyse_file(path: Path, thumbs: Path) -> dict:
     name = hashlib.sha1(str(path).encode()).hexdigest()[:16]
+    for old in thumbs.glob(f"{name}_*.jpg"):  # a changed file: old preview, a video may now give fewer frames
+        old.unlink()
     if scan.is_video(path):
         frames, (w, h) = scan.read_video_frames(path)
-        for old in thumbs.glob(f"{name}_f*.jpg"):  # a changed video may now give fewer frames
-            old.unlink()
         for i, f in enumerate(frames):
             _save_thumb(f, thumbs / f"{name}_f{i}.jpg")
         m, rep = _sharpest(frames)
@@ -101,8 +101,8 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     if not (stop and stop.is_set()):  # a stopped scan is not "analysed"
         db.mark_analysed(root)
     for r in gone_rows:  # after the commit: no row may point at a deleted thumbnail
-        for name in [r["thumb"], *(r["thumb"].replace(".jpg", f"_f{i}.jpg") for i in range(r["frames"]))]:
-            (thumbs / name).unlink(missing_ok=True)
+        for f in [thumbs / r["thumb"], *thumbs.glob(r["thumb"].replace(".jpg", "_*.jpg"))]:  # frames, preview
+            f.unlink(missing_ok=True)
     return {"total": len(paths), "analysed": analysed, "errors": errors}
 
 

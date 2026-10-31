@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import webbrowser
+from collections import Counter
 from html import escape
 from pathlib import Path
 
@@ -17,8 +18,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from photos2show import db, slideshow
-from photos2show.config import default_concurrency, env
+from photos2show import db, scan, slideshow
+from photos2show.config import env
 from photos2show.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 HERE = Path(__file__).parent
@@ -31,11 +32,14 @@ templates.env.globals["settings"] = db.load_settings
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
            "low_contrast", "monotone", "duplicate", "video", "in_slideshow")
 REFRESH = {"HX-Refresh": "true"}
+UNSTACKED = ("duplicate", "skips_ai")  # these filters are about the shots a stack hides
+SORTS = {k: v[0] for k, v in slideshow.SORTS.items() if k != "reverse"}  # Library: name -> label
+TOP_TAGS = 30
 
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
-       "stopping": False, "summary": None, "error": None, "flag": "all", "query": "",
-       "parallel": default_concurrency(), "grid_phase": "", "grid_done": 0}
+       "stopping": False, "summary": None, "error": None, "flag": "all", "query": "", "stacks": True, "sort": "date",
+       "grid_phase": "", "grid_done": 0}
 lock = threading.Lock()
 stop = threading.Event()
 
@@ -50,6 +54,15 @@ def time_left() -> str:
 
 
 templates.env.globals["time_left"] = time_left
+
+
+def stars(ai: dict | None) -> str:
+    """1-5 stars from the AI's aesthetic and interest scores (1-10); '' if there are none."""
+    scores = [n for k in ("aesthetic", "interest") if (n := slideshow.number((ai or {}).get(k))) is not None]
+    return "★" * min(5, max(1, round(sum(scores) / len(scores) / 2))) if scores else ""
+
+
+templates.env.globals["stars"] = stars
 
 
 @app.middleware("http")
@@ -77,7 +90,7 @@ def _run(root: Path) -> None:
         described = {"described": 0, "errors": []}
         if not stop.is_set():
             job.update(phase="Describing with AI", done=0, total=0, started=time.monotonic())
-            described = describe_folder(root, progress, job["parallel"], stop)
+            described = describe_folder(root, progress, int(db.load_settings()["parallel"]), stop)
         job["summary"] = {**summary, **described, "errors": summary["errors"] + described["errors"],
                           "stopped": stop.is_set()}
     except (Exception, SystemExit) as e:  # SystemExit: AI endpoint not configured
@@ -150,10 +163,13 @@ def _page(request: Request, template: str, **ctx) -> HTMLResponse:
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request):
+def index(request: Request, flag: str | None = None, photo: int | None = None):
+    """flag and photo come from the URL the filter buttons and cards push: reload, back and bookmarks keep the view."""
     if not job["project"] and (projects := db.load_projects()):
         _open(list(projects)[-1])
-    return _page(request, "library.html", page="library")
+    if flag:
+        job["flag"] = flag
+    return _page(request, "library.html", page="library", sorts=SORTS, photo=photo)
 
 
 @app.post("/projects", response_class=HTMLResponse)
@@ -245,9 +261,7 @@ def remove_project(name: str = Form(...), delete_results: bool = Form(False)):
 
 
 @app.post("/analyse", response_class=HTMLResponse)
-def analyse(request: Request, parallel: int = Form(ge=1, le=16)):
-    if not job["running"]:
-        job["parallel"] = parallel
+def analyse(request: Request):
     _start()
     return templates.TemplateResponse(request, "_progress.html", {"job": job})
 
@@ -271,17 +285,30 @@ def progress(request: Request):
 
 
 @app.get("/grid", response_class=HTMLResponse)
-def grid(request: Request, flag: str | None = None, q: str | None = None):
+def grid(request: Request, flag: str | None = None, q: str | None = None, stacks: bool | None = None,
+         sort: str | None = None):
     flag = job["flag"] = flag or job["flag"]  # remembered so live reloads keep the filter
     query = job["query"] = (job["query"] if q is None else q).strip()  # q="" clears the search
     job.update(grid_phase=job["phase"], grid_done=job["done"])  # what the grid shows: newer = "new results"
+    stacked = job["stacks"] = job["stacks"] if stacks is None else stacks
+    by = job["sort"] = sort if sort in SORTS else job["sort"]
     items = [it for it in _items() if _found(it, query)]
-    counts = {f: sum(_matches(it, f) for it in items) for f in FILTERS}
+    # Stacks: only the best shot of a scene is shown, with "+N" for its other shots (unless the search hides it).
+    ids = {it["id"] for it in items}
+    stacked_away = [it for it in items if stacked and it["duplicate_of"] in ids]
+    more = Counter(it["duplicate_of"] for it in stacked_away)
+    visible = [it for it in items if it not in stacked_away]
+    counts = {f: sum(_matches(it, f) for it in (items if f in UNSTACKED else visible)) for f in FILTERS}
     if flag.startswith("tag:"):
-        counts[flag] = sum(_matches(it, flag) for it in items)
-    shown = [it for it in items if _matches(it, flag)]
+        counts[flag] = sum(_matches(it, flag) for it in visible)
+    shown = [it for it in (items if flag in UNSTACKED else visible) if _matches(it, flag)]
+    _, key, desc = slideshow.SORTS[by]
+    known = [it for it in shown if key(it) is not None]  # without a value (no date, no AI score): at the end
+    shown = sorted(known, key=key, reverse=desc) + [it for it in shown if key(it) is None]
+    tags = Counter(t for it in visible for t in {str(t) for t in (it["ai"] or {}).get("tags") or []})
     return templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
-                                                              "query": query})
+                                                              "query": query, "stacked": stacked, "more": more,
+                                                              "tags": tags.most_common(TOP_TAGS)})
 
 
 @app.get("/media/{media_id}", response_class=HTMLResponse)
@@ -359,6 +386,25 @@ def thumb(media_id: int, frame: int | None = None):
     return FileResponse(db.library_dir(_root()) / "thumbs" / name)
 
 
+PREVIEW_EDGE = 1024
+
+
+@app.get("/preview/{media_id}")
+def preview(media_id: int):
+    """The photo at ~1024 px for the detail panel (the original is often several MB), made on first request."""
+    item = _item(media_id)
+    dest = db.library_dir(_root()) / "thumbs" / item["thumb"].replace(".jpg", "_preview.jpg")
+    if not dest.exists():
+        if item["kind"] != "image" or not Path(item["path"]).is_file():
+            raise HTTPException(404)
+        img = scan.read_image(Path(item["path"]))[0]  # EXIF-rotated
+        img.thumbnail((PREVIEW_EDGE, PREVIEW_EDGE))
+        tmp = dest.with_suffix(f".{threading.get_ident()}.tmp")  # two requests at once must not mix their bytes
+        img.save(tmp, "JPEG", quality=85)
+        os.replace(tmp, dest)
+    return FileResponse(dest)
+
+
 @app.get("/original/{media_id}")
 def original(media_id: int):
     path = _item(media_id)["path"]
@@ -368,12 +414,12 @@ def original(media_id: int):
 
 
 def _picks(request: Request, error: str | None = None) -> HTMLResponse:
-    conn = db.connect(_root())
-    picks = [{"item": it, "reason": p["reason"]}
-             for p in slideshow.load(_root())["picks"] if (it := db.get_media(conn, p["id"]))]
+    conn, selection = db.connect(_root()), slideshow.load(_root())
+    seconds = slideshow.per_photo(selection)
+    picks = [{"item": it, "reason": p["reason"]} for p in selection["picks"] if (it := db.get_media(conn, p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
-        "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60,
-        "seconds": slideshow.SECONDS_PER_PHOTO,
+        "picks": picks, "error": error, "seconds": seconds,
+        "minutes": sum(slideshow.on_screen(p["item"], seconds) for p in picks) / 60,
         "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}, "can_undo": slideshow.can_undo(_root())})
 
 
@@ -395,7 +441,7 @@ def picks(request: Request):
 def select(request: Request, description: str = Form(...)):
     root = _root()
     try:
-        picks = slideshow.select(db.connect(root), description)
+        picks = slideshow.select(db.connect(root), description, seconds=slideshow.per_photo(slideshow.load(root)))
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
     slideshow.update(root, lambda s: {**s, "description": description, "picks": picks, "refinements": []})
@@ -407,11 +453,18 @@ def refine(request: Request, instruction: str = Form(...)):
     root = _root()
     selection = slideshow.load(root)
     try:
-        picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction)
+        picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction,
+                                 slideshow.per_photo(selection))
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
     # refinements: kept for selection.json in the export
     slideshow.update(root, lambda s: {**s, "picks": picks, "refinements": [*s.get("refinements", []), instruction]})
+    return _picks(request)
+
+
+@app.post("/slideshow/seconds", response_class=HTMLResponse)
+def seconds_per_photo(request: Request, seconds: int = Form(ge=2, le=15)):
+    slideshow.update(_root(), lambda s: {**s, "seconds": seconds})
     return _picks(request)
 
 
@@ -473,6 +526,27 @@ def edit(request: Request, action: str, media_id: int):
         return _picks(request)
     # Library: the new toggle plus every card badge, as numbers shift after a removal
     return templates.TemplateResponse(request, "_toggle.html", {"id": media_id, "picks": _pick_numbers()})
+
+
+@app.post("/slideshow/bulk", response_class=HTMLResponse)
+def bulk(action: str = Form(...), ids: str = Form(...)):
+    """Add or remove the cards selected in the Library (ids: comma-separated); the grid reloads for the badges."""
+    try:
+        wanted = [int(i) for i in ids.split(",")]
+    except ValueError:
+        raise HTTPException(400) from None
+    if action not in ("add", "remove"):
+        raise HTTPException(400)
+    conn = db.connect(_root())
+    known = [i for i in wanted if db.get_media(conn, i)]
+
+    def change(s):
+        for i in known:
+            s = {**s, "picks": slideshow.edit(s["picks"], action, i)}
+        return s
+
+    slideshow.update(_root(), change)
+    return HTMLResponse("", headers={"HX-Trigger": "analysed"})
 
 
 def main() -> None:
