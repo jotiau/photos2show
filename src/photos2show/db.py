@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 from photos2show.config import cache_root
@@ -113,10 +114,17 @@ def unused_libraries() -> list[Path]:
     return sorted(d for d in found if (d / "thumbs").is_dir() and d not in used)
 
 
+def mark_analysed(root: Path) -> None:
+    """Remember when the folder was last scanned (shown on the projects page)."""
+    (library_dir(root) / "analysed_at").write_text(datetime.now().replace(microsecond=0).isoformat())
+
+
 def project_stats(folder: Path) -> dict:
     """State for the projects page; reads only, so a missing or never analysed folder creates no cache."""
     d = library_path(folder)
-    stats = {"exists": folder.is_dir(), "files": 0, "described": 0, "picks": 0}
+    stats = {"exists": folder.is_dir(), "files": 0, "described": 0, "picks": 0, "analysed_at": None}
+    if (d / "analysed_at").exists():
+        stats["analysed_at"] = datetime.fromisoformat((d / "analysed_at").read_text().strip())
     if (d / "photos2show.db").exists():
         conn = sqlite3.connect(d / "photos2show.db")
         stats["files"], stats["described"] = conn.execute("SELECT COUNT(*), COUNT(ai) FROM media").fetchone()

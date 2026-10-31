@@ -173,7 +173,8 @@ def test_projects_page(tmp_path, monkeypatch):
 
     assert "Not a folder" in client.post("/projects/folder", data={"name": "Alps 2026", "folder": str(tmp_path / "x")}).text
     client.post("/projects/folder", data={"name": "Alps 2026", "folder": str(b)})
-    web.db.library_dir(b)  # as if analysed
+    web.db.mark_analysed(b)  # as if analysed
+    assert "0 files" in client.get("/projects").text and "last analysed" in client.get("/projects").text
     assert web.db.load_projects()["Alps 2026"] == str(b.resolve()) and web.job["folder"] == str(b.resolve())
 
     monkeypatch.setitem(web.job, "running", True)
