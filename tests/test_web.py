@@ -50,6 +50,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert "fake caption" in client.get(f"/media/{items['video.mp4']}").text
     tagged = client.get("/grid?flag=tag:beach").text
     assert "burst_1.jpg" in tagged and "burst_2.jpg" not in tagged
+    assert 'hx-get="/grid?flag=tag%3Afish%20%26%20chips"' in client.get("/grid?flag=tag:fish %26 chips").text
     found = client.get("/grid?flag=all&q=FAKE scene_1").text  # all words, any case, caption + file name
     assert "scene_1.jpg" in found and "scene_2.jpg" not in found
     assert "scene_1.jpg" in client.get("/grid").text and "scene_2.jpg" not in client.get("/grid").text  # kept

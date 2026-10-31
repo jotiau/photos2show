@@ -1,6 +1,6 @@
 <nav class="filters">
   {% for f, n in counts.items() %}
-  <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f }}" hx-target="#grid">
+  <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f | urlencode }}" hx-target="#grid">
     {{ f.replace('_', ' ').replace('tag:', '#') }} <span>{{ n }}</span>
   </button>
   {% endfor %}
