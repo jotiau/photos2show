@@ -32,6 +32,8 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     resp = wait()
     assert f"{len(testdata.EXPECTED)} files" in resp.text and "9 described by AI" in resp.text
     assert "Norway 2026" in client.get("/").text
+    assert "already exists" in client.post("/projects", data={"name": "Norway 2026", "folder": str(tmp_path)}).text
+    assert web.db.load_projects()["Norway 2026"] == str(folder.resolve())
     assert client.post("/analyse", data={"parallel": "99"}).status_code == 422
     client.post("/analyse", data={"parallel": "1"})
     assert web.job["parallel"] == 1 and "0 described by AI" in wait().text  # all cached

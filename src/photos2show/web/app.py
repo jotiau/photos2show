@@ -148,6 +148,8 @@ def create_project(name: str = Form(...), folder: str = Form(...)):
     root = Path(folder).expanduser()
     if not name.strip() or not root.is_dir():
         return HTMLResponse(f'<span class="error">Not a folder: {escape(folder)}</span>' if name.strip() else "Name missing")
+    if name.strip() in db.load_projects():  # would silently point the old project at the new folder
+        return HTMLResponse(f'<span class="error">A project called {escape(name.strip())} already exists.</span>')
     if job["running"]:
         return HTMLResponse('<span class="error">Wait until the running analysis is finished.</span>')
     db.save_project(name.strip(), root.resolve())
