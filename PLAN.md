@@ -325,7 +325,7 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
       "also delete AI results" choice moves into the remove confirmation (a small `<dialog>`
       instead of `hx-confirm`).
 
-15. **Clear button hierarchy**
+15. **Clear button hierarchy** – **done 2026-11-01**
     - Today: `form button { background: var(--accent) }` makes nearly every button look like the
       main action (Rename, Change folder, Analyse again, Refine, Export…).
     - Proposal: a `.primary` class for the one main action per page (Create & analyse, Select photos,

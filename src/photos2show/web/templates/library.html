@@ -15,7 +15,7 @@
 <div class="bar">
   <span class="path">{{ job.folder }}</span>
   <form hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">
-    <button title="{{ settings().parallel }} parallel AI requests (see Settings)">Analyse again</button>
+    <button class="primary" title="{{ settings().parallel }} parallel AI requests (see Settings)">Analyse again</button>
   </form>
   {% include "_progress.html" %}
 </div>
@@ -34,7 +34,7 @@
 </main>
 <div id="bulk" hidden>
   <span></span>
-  <button data-action="add">Add to slideshow</button>
+  <button data-action="add" class="primary">Add to slideshow</button>
   <button data-action="remove" class="remove">Remove from slideshow</button>
   <button data-action="">Clear</button>
 </div>
