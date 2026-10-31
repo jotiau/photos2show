@@ -272,7 +272,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
    - Proposal: one simple quality indicator (e.g. 1–5 stars or a coloured dot from the combined
      score), the date, and the caption as tooltip/second line. Raw metrics stay in the detail table.
 
-8. **Smaller image in the detail panel**
+8. **Smaller image in the detail panel** – **done 2026-11-01**
+   - Built: `/preview/{id}` (1024 px, cached as `<thumb>_preview.jpg`, removed with the thumbnails
+     when the file changes or goes); click opens the original. Videos still play the original.
    - Today: the 380 px panel loads `/original/{id}` – the full camera file, often several MB.
    - Proposal: a new `/preview/{id}` route serving a ~1024 px JPEG (EXIF-rotated, cached next to
      the thumbnails on first request – today the 1024 px AI image is only encoded in memory, never

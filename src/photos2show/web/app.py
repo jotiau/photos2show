@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from photos2show import db, slideshow
+from photos2show import db, scan, slideshow
 from photos2show.config import default_concurrency, env
 from photos2show.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
@@ -383,6 +383,25 @@ def thumb(media_id: int, frame: int | None = None):
     item = _item(media_id)
     name = item["thumb"] if frame is None else item["thumb"].replace(".jpg", f"_f{frame}.jpg")
     return FileResponse(db.library_dir(_root()) / "thumbs" / name)
+
+
+PREVIEW_EDGE = 1024
+
+
+@app.get("/preview/{media_id}")
+def preview(media_id: int):
+    """The photo at ~1024 px for the detail panel (the original is often several MB), made on first request."""
+    item = _item(media_id)
+    dest = db.library_dir(_root()) / "thumbs" / item["thumb"].replace(".jpg", "_preview.jpg")
+    if not dest.exists():
+        if item["kind"] != "image" or not Path(item["path"]).is_file():
+            raise HTTPException(404)
+        img = scan.read_image(Path(item["path"]))[0]  # EXIF-rotated
+        img.thumbnail((PREVIEW_EDGE, PREVIEW_EDGE))
+        tmp = dest.with_suffix(f".{threading.get_ident()}.tmp")  # two requests at once must not mix their bytes
+        img.save(tmp, "JPEG", quality=85)
+        os.replace(tmp, dest)
+    return FileResponse(dest)
 
 
 @app.get("/original/{media_id}")

@@ -1,7 +1,10 @@
+import io
+import os
 import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from photos2show import testdata
 from photos2show.web import app as web
@@ -78,6 +81,14 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert client.get(f"/thumb/{items['video.mp4']}?frame=2").headers["content-type"] == "image/jpeg"
     assert client.get(f"/original/{items['video.mp4']}").status_code == 200
     assert client.get("/media/9999").status_code == 404
+    resp = client.get(f"/preview/{items['scene_1.jpg']}")
+    assert resp.headers["content-type"] == "image/jpeg" and max(Image.open(io.BytesIO(resp.content)).size) <= 1024
+    cached = next((web.db.library_dir(folder) / "thumbs").glob("*_preview.jpg"))
+    assert client.get(f"/preview/{items['video.mp4']}").status_code == 404  # videos play the original
+    os.utime(folder / "scene_1.jpg", (1, 1))  # counts as changed
+    web.analyse_folder(folder)
+    assert not cached.exists()  # the next request makes a new one
+    web.describe_folder(folder)
     (folder / "burst_3.jpg").rename(tmp_path / "away.jpg")  # deleted after the scan
     assert client.get(f"/original/{items['burst_3.jpg']}").status_code == 404
     (tmp_path / "away.jpg").rename(folder / "burst_3.jpg")
