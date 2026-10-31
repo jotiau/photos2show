@@ -111,10 +111,11 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step). One primary
 per page; destructive actions red.
 - **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
   dropdown in the header to switch; the *Projects* page has "New project" to create and analyse
-  (names must be unique) and lists them with their state (files, described, picks, last analysed,
-  folder missing) to rename, change the folder or remove. Removing keeps the cached AI results
-  (they are keyed by folder, not by project name) unless "also delete saved AI results" is ticked
-  and no other project uses that folder.
+  (names must be unique) and shows each as a card: cover (the photo the AI liked best), name,
+  state (files, described, picks, last analysed, folder missing) and *Open*; rename and change
+  folder behind *Edit*. *Remove…* asks in a dialog; it keeps the cached AI results (they are keyed
+  by folder, not by project name) unless "also delete saved AI results" is ticked there and no
+  other project uses that folder.
 - **Library**: progress bar with *Stop* and time left; during the AI pass the grid stays still and
   a "Show N new results" button reloads it (automatic reload only when a phase starts and ends).
   Grid cards: date, 1–5 stars from aesthetic + interest, caption, flags, "✓ 3" pick number, video
@@ -187,11 +188,6 @@ tests/
 
 ## Open
 Small UI items (from the 2026-11-01 review, not yet built):
-- **Calmer Projects page**: every project shows rename + change-folder forms, Open, Remove and the
-  "also delete saved AI results" checkbox next to Remove (easy to tick by mistake). Proposal:
-  cards with a cover thumbnail, name, stats and *Open* as the main action; rename/change folder
-  behind an *Edit* toggle (`<details>`); the delete choice moves into the remove confirmation
-  (a small `<dialog>` instead of `hx-confirm`).
 - **Swap a pick** for another shot of the same scene, right on the slideshow tile.
 - **Player**: show the pick's reason on hover/tap.
 - **Library keyboard access**: cards are not Tab-focusable (Enter/Space to open).

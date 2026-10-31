@@ -36,6 +36,9 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     resp = wait()
     assert f"{len(testdata.EXPECTED)} files" in resp.text and "9 described by AI" in resp.text
     assert "Norway 2026" in client.get("/").text
+    assert 'src="/projects/cover?name=Norway%202026"' in client.get("/projects").text
+    assert client.get("/projects/cover?name=Norway 2026").headers["content-type"] == "image/jpeg"
+    assert client.get("/projects/cover?name=nope").status_code == 404
     assert "already exists" in client.post("/projects", data={"name": "Norway 2026", "folder": str(tmp_path)}).text
     assert web.db.load_projects()["Norway 2026"] == str(folder.resolve())
     used, describe = [], web.describe_folder
@@ -300,6 +303,7 @@ def test_projects_page(tmp_path, monkeypatch):
     client.post("/projects/folder", data={"name": "Alps 2026", "folder": str(b)})
     web.db.mark_analysed(b)  # as if analysed
     assert "0 files" in client.get("/projects").text and "last analysed" in client.get("/projects").text
+    assert client.get("/projects/cover?name=Alps 2026").status_code == 404  # no photos, no cover
     assert web.db.load_projects()["Alps 2026"] == str(b.resolve()) and web.job["folder"] == str(b.resolve())
 
     monkeypatch.setitem(web.job, "running", True)

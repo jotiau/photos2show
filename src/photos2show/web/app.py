@@ -203,6 +203,15 @@ def projects_page(request: Request):
     return _page(request, "projects.html", page="projects", stats=stats)
 
 
+@app.get("/projects/cover")
+def project_cover(name: str):
+    folder = db.load_projects().get(name)
+    cover = folder and db.project_stats(Path(folder))["cover"]
+    if not cover or not cover.is_file():
+        raise HTTPException(404)
+    return FileResponse(cover)
+
+
 def _edit_projects(name: str, change) -> HTMLResponse:
     """Apply change(projects) -> error or None to the saved projects; the page reloads on success."""
     if job["running"]:
