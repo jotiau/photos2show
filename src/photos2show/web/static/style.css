@@ -75,7 +75,13 @@ select { font: inherit; padding: 6px; border: 1px solid var(--border); border-ra
 #player img, #player video { max-width: 100%; max-height: 100%; object-fit: contain; }
 #player .status { position: fixed; bottom: 8px; right: 16px; margin: 0; color: #bbb; font-size: 0.9em; }
 .search { padding: 8px 16px 0; }
-.search input { width: 100%; max-width: 480px; }
+.search { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.search input { flex: 1; max-width: 480px; }
+.tags { margin: -4px 0 12px; }
+.tags summary { cursor: pointer; color: var(--muted); margin-bottom: 6px; }
+.tags .tag { margin: 0 4px 4px 0; }
+.tags .tag span { color: var(--muted); }
+.tags .tag.active { border-color: var(--accent); }
 .card.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
 .keys { color: var(--muted); font-size: 0.85em; margin: 0 0 6px; }
 main.slideshow { flex-direction: column; align-items: stretch; max-width: 1100px; }

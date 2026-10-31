@@ -50,6 +50,13 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert "burst_2.jpg" in everything and "+2" not in everything
     assert "burst_2.jpg" in client.get("/grid").text  # remembered
     client.get("/grid?stacks=true")
+    by_name = client.get("/grid?sort=name").text
+    assert by_name.index("blurry.jpg") < by_name.index("bright.jpg") < by_name.index("video.mp4")
+    assert by_name.index("video.mp4") > by_name.index("scene_3.jpg")
+    assert client.get("/grid?sort=nope").text == by_name and web.job["sort"] == "name"  # unknown: kept
+    assert "#beach <span>" in by_name  # tag list with counts
+    assert '<option value="name" selected>' in client.get("/").text
+    client.get("/grid?sort=date")
     skipped = client.get("/grid?flag=skips_ai").text
     assert "very_blurry.jpg" in skipped and "burst_2.jpg" in skipped and "scene_1.jpg" not in skipped
 

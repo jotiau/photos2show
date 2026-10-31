@@ -33,10 +33,12 @@ FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_br
            "low_contrast", "monotone", "duplicate", "video", "in_slideshow")
 REFRESH = {"HX-Refresh": "true"}
 UNSTACKED = ("duplicate", "skips_ai")  # these filters are about the shots a stack hides
+SORTS = {k: v[0] for k, v in slideshow.SORTS.items() if k != "reverse"}  # Library: name -> label
+TOP_TAGS = 30
 
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
-       "stopping": False, "summary": None, "error": None, "flag": "all", "query": "", "stacks": True,
+       "stopping": False, "summary": None, "error": None, "flag": "all", "query": "", "stacks": True, "sort": "date",
        "parallel": default_concurrency(), "grid_phase": "", "grid_done": 0}
 lock = threading.Lock()
 stop = threading.Event()
@@ -155,7 +157,7 @@ def _page(request: Request, template: str, **ctx) -> HTMLResponse:
 def index(request: Request):
     if not job["project"] and (projects := db.load_projects()):
         _open(list(projects)[-1])
-    return _page(request, "library.html", page="library")
+    return _page(request, "library.html", page="library", sorts=SORTS)
 
 
 @app.post("/projects", response_class=HTMLResponse)
@@ -273,11 +275,13 @@ def progress(request: Request):
 
 
 @app.get("/grid", response_class=HTMLResponse)
-def grid(request: Request, flag: str | None = None, q: str | None = None, stacks: bool | None = None):
+def grid(request: Request, flag: str | None = None, q: str | None = None, stacks: bool | None = None,
+         sort: str | None = None):
     flag = job["flag"] = flag or job["flag"]  # remembered so live reloads keep the filter
     query = job["query"] = (job["query"] if q is None else q).strip()  # q="" clears the search
     job.update(grid_phase=job["phase"], grid_done=job["done"])  # what the grid shows: newer = "new results"
     stacked = job["stacks"] = job["stacks"] if stacks is None else stacks
+    by = job["sort"] = sort if sort in SORTS else job["sort"]
     items = [it for it in _items() if _found(it, query)]
     # Stacks: only the best shot of a scene is shown, with "+N" for its other shots (unless the search hides it).
     ids = {it["id"] for it in items}
@@ -288,8 +292,13 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
     if flag.startswith("tag:"):
         counts[flag] = sum(_matches(it, flag) for it in visible)
     shown = [it for it in (items if flag in UNSTACKED else visible) if _matches(it, flag)]
+    _, key, desc = slideshow.SORTS[by]
+    known = [it for it in shown if key(it) is not None]  # without a value (no date, no AI score): at the end
+    shown = sorted(known, key=key, reverse=desc) + [it for it in shown if key(it) is None]
+    tags = Counter(t for it in visible for t in {str(t) for t in (it["ai"] or {}).get("tags") or []})
     return templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
-                                                              "query": query, "stacked": stacked, "more": more})
+                                                              "query": query, "stacked": stacked, "more": more,
+                                                              "tags": tags.most_common(TOP_TAGS)})
 
 
 @app.get("/media/{media_id}", response_class=HTMLResponse)

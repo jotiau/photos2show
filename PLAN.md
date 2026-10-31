@@ -252,9 +252,10 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
    - Done when: the grid of a ~850-photo holiday shrinks to the distinct scenes.
 
 #### Library
-6. **Sort and search** *(search: see Usability)* – **done 2026-11-01 (search only)**
+6. **Sort and search** *(search: see Usability)* – **done 2026-11-01**
    - Built: search over caption, tags, scene, issues and file name, combined with the flag filter
-     and remembered across live reloads. Still open: the sort select and the tag list.
+     and remembered across live reloads; a sort select (the slideshow's sort keys) and a collapsible
+     list of the 30 most common tags with counts, both following the search and stacks.
    - Today: no sort order other than the default; tags can only be filtered by clicking one inside
      the detail panel; no text search.
    - Proposal: a sort select (date, aesthetic, interest, sharpness/score, file name) and a search
