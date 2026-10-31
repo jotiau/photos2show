@@ -379,7 +379,7 @@ def select(request: Request, description: str = Form(...)):
         picks = slideshow.select(db.connect(root), description)
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
-    slideshow.change(root, {**slideshow.load(root), "description": description, "picks": picks, "refinements": []})
+    slideshow.update(root, lambda s: {**s, "description": description, "picks": picks, "refinements": []})
     return _picks(request)
 
 
@@ -391,8 +391,8 @@ def refine(request: Request, instruction: str = Form(...)):
         picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction)
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
-    refinements = [*selection.get("refinements", []), instruction]  # kept for selection.json in the export
-    slideshow.change(root, {**selection, "picks": picks, "refinements": refinements})
+    # refinements: kept for selection.json in the export
+    slideshow.update(root, lambda s: {**s, "picks": picks, "refinements": [*s.get("refinements", []), instruction]})
     return _picks(request)
 
 
@@ -407,17 +407,14 @@ def sort(request: Request, by: str = Form(...)):
     if by not in slideshow.SORTS:
         raise HTTPException(400)
     root = Path(job["folder"])
-    conn, selection = db.connect(root), slideshow.load(root)
-    items = {p["id"]: it for p in selection["picks"] if (it := db.get_media(conn, p["id"]))}
-    slideshow.change(root, {**selection, "picks": slideshow.sort(selection["picks"], items, by)})
+    items = {it["id"]: it for it in db.all_media(db.connect(root))}
+    slideshow.update(root, lambda s: {**s, "picks": slideshow.sort(s["picks"], items, by)})
     return _picks(request)
 
 
 @app.post("/slideshow/move", response_class=HTMLResponse)
 def move(request: Request, id: int = Form(...), to: int = Form(...)):
-    root = Path(job["folder"])
-    selection = slideshow.load(root)
-    slideshow.change(root, {**selection, "picks": slideshow.move(selection["picks"], id, to)})
+    slideshow.update(Path(job["folder"]), lambda s: {**s, "picks": slideshow.move(s["picks"], id, to)})
     return _picks(request)
 
 
@@ -451,9 +448,8 @@ def open_export():
 def edit(request: Request, action: str, media_id: int):
     if action not in ("add", "remove"):
         raise HTTPException(404)
-    root = Path(job["folder"])
-    selection = slideshow.load(root)
-    slideshow.change(root, {**selection, "picks": slideshow.edit(selection["picks"], action, _item(media_id)["id"])})
+    media_id = _item(media_id)["id"]  # 404 for an unknown id
+    slideshow.update(Path(job["folder"]), lambda s: {**s, "picks": slideshow.edit(s["picks"], action, media_id)})
     return HTMLResponse("In slideshow ✓") if action == "add" else _picks(request)
 
 
