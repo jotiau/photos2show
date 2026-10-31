@@ -15,7 +15,7 @@
   <form hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">
     <label>Parallel AI requests
       <select name="parallel">
-        {% for n in (1, 2, 4, 8) %}<option {{ 'selected' if n == job.parallel }}>{{ n }}</option>{% endfor %}
+        {% for n in (1, 2, 4, 8, job.parallel) | unique | sort %}<option {{ 'selected' if n == job.parallel }}>{{ n }}</option>{% endfor %}
       </select>
     </label>
     <button>Analyse again</button>

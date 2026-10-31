@@ -37,6 +37,9 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert client.post("/analyse", data={"parallel": "99"}).status_code == 422
     client.post("/analyse", data={"parallel": "1"})
     assert web.job["parallel"] == 1 and "0 described by AI" in wait().text  # all cached
+    client.post("/analyse", data={"parallel": "3"})  # e.g. AI_CONCURRENCY=3: not one of 1/2/4/8
+    wait()
+    assert "<option selected>3</option>" in client.get("/").text
 
     grid = client.get("/grid").text
     assert "burst_1.jpg" in grid and "▶ video" in grid
