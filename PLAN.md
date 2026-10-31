@@ -320,7 +320,7 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
     - Proposal: a setting (default 2) in the Settings page; the Library bar keeps only
       *Analyse again* and the progress.
 
-17. **Fix outdated empty-state text**
+17. **Fix outdated empty-state text** – **done 2026-11-01**
     - Today: `_grid.html` says "Nothing here yet – enter a folder and press Analyse", but folders
       are now set on the Projects page.
     - Proposal: "Nothing here yet – analyse the project to see its photos" (or the filter-specific

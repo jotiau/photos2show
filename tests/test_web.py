@@ -56,6 +56,8 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert "scene_1.jpg" in found and "scene_2.jpg" not in found
     assert "scene_1.jpg" in client.get("/grid").text and "scene_2.jpg" not in client.get("/grid").text  # kept
     assert "No photos match" in client.get("/grid?q=penguin").text
+    assert "No photos match this filter" in client.get("/grid?flag=tag:penguin&q=").text
+    client.get("/grid?flag=all")
     assert "scene_2.jpg" in client.get("/grid?q=").text  # cleared
     assert client.get(f"/thumb/{items['video.mp4']}?frame=2").headers["content-type"] == "image/jpeg"
     assert client.get(f"/original/{items['video.mp4']}").status_code == 200

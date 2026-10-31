@@ -7,7 +7,8 @@
 </nav>
 {% if not items %}
 <p class="empty">{% if query %}No photos match “{{ query }}”{% if flag != 'all' %} with this filter{% endif %}.
-{% else %}Nothing here yet – enter a folder and press Analyse.{% endif %}</p>
+{% elif counts.all %}No photos match this filter.
+{% else %}Nothing here yet – analyse the project to see its photos.{% endif %}</p>
 {% endif %}
 <div class="cards">
   {% for it in items %}
