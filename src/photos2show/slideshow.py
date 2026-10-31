@@ -6,10 +6,10 @@ import shutil
 import threading
 from pathlib import Path
 
-from photos2show import ai, db
+from photos2show import ai, db, scan
 from photos2show.config import load_settings
 
-SECONDS_PER_PHOTO = 5
+SECONDS_PER_PHOTO = 5  # default; the user can choose 2-15 per slideshow
 
 SELECT_PROMPT = """You are choosing photos for a holiday slideshow. The user describes it like this:
 ---
@@ -20,7 +20,7 @@ Candidates, one per line: id | date | kind | scene | tags | caption | aesthetic/
 
 Pick the photos that best fit the description, in the order they should be shown (chronological unless
 the description says otherwise). Respect a requested number of photos or duration (about {seconds} seconds
-per photo). Prefer high aesthetic and interest, avoid quality flags and repetitive shots.
+per photo; a video runs its full length, shown as e.g. "video 12s"). Prefer high aesthetic and interest, avoid quality flags and repetitive shots.
 """
 
 REFINE_PROMPT = """
@@ -39,12 +39,23 @@ ANSWER = """Answer ONLY with JSON: {"picks": [{"id": 12, "reason": "short reason
 
 def _line(it: dict) -> str:
     a = it["ai"] or {}  # a photo added by hand may not be described
-    return (f"{it['id']} | {(it['taken_at'] or '')[:16]} | {it['kind']} | {a.get('scene')} | "
+    kind = f"video {on_screen(it, 0):.0f}s" if it["kind"] == "video" else it["kind"]
+    return (f"{it['id']} | {(it['taken_at'] or '')[:16]} | {kind} | {a.get('scene')} | "
             f"{', '.join(a.get('tags') or [])} | {a.get('caption')} | {a.get('aesthetic')} | "
             f"{a.get('interest')} | {','.join(it['flags']) or '-'}")
 
 
-def select(conn, description: str, current: list[dict] | None = None, instruction: str = "") -> list[dict]:
+def per_photo(selection: dict) -> int:
+    return selection.get("seconds", SECONDS_PER_PHOTO)
+
+
+def on_screen(it: dict, seconds: float) -> float:
+    """Seconds an item is shown: a photo the chosen time, a video its length (the chosen time if unreadable)."""
+    return (scan.video_seconds(it["path"], it["mtime"]) or seconds) if it["kind"] == "video" else seconds
+
+
+def select(conn, description: str, current: list[dict] | None = None, instruction: str = "",
+           seconds: int = SECONDS_PER_PHOTO) -> list[dict]:
     """Ask the LLM for picks; returns [{"id", "reason"}] restricted to described, non-duplicate items.
 
     With an instruction, the current picks are refined instead of chosen anew; they stay valid even if
@@ -57,7 +68,7 @@ def select(conn, description: str, current: list[dict] | None = None, instructio
         raise ValueError("No photos described by AI yet – analyse the project first.")
     settings = load_settings()
     prompt = SELECT_PROMPT.format(description=description, lines="\n".join(map(_line, items)),
-                                  seconds=SECONDS_PER_PHOTO)
+                                  seconds=seconds)
     if instruction:
         lines = "\n".join(f"{p['id']} | {p['reason'] or '-'}" for p in current)
         prompt += REFINE_PROMPT.format(current=lines or "(empty)", instruction=instruction)

@@ -1,4 +1,5 @@
 """Find media files, read capture dates, extract video frames."""
+import functools
 import re
 import struct
 from datetime import datetime, timedelta, timezone
@@ -61,6 +62,17 @@ def read_video_frames(path: Path) -> tuple[list[Image.Image], tuple[int, int]]:
     if not frames:
         raise ValueError(f"no readable frames in {path}")
     return frames, size
+
+
+@functools.lru_cache(maxsize=4096)
+def video_seconds(path: str, mtime: float) -> float:
+    """Length of a video, 0 if unreadable. mtime is only part of the cache key: a changed file is read again."""
+    cap = cv2.VideoCapture(path)
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        return cap.get(cv2.CAP_PROP_FRAME_COUNT) / fps if fps > 0 else 0.0
+    finally:
+        cap.release()
 
 
 NAME_DATE = re.compile(r"(20\d{6})[_-](\d{6})")  # phone naming, e.g. 20260725_130945.mp4

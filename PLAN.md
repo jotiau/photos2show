@@ -179,7 +179,7 @@ tests/
 - Several saved slideshows per project; projects spanning several folders
 
 ### Usability (suggested 2026-10-31; stop/time left, export again, refine/undo, search, preview and keyboard done)
-- Seconds per photo selectable; length estimate counts real video durations (fixed 5 s today)
+- Seconds per photo selectable; length estimate counts real video durations – **done 2026-11-01** (see 12)
 - Swap a pick for another shot of the same scene, right on the slideshow tile
 
 ### UI improvements (suggested 2026-11-01, not yet prioritised)
@@ -300,7 +300,10 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
     - Proposal: ← / → and on-screen arrows step through the picks; shows the pick number and
       reason. Shares code with the player (1).
 
-12. **Adjustable seconds per photo** *(see Usability)*
+12. **Adjustable seconds per photo** *(see Usability)* – **done 2026-11-01**
+    - Built: 2–15 s input in the estimate line, saved in `selection.json`; used by the estimate, the
+      player and the AI prompt; videos count with their length (OpenCV, cached by path + mtime) and
+      are listed to the AI as "video 12s".
     - Today: "about X min at 5 s per photo" is hard-coded in `_picks.html`.
     - Proposal: a small number input (2–15 s) next to the estimate, saved with the selection, used
       by the estimate, the player (1) and passed to the AI as context ("the show should be ~10 min").

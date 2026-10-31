@@ -416,12 +416,12 @@ def original(media_id: int):
 
 
 def _picks(request: Request, error: str | None = None) -> HTMLResponse:
-    conn = db.connect(_root())
-    picks = [{"item": it, "reason": p["reason"]}
-             for p in slideshow.load(_root())["picks"] if (it := db.get_media(conn, p["id"]))]
+    conn, selection = db.connect(_root()), slideshow.load(_root())
+    seconds = slideshow.per_photo(selection)
+    picks = [{"item": it, "reason": p["reason"]} for p in selection["picks"] if (it := db.get_media(conn, p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
-        "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60,
-        "seconds": slideshow.SECONDS_PER_PHOTO,
+        "picks": picks, "error": error, "seconds": seconds,
+        "minutes": sum(slideshow.on_screen(p["item"], seconds) for p in picks) / 60,
         "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}, "can_undo": slideshow.can_undo(_root())})
 
 
@@ -443,7 +443,7 @@ def picks(request: Request):
 def select(request: Request, description: str = Form(...)):
     root = _root()
     try:
-        picks = slideshow.select(db.connect(root), description)
+        picks = slideshow.select(db.connect(root), description, seconds=slideshow.per_photo(slideshow.load(root)))
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
     slideshow.update(root, lambda s: {**s, "description": description, "picks": picks, "refinements": []})
@@ -455,11 +455,18 @@ def refine(request: Request, instruction: str = Form(...)):
     root = _root()
     selection = slideshow.load(root)
     try:
-        picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction)
+        picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction,
+                                 slideshow.per_photo(selection))
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
     # refinements: kept for selection.json in the export
     slideshow.update(root, lambda s: {**s, "picks": picks, "refinements": [*s.get("refinements", []), instruction]})
+    return _picks(request)
+
+
+@app.post("/slideshow/seconds", response_class=HTMLResponse)
+def seconds_per_photo(request: Request, seconds: int = Form(ge=2, le=15)):
+    slideshow.update(_root(), lambda s: {**s, "seconds": seconds})
     return _picks(request)
 
 

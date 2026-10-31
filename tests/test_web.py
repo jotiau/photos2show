@@ -111,6 +111,10 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     client.get("/grid?flag=all")
     picks = client.post("/slideshow/move", data={"id": items["scene_2.jpg"], "to": 0}).text  # ← button
     assert picks.index("scene_2.jpg") < picks.index("scene_1.jpg") and "3 photos" in picks
+    assert "about 0.2 min" in picks  # 5 + 5 s photos + the 3 s video
+    picks = client.post("/slideshow/seconds", data={"seconds": "10"}).text
+    assert "about 0.4 min" in picks and 'value="10"' in picks and 'data-seconds="10"' in picks
+    assert client.post("/slideshow/seconds", data={"seconds": "99"}).status_code == 422
     assert '"to": 2}' in picks  # → button of the 2nd tile
     picks = client.post("/slideshow/move", data={"id": items["video.mp4"], "to": 0}).text
     assert picks.index("video.mp4") < picks.index("scene_2.jpg") < picks.index("scene_1.jpg")
