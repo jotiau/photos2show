@@ -241,7 +241,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
    - b) is simpler and enough; a) is nicer if live updates are wanted.
    - Done when: scrolling and browsing during a 50-minute run doesn't jump.
 
-5. **Collapse same-scene shots into stacks**
+5. **Collapse same-scene shots into stacks** – **done 2026-11-01**
+   - Built: stacked by default, "+N" badge on the best shot (open it for the "Same scene" strip),
+     *Show all shots* toggle, remembered; the *duplicate* and *skips AI* filters always show every shot.
    - Today: every burst shot is its own card; duplicates are only marked with a grey flag. The
      scene grouping (`duplicate_of`) is already used in the detail panel's "Same scene".
    - Proposal: by default show only the best shot of each scene with a "+4" badge; clicking the

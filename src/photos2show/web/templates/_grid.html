@@ -4,6 +4,8 @@
     {{ f.replace('_', ' ').replace('tag:', '#') }} <span>{{ n }}</span>
   </button>
   {% endfor %}
+  <button class="stacks" hx-get="/grid?stacks={{ 'false' if stacked else 'true' }}" hx-target="#grid"
+    title="Same-scene shots: only the best one, or every shot">{{ 'Show all shots' if stacked else 'Stack same-scene shots' }}</button>
 </nav>
 {% if not items %}
 <p class="empty">{% if query %}No photos match “{{ query }}”{% if flag != 'all' %} with this filter{% endif %}.
@@ -15,6 +17,7 @@
   <article class="card {{ 'dim' if it.skip_ai }}" data-id="{{ it.id }}" hx-get="/media/{{ it.id }}" hx-target="#detail">
     <img src="/thumb/{{ it.id }}" loading="lazy" alt="">
     {% if it.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
+    {% if more[it.id] %}<span class="stack" title="{{ more[it.id] }} more shot{{ 's' if more[it.id] != 1 }} of this scene – open to see them">+{{ more[it.id] }}</span>{% endif %}
     <span id="pick-{{ it.id }}" class="pick" title="Position in the slideshow">{{ '✓ %d' % it.pick if it.pick }}</span>
     <div class="name">#{{ it.id }} {{ it.path | basename }}</div>
     <div class="meta">{{ (it.taken_at or '')[:16].replace('T', ' ') }} · sharp {{ it.metrics.sharpness | round | int }}</div>

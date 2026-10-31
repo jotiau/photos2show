@@ -44,6 +44,12 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
 
     grid = client.get("/grid").text
     assert "burst_1.jpg" in grid and "▶ video" in grid
+    assert "burst_2.jpg" not in grid and ">+2</span>" in grid and "Show all shots" in grid  # stacked by default
+    assert "burst_2.jpg" in client.get("/grid?q=burst_2").text  # its best shot doesn't match: shown alone
+    everything = client.get("/grid?stacks=false&q=").text
+    assert "burst_2.jpg" in everything and "+2" not in everything
+    assert "burst_2.jpg" in client.get("/grid").text  # remembered
+    client.get("/grid?stacks=true")
     skipped = client.get("/grid?flag=skips_ai").text
     assert "very_blurry.jpg" in skipped and "burst_2.jpg" in skipped and "scene_1.jpg" not in skipped
 

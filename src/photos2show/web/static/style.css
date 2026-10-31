@@ -36,6 +36,9 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .card .pick { position: absolute; top: 6px; right: 6px; background: var(--ok); color: #fff; padding: 2px 7px;
               border-radius: 10px; font-size: 12px; font-weight: 600; }
 .card .pick:empty { display: none; }
+.card .stack { position: absolute; top: 6px; left: 6px; background: #000a; color: #fff; padding: 2px 7px;
+               border-radius: 10px; font-size: 12px; font-weight: 600; box-shadow: 3px 3px 0 #fff8; }
+.filters .stacks { margin-left: auto; }
 .flags { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 8px; }
 .flag { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: var(--warn); color: #fff; }
 .flag.very_blurry, .flag.too_dark, .flag.too_bright { background: var(--bad); }

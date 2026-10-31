@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import webbrowser
+from collections import Counter
 from html import escape
 from pathlib import Path
 
@@ -31,10 +32,11 @@ templates.env.globals["settings"] = db.load_settings
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
            "low_contrast", "monotone", "duplicate", "video", "in_slideshow")
 REFRESH = {"HX-Refresh": "true"}
+UNSTACKED = ("duplicate", "skips_ai")  # these filters are about the shots a stack hides
 
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
-       "stopping": False, "summary": None, "error": None, "flag": "all", "query": "",
+       "stopping": False, "summary": None, "error": None, "flag": "all", "query": "", "stacks": True,
        "parallel": default_concurrency(), "grid_phase": "", "grid_done": 0}
 lock = threading.Lock()
 stop = threading.Event()
@@ -271,17 +273,23 @@ def progress(request: Request):
 
 
 @app.get("/grid", response_class=HTMLResponse)
-def grid(request: Request, flag: str | None = None, q: str | None = None):
+def grid(request: Request, flag: str | None = None, q: str | None = None, stacks: bool | None = None):
     flag = job["flag"] = flag or job["flag"]  # remembered so live reloads keep the filter
     query = job["query"] = (job["query"] if q is None else q).strip()  # q="" clears the search
     job.update(grid_phase=job["phase"], grid_done=job["done"])  # what the grid shows: newer = "new results"
+    stacked = job["stacks"] = job["stacks"] if stacks is None else stacks
     items = [it for it in _items() if _found(it, query)]
-    counts = {f: sum(_matches(it, f) for it in items) for f in FILTERS}
+    # Stacks: only the best shot of a scene is shown, with "+N" for its other shots (unless the search hides it).
+    ids = {it["id"] for it in items}
+    stacked_away = [it for it in items if stacked and it["duplicate_of"] in ids]
+    more = Counter(it["duplicate_of"] for it in stacked_away)
+    visible = [it for it in items if it not in stacked_away]
+    counts = {f: sum(_matches(it, f) for it in (items if f in UNSTACKED else visible)) for f in FILTERS}
     if flag.startswith("tag:"):
-        counts[flag] = sum(_matches(it, flag) for it in items)
-    shown = [it for it in items if _matches(it, flag)]
+        counts[flag] = sum(_matches(it, flag) for it in visible)
+    shown = [it for it in (items if flag in UNSTACKED else visible) if _matches(it, flag)]
     return templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
-                                                              "query": query})
+                                                              "query": query, "stacked": stacked, "more": more})
 
 
 @app.get("/media/{media_id}", response_class=HTMLResponse)
