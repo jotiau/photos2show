@@ -130,7 +130,7 @@ per page; destructive actions red.
   ordered tiles with reasons; *Refine picks*, *Undo*, sort, drag & drop or ← → to reorder, × to
   remove, "⇄ N other shots" to swap a pick for another shot of its scene (same place and reason);
   seconds per photo with the length estimate (videos at their length); lightbox with
-  ← → through the picks; *▶ Play* full screen (← → Space Esc); *Export*, *Open folder*.
+  ← → through the picks; *▶ Play* full screen (← → Space Esc; the reason shows on mouse move or tap); *Export*, *Open folder*.
 - **Settings**: theme, parallel AI requests (each with a help line); delete cached data of folders
   no project uses.
 
@@ -189,7 +189,6 @@ tests/
 
 ## Open
 Small UI items (from the 2026-11-01 review, not yet built):
-- **Player**: show the pick's reason on hover/tap.
 - **Library keyboard access**: cards are not Tab-focusable (Enter/Space to open).
 - **URL**: search and sort are kept server-side, not in the URL.
 

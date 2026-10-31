@@ -33,7 +33,7 @@
 {% endif %}
 </main>
 <dialog id="lightbox"></dialog>
-<dialog id="player"><div class="stage"></div><p class="status"></p></dialog>
+<dialog id="player"><div class="stage"></div><p class="reason"></p><p class="status"></p></dialog>
 <script>
   // Elapsed time while the AI selects or refines (both forms indicate on #thinking and #picks).
   let ticker = null;
@@ -65,11 +65,22 @@
     else if (!paused) timer = setTimeout(() => show(at + 1), player.dataset.seconds * 1000);
     if (slides[at + 1] && !slides[at + 1].video) new Image().src = slides[at + 1].src;  // preload
     player.querySelector(".status").textContent = `${at + 1} / ${slides.length}${paused ? " · paused (Space)" : ""}`;
+    player.querySelector(".reason").textContent = s.reason;  // LLM text: never HTML
   };
+  // The reason shows while the mouse moves or after a tap, then fades out.
+  let infoTimer = null;
+  const showInfo = () => {
+    player.classList.add("info");
+    clearTimeout(infoTimer);
+    infoTimer = setTimeout(() => player.classList.remove("info"), 2500);
+  };
+  player.addEventListener("mousemove", showInfo);
+  player.addEventListener("click", showInfo);
   document.addEventListener("click", e => {
     const play = e.target.closest("button.play");
     if (!play) return;
-    slides = [...document.querySelectorAll(".picks img[data-full]")].map(img => ({src: img.dataset.full, video: "video" in img.dataset}));
+    slides = [...document.querySelectorAll(".picks img[data-full]")].map(img => ({src: img.dataset.full, video: "video" in img.dataset,
+      reason: img.closest("li").querySelector(".meta").textContent}));
     player.dataset.seconds = play.dataset.seconds;
     paused = false;
     player.showModal();
