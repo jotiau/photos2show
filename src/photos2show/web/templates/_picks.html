@@ -11,7 +11,8 @@
   {% if can_undo %}<button hx-post="/slideshow/undo" hx-target="#picks" title="Back to the picks before the last change">Undo</button>{% endif %}
 </div>
 {% endif %}
-<p>{{ picks | length }} photos · about {{ '%.1f' % minutes }} min at 5 s per photo. Drag tiles to reorder, add more from the Library detail panel.</p>
+{% if picks %}<button type="button" class="play" data-seconds="{{ seconds }}">▶ Play</button>{% endif %}
+<p>{{ picks | length }} photos · about {{ '%.1f' % minutes }} min at {{ seconds }} s per photo. Drag tiles to reorder, add more from the Library detail panel.</p>
 {% if picks | length > 1 %}
 <form class="sort" hx-post="/slideshow/sort" hx-target="#picks" hx-trigger="change">
   <label for="sort-by">Sort by</label>

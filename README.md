@@ -45,8 +45,9 @@ LM Studio if you'd rather keep your photos on your own computer.
   export again into the same folder after changes.
 
 **Library browser**
-- Thumbnail grid with filters by quality flag and tag; a detail panel with all metrics, the other
-  shots of the same scene and the AI description.
+- Thumbnail grid with filters by quality flag and tag, and a search over captions, tags and file names;
+  a detail panel with all metrics, the other shots of the same scene and the AI description.
+- Keyboard: ← → step through the photos, A adds one to the slideshow, Esc closes the panel.
 - One project per trip; switch between them in the header, rename, re-point or remove them in the *Projects* tab (the first tab).
 
 **Your photos stay yours**
@@ -144,12 +145,15 @@ Tips for local models:
      (choose 1–8 next to *Analyse again*). Captions and tags appear live; skipped photos are marked
      *no AI*. The progress bar shows the time left; *Stop* ends the run after the requests already
      sent. Stopped or interrupted? Press *Analyse again* and it continues where it stopped.
-3. **Browse the Library**: filter by quality flag, click a card for details, click a tag to filter by it.
+3. **Browse the Library**: filter by quality flag, search the AI captions (e.g. "boat sunset"), click a card
+   for details, click a tag to filter by it. With a photo open, ← → go to the previous / next one and
+   A adds it to the slideshow.
 4. **Build the slideshow** in the *Slideshow* tab: describe the show and press *Select photos*.
    The picks are shown as tiles: drag them to reorder (or use ← →), remove with ×, sort the whole
    set, or add photos via *Add to slideshow* in the Library detail panel. To change the set in words,
    type an instruction next to *Refine picks* (e.g. "add 10 more sunsets, fewer people"); the model
-   keeps the rest, including your hand edits. *Undo* goes back one change.
+   keeps the rest, including your hand edits. *Undo* goes back one change. *▶ Play* previews the show
+   full screen (← → step, Space pause, Esc end).
 5. **Export**: choose a new folder outside the photo folder and press *Export*, then *Open folder*.
    Changed the show? Export again into the same folder with *replace previous export* ticked; this only
    deletes files of an earlier export, never a folder with other files in it.
