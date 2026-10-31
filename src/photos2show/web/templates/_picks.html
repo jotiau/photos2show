@@ -40,6 +40,15 @@
       <button hx-post="/slideshow/move" hx-vals='{"id": {{ p.item.id }}, "to": {{ loop.index0 + 1 }}}' hx-target="#picks" aria-label="Move later">→</button>
       <button hx-post="/slideshow/remove/{{ p.item.id }}" hx-target="#picks" aria-label="Remove">×</button>
     </div>
+    {% if p.alts %}
+    <details class="swap">
+      <summary title="Other shots of this scene – click one to use it instead">⇄ {{ p.alts | length }} other shot{{ 's' if p.alts | length != 1 }}</summary>
+      <div class="alts">
+        {% for a in p.alts %}<button hx-post="/slideshow/swap" hx-vals='{"id": {{ p.item.id }}, "to": {{ a }}}' hx-target="#picks"
+          title="Use this shot instead" aria-label="Use shot #{{ a }} instead"><img src="/thumb/{{ a }}" alt="" loading="lazy" draggable="false"></button>{% endfor %}
+      </div>
+    </details>
+    {% endif %}
   </li>
   {% endfor %}
 </ol>

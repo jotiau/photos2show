@@ -123,6 +123,11 @@ textarea { font: inherit; padding: 8px; border: 1px solid var(--border); border-
 .picks .video { left: auto; right: 6px; }
 .picks .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picks .actions { display: flex; gap: 4px; padding: 0 8px 8px; }
+.picks .swap { padding: 0 8px 8px; font-size: 12px; }
+.picks .swap summary { cursor: pointer; color: var(--muted); }
+.picks .alts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 4px; }
+.picks .alts button { padding: 0; border: 2px solid transparent; overflow: hidden; }
+.picks .alts img { cursor: pointer; object-fit: cover; aspect-ratio: 4/3; }
 #lightbox { padding: 0; border: 0; background: none; max-width: 95vw; max-height: 95vh; }
 #lightbox::backdrop { background: #000d; }
 #lightbox img, #lightbox video { display: block; max-width: 95vw; max-height: 95vh; object-fit: contain; }

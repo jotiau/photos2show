@@ -63,6 +63,13 @@ def test_move():
     assert ids(picks) == [1, 2, 3, 4]  # input untouched
 
 
+def test_swap():
+    picks = [{"id": 1, "reason": "a"}, {"id": 2, "reason": "b"}, {"id": 3, "reason": "c"}]
+    assert slideshow.swap(picks, 2, 9) == [{"id": 1, "reason": "a"}, {"id": 9, "reason": "b"}, {"id": 3, "reason": "c"}]
+    assert slideshow.swap(picks, 2, 3) == picks  # already a pick: no double
+    assert picks[1]["id"] == 2  # input untouched
+
+
 def test_sort():
     items = {1: {"taken_at": "2026-08-12", "ai": {"aesthetic": 5, "interest": "9"}, "score": 0.2, "path": "/x/b.jpg"},
              2: {"taken_at": "2026-08-10", "ai": {"aesthetic": 8}, "score": 0.9, "path": "/x/C.jpg"},

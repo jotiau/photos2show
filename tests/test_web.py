@@ -170,6 +170,20 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     monkeypatch.setattr(web.subprocess, "Popen", no_xdg_open)
     assert "Could not open the folder" in client.post("/slideshow/open-export").text
 
+    # Swap a pick for another shot of its scene
+    client.post(f"/slideshow/add/{items['burst_1.jpg']}")
+    picks = client.get("/slideshow/picks").text
+    assert "⇄ 2 other shots" in picks and f'"to": {items["burst_2.jpg"]}' in picks
+    before = [p["id"] for p in web.slideshow.load(folder)["picks"]]
+    picks = client.post("/slideshow/swap", data={"id": items["burst_1.jpg"], "to": items["burst_2.jpg"]}).text
+    after = [p["id"] for p in web.slideshow.load(folder)["picks"]]
+    assert after == [items["burst_2.jpg"] if i == items["burst_1.jpg"] else i for i in before]  # same place
+    assert web.slideshow.load(folder)["picks"][-1]["reason"] == "added by hand"  # reason kept
+    bad = client.post("/slideshow/swap", data={"id": items["burst_2.jpg"], "to": items["scene_1.jpg"]})
+    assert bad.status_code == 400  # another scene
+    client.post("/slideshow/undo")
+    assert [p["id"] for p in web.slideshow.load(folder)["picks"]] == before
+
 
 def test_stop_and_time_left(tmp_path, monkeypatch, fake_ai):
     monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))

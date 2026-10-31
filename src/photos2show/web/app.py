@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 import webbrowser
-from collections import Counter
+from collections import Counter, defaultdict
 from html import escape
 from pathlib import Path
 
@@ -324,8 +324,7 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
 def detail(request: Request, media_id: int):
     item = _item(media_id)
     item["skip_ai"], item["pick"] = skip_ai_reason(item), _pick_numbers().get(media_id)
-    best = item["duplicate_of"] or item["id"]
-    scene = [it for it in _items() if (it["duplicate_of"] or it["id"]) == best and it["id"] != item["id"]]
+    scene = [it for it in _items() if _scene(it) == _scene(item) and it["id"] != item["id"]]
     return templates.TemplateResponse(request, "_detail.html", {"it": item, "scene": scene})
 
 
@@ -422,10 +421,32 @@ def original(media_id: int):
     return FileResponse(path)
 
 
+def _scene(it: dict) -> int:
+    """Shots of the same scene share this id: the best shot's."""
+    return it["duplicate_of"] or it["id"]
+
+
+@app.post("/slideshow/swap", response_class=HTMLResponse)
+def swap(request: Request, id: int = Form(...), to: int = Form(...)):
+    """Replace a pick by another shot of its scene, in the same place and with the same reason."""
+    conn = db.connect(_root())
+    a, b = db.get_media(conn, id), db.get_media(conn, to)
+    if not a or not b or _scene(a) != _scene(b):
+        raise HTTPException(400)
+    slideshow.update(_root(), lambda s: {**s, "picks": slideshow.swap(s["picks"], id, to)})
+    return _picks(request)
+
+
 def _picks(request: Request, error: str | None = None) -> HTMLResponse:
     conn, selection = db.connect(_root()), slideshow.load(_root())
     seconds = slideshow.per_photo(selection)
-    picks = [{"item": it, "reason": p["reason"]} for p in selection["picks"] if (it := db.get_media(conn, p["id"]))]
+    items = {it["id"]: it for it in db.all_media(conn)}
+    scenes = defaultdict(list)  # best shot id -> every shot of that scene
+    for it in items.values():
+        scenes[_scene(it)].append(it["id"])
+    picked = {p["id"] for p in selection["picks"]}
+    picks = [{"item": it, "reason": p["reason"], "alts": [i for i in scenes[_scene(it)] if i not in picked]}
+             for p in selection["picks"] if (it := items.get(p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
         "picks": picks, "error": error, "seconds": seconds,
         "minutes": sum(slideshow.on_screen(p["item"], seconds) for p in picks) / 60,

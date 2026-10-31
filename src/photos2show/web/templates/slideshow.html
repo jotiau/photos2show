@@ -69,7 +69,7 @@
   document.addEventListener("click", e => {
     const play = e.target.closest("button.play");
     if (!play) return;
-    slides = [...document.querySelectorAll(".picks img")].map(img => ({src: img.dataset.full, video: "video" in img.dataset}));
+    slides = [...document.querySelectorAll(".picks img[data-full]")].map(img => ({src: img.dataset.full, video: "video" in img.dataset}));
     player.dataset.seconds = play.dataset.seconds;
     paused = false;
     player.showModal();
@@ -100,7 +100,7 @@
   const box = document.getElementById("lightbox");
   let boxAt = 0;
   const boxShow = i => {
-    const imgs = [...document.querySelectorAll(".picks img")];
+    const imgs = [...document.querySelectorAll(".picks img[data-full]")];
     if (!imgs.length) return box.close();
     boxAt = Math.max(0, Math.min(imgs.length - 1, i));
     const img = imgs[boxAt];
@@ -112,9 +112,9 @@
     box.insertAdjacentHTML("beforeend", '<button class="prev" aria-label="Previous">‹</button><button class="next" aria-label="Next">›</button>');
   };
   document.addEventListener("click", e => {
-    const img = e.target.closest(".picks img");
+    const img = e.target.closest(".picks img[data-full]");
     if (img) {
-      boxShow([...document.querySelectorAll(".picks img")].indexOf(img));
+      boxShow([...document.querySelectorAll(".picks img[data-full]")].indexOf(img));
       box.showModal();
     } else if (e.target.matches("#lightbox .prev, #lightbox .next")) boxShow(boxAt + (e.target.matches(".next") ? 1 : -1));
     else if (e.target === box || e.target.matches("#lightbox img")) box.close();
