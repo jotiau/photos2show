@@ -70,13 +70,19 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert "Describe the slideshow" in client.get("/slideshow").text
     picks = client.post("/slideshow/select", data={"description": "short"}).text
     assert "great view" in picks and "2 photos" in picks
-    assert "✓" in client.post(f"/slideshow/add/{items['video.mp4']}").text
+    toggle = client.post(f"/slideshow/add/{items['video.mp4']}").text  # from the Library detail panel
+    assert "Remove from slideshow (#3)" in toggle and f'id="pick-{items["scene_1.jpg"]}"' in toggle  # all badges
+    assert "✓ 3" in client.get(f"/media/{items['video.mp4']}").text
+    shown = client.get("/grid?flag=in_slideshow").text
+    assert "video.mp4" in shown and "scene_1.jpg" in shown and "burst_1.jpg" not in shown
+    client.get("/grid?flag=all")
     picks = client.post("/slideshow/move", data={"id": items["scene_2.jpg"], "to": 0}).text  # ← button
     assert picks.index("scene_2.jpg") < picks.index("scene_1.jpg") and "3 photos" in picks
     assert '"to": 2}' in picks  # → button of the 2nd tile
     picks = client.post("/slideshow/move", data={"id": items["video.mp4"], "to": 0}).text
     assert picks.index("video.mp4") < picks.index("scene_2.jpg") < picks.index("scene_1.jpg")
-    assert "2 photos" in client.post(f"/slideshow/remove/{items['video.mp4']}").text
+    assert "Add to slideshow" in client.post(f"/slideshow/remove/{items['burst_1.jpg']}").text  # not a pick: no-op
+    assert "2 photos" in client.post(f"/slideshow/remove/{items['video.mp4']}", headers={"HX-Target": "picks"}).text
     picks = client.post("/slideshow/sort", data={"by": "name"}).text
     assert picks.index("scene_1.jpg") < picks.index("scene_2.jpg") and "Sort by" in picks
     assert client.post("/slideshow/sort", data={"by": "nope"}).status_code == 400

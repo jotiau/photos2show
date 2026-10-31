@@ -29,7 +29,7 @@ templates.env.filters["basename"] = lambda p: Path(p).name
 templates.env.globals["settings"] = db.load_settings
 
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
-           "low_contrast", "monotone", "duplicate", "video")
+           "low_contrast", "monotone", "duplicate", "video", "in_slideshow")
 REFRESH = {"HX-Refresh": "true"}
 
 # Single local user, one analysis at a time.
@@ -97,10 +97,15 @@ def _start() -> None:
 def _items() -> list[dict]:
     if not job["folder"] or not Path(job["folder"]).is_dir():
         return []
-    items = db.all_media(db.connect(Path(job["folder"])))
+    items, picks = db.all_media(db.connect(_root())), _pick_numbers()
     for it in items:
-        it["skip_ai"] = skip_ai_reason(it)
+        it["skip_ai"], it["pick"] = skip_ai_reason(it), picks.get(it["id"])
     return items
+
+
+def _pick_numbers() -> dict[int, int]:
+    """media id -> its position in the slideshow (1 = first)."""
+    return {p["id"]: n for n, p in enumerate(slideshow.load(_root())["picks"], 1)}
 
 
 def _matches(it: dict, flag: str) -> bool:
@@ -112,6 +117,8 @@ def _matches(it: dict, flag: str) -> bool:
         return it["skip_ai"] is not None
     if flag == "video":
         return it["kind"] == "video"
+    if flag == "in_slideshow":
+        return it["pick"] is not None
     if flag.startswith("tag:"):
         return flag[4:] in ((it["ai"] or {}).get("tags") or [])
     return flag in it["flags"]
@@ -277,7 +284,7 @@ def grid(request: Request, flag: str | None = None, q: str | None = None):
 @app.get("/media/{media_id}", response_class=HTMLResponse)
 def detail(request: Request, media_id: int):
     item = _item(media_id)
-    item["skip_ai"] = skip_ai_reason(item)
+    item["skip_ai"], item["pick"] = skip_ai_reason(item), _pick_numbers().get(media_id)
     best = item["duplicate_of"] or item["id"]
     scene = [it for it in _items() if (it["duplicate_of"] or it["id"]) == best and it["id"] != item["id"]]
     return templates.TemplateResponse(request, "_detail.html", {"it": item, "scene": scene})
@@ -459,7 +466,10 @@ def edit(request: Request, action: str, media_id: int):
         raise HTTPException(404)
     media_id = _item(media_id)["id"]  # 404 for an unknown id
     slideshow.update(_root(), lambda s: {**s, "picks": slideshow.edit(s["picks"], action, media_id)})
-    return HTMLResponse("In slideshow ✓") if action == "add" else _picks(request)
+    if request.headers.get("hx-target") == "picks":  # × on the Slideshow page
+        return _picks(request)
+    # Library: the new toggle plus every card badge, as numbers shift after a removal
+    return templates.TemplateResponse(request, "_toggle.html", {"id": media_id, "picks": _pick_numbers()})
 
 
 def main() -> None:

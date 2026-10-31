@@ -214,7 +214,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
      sibling and triggers its `hx-get`. Ignore keys while focus is in an input/select.
    - Done when: a whole filtered set can be reviewed and curated with the keyboard only.
 
-3. **Show what is already in the slideshow**
+3. **Show what is already in the slideshow** – **done 2026-11-01**
+   - Built: "✓ 3" badge (pick number) on cards, *Add* / *Remove from slideshow* toggle in the detail
+     panel (also on `a`) that renumbers every badge, filter "in slideshow".
    - Today: Library cards don't show if a photo is a pick, and the detail panel always offers
      "Add to slideshow", even for photos already picked.
    - Proposal: a ✓ badge (with the pick number) on cards that are in the slideshow; in the detail
