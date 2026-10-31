@@ -188,7 +188,9 @@ the first four are the suggested starting point. Items marked *(see Usability)* 
 All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, no build step).
 
 #### Biggest wins
-1. **Slideshow "Play" preview** *(see Usability)*
+1. **Slideshow "Play" preview** *(see Usability)* – **done 2026-11-01**
+   - Built: *▶ Play*, full screen, ← / → / Space / Esc, videos to their end, "12 / 104", next photo
+     preloaded. Left out: the reason on hover, and the speed is still the fixed 5 s (see 12).
    - Today: the only way to see the show as a show is to export it and open it in another app.
    - Proposal: a *Play* button on the Slideshow page opens a fullscreen player that steps through
      the picks in order at the chosen seconds per photo (see 12). Videos play to their end (or a cap),
@@ -199,7 +201,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
      Use `requestFullscreen()` on the dialog; preload the next image.
    - Done when: the full show can be watched from the first to the last pick without leaving the app.
 
-2. **Keyboard navigation in the Library** *(see Usability)*
+2. **Keyboard navigation in the Library** *(see Usability)* – **done 2026-11-01**
+   - Built: ← / → through the current filter and search, `a` adds, Esc closes, active card
+     highlighted and scrolled into view. Left out: cards are not Tab-focusable; `a` does not remove (see 3).
    - Today: every photo needs a mouse click; `.card` is an `<article>` with `hx-get` and no
      `tabindex`, so the grid can't be reached with the keyboard at all.
    - Proposal: ← / → load the previous/next card of the *current filter* into the detail panel,
@@ -242,7 +246,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
    - Done when: the grid of a ~850-photo holiday shrinks to the distinct scenes.
 
 #### Library
-6. **Sort and search** *(search: see Usability)*
+6. **Sort and search** *(search: see Usability)* – **done 2026-11-01 (search only)**
+   - Built: search over caption, tags, scene, issues and file name, combined with the flag filter
+     and remembered across live reloads. Still open: the sort select and the tag list.
    - Today: no sort order other than the default; tags can only be filtered by clicking one inside
      the detail panel; no text search.
    - Proposal: a sort select (date, aesthetic, interest, sharpness/score, file name) and a search
