@@ -31,6 +31,8 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .card .name, .card .meta, .card .flags { padding: 4px 8px; }
 .card .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .meta { color: var(--muted); font-size: 12px; padding-top: 0; }
+.card .caption { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .stars { color: var(--warn); letter-spacing: 1px; }
 .video { position: absolute; top: 6px; left: 6px; background: #000a; color: #fff; padding: 2px 6px;
          border-radius: 4px; font-size: 12px; }
 .card .pick { position: absolute; top: 6px; right: 6px; background: var(--ok); color: #fff; padding: 2px 7px;

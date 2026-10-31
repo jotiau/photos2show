@@ -56,6 +56,15 @@ def time_left() -> str:
 templates.env.globals["time_left"] = time_left
 
 
+def stars(ai: dict | None) -> str:
+    """1-5 stars from the AI's aesthetic and interest scores (1-10); '' if there are none."""
+    scores = [n for k in ("aesthetic", "interest") if (n := slideshow.number((ai or {}).get(k))) is not None]
+    return "★" * min(5, max(1, round(sum(scores) / len(scores) / 2))) if scores else ""
+
+
+templates.env.globals["stars"] = stars
+
+
 @app.middleware("http")
 async def htmx_only(request: Request, call_next):
     # Other websites can post forms to localhost (CSRF) but cannot add this header.

@@ -1,5 +1,6 @@
 """Slideshow: let the LLM pick and order photos from a description, edit the picks, export a numbered folder."""
 import json
+import math
 import re
 import shutil
 import threading
@@ -90,19 +91,20 @@ def move(picks: list[dict], media_id: int, index: int) -> list[dict]:
     return rest[:index] + moved + rest[index:]
 
 
-def _number(v) -> float | None:
+def number(v) -> float | None:
     try:  # AI scores are raw LLM output: may be missing or a string
-        return float(v)
+        f = float(v)
     except (TypeError, ValueError):
         return None
+    return f if math.isfinite(f) else None  # "nan" breaks sorting, "inf" breaks rounding
 
 
 # name -> (label, key on the media item, best/newest first)
 SORTS = {
     "date": ("Date (oldest first)", lambda it: it["taken_at"], False),
     "date_desc": ("Date (newest first)", lambda it: it["taken_at"], True),
-    "aesthetic": ("Aesthetic (best first)", lambda it: _number((it["ai"] or {}).get("aesthetic")), True),
-    "interest": ("Interest (best first)", lambda it: _number((it["ai"] or {}).get("interest")), True),
+    "aesthetic": ("Aesthetic (best first)", lambda it: number((it["ai"] or {}).get("aesthetic")), True),
+    "interest": ("Interest (best first)", lambda it: number((it["ai"] or {}).get("interest")), True),
     "quality": ("Technical quality (best first)", lambda it: it["score"], True),
     "name": ("File name", lambda it: Path(it["path"]).name.lower(), False),
     "reverse": ("Reverse current order", None, False),

@@ -26,8 +26,9 @@
     {% if more[it.id] %}<span class="stack" title="{{ more[it.id] }} more shot{{ 's' if more[it.id] != 1 }} of this scene – open to see them">+{{ more[it.id] }}</span>{% endif %}
     <span id="pick-{{ it.id }}" class="pick" title="Position in the slideshow">{{ '✓ %d' % it.pick if it.pick }}</span>
     <div class="name">#{{ it.id }} {{ it.path | basename }}</div>
-    <div class="meta">{{ (it.taken_at or '')[:16].replace('T', ' ') }} · sharp {{ it.metrics.sharpness | round | int }}</div>
-    {% if it.ai %}<div class="meta" title="{{ it.ai.caption }}">★ {{ it.ai.aesthetic }}/{{ it.ai.interest }} · {{ (it.ai.tags or [])[:4] | join(', ') }}</div>{% endif %}
+    <div class="meta">{{ (it.taken_at or 'no date')[:16].replace('T', ' ') }}
+      {% if stars(it.ai) %}· <span class="stars" title="AI: aesthetic {{ it.ai.aesthetic }}/10, interest {{ it.ai.interest }}/10">{{ stars(it.ai) }}</span>{% endif %}</div>
+    {% if it.ai %}<div class="meta caption" title="{{ it.ai.caption }}">{{ it.ai.caption }}</div>{% endif %}
     <div class="flags">
       {% for f in it.flags %}<span class="flag {{ f }}">{{ f.replace('_', ' ') }}</span>{% endfor %}
       {% if it.skip_ai %}<span class="flag noai" title="{{ it.skip_ai }}">no AI</span>{% endif %}

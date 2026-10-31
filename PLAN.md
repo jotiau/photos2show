@@ -264,7 +264,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
      filters.
    - Remember sort/search the same way `job["flag"]` is remembered, so live reloads keep them.
 
-7. **Easier-to-read card info**
+7. **Easier-to-read card info** – **done 2026-11-01**
+   - Built: date, 1–5 stars from the AI's aesthetic + interest (exact scores as tooltip) and the
+     caption as second line; "sharp 412" and the card's tag list are gone (tags: see the tag list in 6).
    - Today: card meta shows "sharp 412" (raw Laplacian value) and "★ 7/6" (aesthetic/interest
      without labels) – both need explaining.
    - Proposal: one simple quality indicator (e.g. 1–5 stars or a coloured dot from the combined

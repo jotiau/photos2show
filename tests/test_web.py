@@ -55,6 +55,9 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert by_name.index("video.mp4") > by_name.index("scene_3.jpg")
     assert client.get("/grid?sort=nope").text == by_name and web.job["sort"] == "name"  # unknown: kept
     assert "#beach <span>" in by_name  # tag list with counts
+    assert ">★★★</span>" in by_name and "fake caption" in by_name  # aesthetic 7, interest 6
+    assert web.stars({"aesthetic": "10", "interest": 10}) == "★★★★★" and web.stars({"aesthetic": 0}) == "★"
+    assert web.stars({"aesthetic": "great"}) == web.stars({"aesthetic": "inf"}) == web.stars(None) == ""  # raw LLM output
     assert '<option value="name" selected>' in client.get("/").text
     client.get("/grid?sort=date")
     skipped = client.get("/grid?flag=skips_ai").text
