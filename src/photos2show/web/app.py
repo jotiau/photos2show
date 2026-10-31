@@ -34,7 +34,8 @@ REFRESH = {"HX-Refresh": "true"}
 
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
-       "stopping": False, "summary": None, "error": None, "flag": "all", "parallel": default_concurrency()}
+       "stopping": False, "summary": None, "error": None, "flag": "all", "query": "",
+       "parallel": default_concurrency()}
 lock = threading.Lock()
 stop = threading.Event()
 
@@ -65,7 +66,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost
 
 def _open(name: str, projects: dict[str, str] | None = None) -> None:
     folder = (projects or db.load_projects())[name]
-    job.update(project=name, folder=folder, flag="all", summary=None, error=None)
+    job.update(project=name, folder=folder, flag="all", query="", summary=None, error=None)
 
 
 def _run(root: Path) -> None:
@@ -114,6 +115,14 @@ def _matches(it: dict, flag: str) -> bool:
     if flag.startswith("tag:"):
         return flag[4:] in ((it["ai"] or {}).get("tags") or [])
     return flag in it["flags"]
+
+
+def _found(it: dict, query: str) -> bool:
+    """Every word of the search occurs in the caption, tags, scene, issues or file name (any case)."""
+    a = it["ai"] or {}
+    text = " ".join([str(a.get("caption") or ""), str(a.get("scene") or ""), *map(str, a.get("tags") or []),
+                     *map(str, a.get("issues") or []), Path(it["path"]).name]).lower()
+    return all(word in text for word in query.lower().split())
 
 
 def _item(media_id: int) -> dict:
@@ -245,14 +254,16 @@ def progress(request: Request):
 
 
 @app.get("/grid", response_class=HTMLResponse)
-def grid(request: Request, flag: str | None = None):
+def grid(request: Request, flag: str | None = None, q: str | None = None):
     flag = job["flag"] = flag or job["flag"]  # remembered so live reloads keep the filter
-    items = _items()
+    query = job["query"] = (job["query"] if q is None else q).strip()  # q="" clears the search
+    items = [it for it in _items() if _found(it, query)]
     counts = {f: sum(_matches(it, f) for it in items) for f in FILTERS}
     if flag.startswith("tag:"):
         counts[flag] = sum(_matches(it, flag) for it in items)
     shown = [it for it in items if _matches(it, flag)]
-    return templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag})
+    return templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
+                                                              "query": query})
 
 
 @app.get("/media/{media_id}", response_class=HTMLResponse)
@@ -341,6 +352,7 @@ def _picks(request: Request, error: str | None = None) -> HTMLResponse:
              for p in slideshow.load(Path(job["folder"]))["picks"] if (it := db.get_media(conn, p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
         "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60,
+        "seconds": slideshow.SECONDS_PER_PHOTO,
         "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}, "can_undo": slideshow.can_undo(Path(job["folder"]))})
 
 

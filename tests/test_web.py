@@ -45,6 +45,11 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert "fake caption" in client.get(f"/media/{items['video.mp4']}").text
     tagged = client.get("/grid?flag=tag:beach").text
     assert "burst_1.jpg" in tagged and "burst_2.jpg" not in tagged
+    found = client.get("/grid?flag=all&q=FAKE scene_1").text  # all words, any case, caption + file name
+    assert "scene_1.jpg" in found and "scene_2.jpg" not in found
+    assert "scene_1.jpg" in client.get("/grid").text and "scene_2.jpg" not in client.get("/grid").text  # kept
+    assert "No photos match" in client.get("/grid?q=penguin").text
+    assert "scene_2.jpg" in client.get("/grid?q=").text  # cleared
     assert client.get(f"/thumb/{items['video.mp4']}?frame=2").headers["content-type"] == "image/jpeg"
     assert client.get(f"/original/{items['video.mp4']}").status_code == 200
     assert client.get("/media/9999").status_code == 404

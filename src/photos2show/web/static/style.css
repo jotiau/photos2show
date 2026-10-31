@@ -64,6 +64,14 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 select { font: inherit; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
 .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 16px 0; }
 .bar .path { color: var(--muted); word-break: break-all; }
+#player { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #000; }
+#player .stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+#player img, #player video { max-width: 100%; max-height: 100%; object-fit: contain; }
+#player .status { position: fixed; bottom: 8px; right: 16px; margin: 0; color: #bbb; font-size: 0.9em; }
+.search { padding: 8px 16px 0; }
+.search input { width: 100%; max-width: 480px; }
+.card.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+.keys { color: var(--muted); font-size: 0.85em; margin: 0 0 6px; }
 main.slideshow { flex-direction: column; align-items: stretch; max-width: 1100px; }
 main.slideshow form { display: flex; flex-direction: column; gap: 6px; }
 main.slideshow form.export { flex-direction: row; flex-wrap: wrap; align-items: center; }

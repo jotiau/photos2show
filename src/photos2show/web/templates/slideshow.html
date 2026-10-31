@@ -32,7 +32,52 @@
 {% endif %}
 </main>
 <dialog id="lightbox"></dialog>
+<dialog id="player"><div class="stage"></div><p class="status"></p></dialog>
 <script>
+  // Preview: the picks full screen in their order; photos for data-seconds, videos to their end.
+  // ← → step, Space pauses, Esc (or leaving full screen) ends.
+  const player = document.getElementById("player"), stage = player.querySelector(".stage");
+  let slides = [], at = 0, paused = false, timer = null;
+  const show = i => {
+    clearTimeout(timer);
+    if (i >= slides.length) return player.close();
+    at = Math.max(0, i);
+    const s = slides[at];
+    stage.innerHTML = s.video ? `<video src="${s.src}" autoplay></video>` : `<img src="${s.src}" alt="">`;
+    if (s.video) stage.firstChild.onended = () => !paused && show(at + 1);
+    else if (!paused) timer = setTimeout(() => show(at + 1), player.dataset.seconds * 1000);
+    if (slides[at + 1] && !slides[at + 1].video) new Image().src = slides[at + 1].src;  // preload
+    player.querySelector(".status").textContent = `${at + 1} / ${slides.length}${paused ? " · paused (Space)" : ""}`;
+  };
+  document.addEventListener("click", e => {
+    const play = e.target.closest("button.play");
+    if (!play) return;
+    slides = [...document.querySelectorAll(".picks img")].map(img => ({src: img.dataset.full, video: "video" in img.dataset}));
+    player.dataset.seconds = play.dataset.seconds;
+    paused = false;
+    player.showModal();
+    player.requestFullscreen?.().catch(() => {});  // not allowed everywhere: the dialog still fills the window
+    show(0);
+  });
+  player.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") show(at + 1);
+    else if (e.key === "ArrowLeft") show(at - 1);
+    else if (e.key === " ") {
+      e.preventDefault();
+      paused = !paused;
+      const video = stage.querySelector("video");
+      if (!video) return show(at);  // restarts the photo's timer, or stops it while paused
+      paused ? video.pause() : video.play();
+      player.querySelector(".status").textContent = `${at + 1} / ${slides.length}${paused ? " · paused (Space)" : ""}`;
+    }
+  });
+  player.addEventListener("close", () => {
+    clearTimeout(timer);
+    stage.innerHTML = "";
+    if (document.fullscreenElement) document.exitFullscreen();
+  });
+  document.addEventListener("fullscreenchange", () => !document.fullscreenElement && player.open && player.close());
+
   // Picks are swapped in by htmx, so listen on the document. Click the enlarged photo, outside it or Esc to close.
   const box = document.getElementById("lightbox");
   document.addEventListener("click", e => {

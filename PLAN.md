@@ -108,7 +108,9 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
   Removing keeps the cached AI results (they are keyed by folder, not by project name) unless
   "also delete saved AI results" is ticked and no other project uses that folder.
 - **Library view**: progress bar → thumbnail grid with badges (score, flags, tags, video icon);
-  filter by flag/tag; click for detail (caption, metrics, frames for videos, "Add to slideshow").
+  filter by flag/tag and search (every word in caption, tags, scene, issues or file name); click for
+  detail (caption, metrics, frames for videos, "Add to slideshow"); keys ← → step through the grid
+  order, A adds, Esc closes.
 - **Slideshow view**: prompt box → "Select" → ordered tiles of picks with reasons; "Refine picks"
   with an instruction, "Undo"; drag & drop to reorder, × to remove; "Export", "Open folder".
 
@@ -176,11 +178,8 @@ tests/
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
 
-### Usability (suggested 2026-10-31; stop/time left, export again and refine/undo done)
-- Text search over AI captions in the Library (filters cover only flags and tags)
-- Slideshow preview: play the picks full screen at the chosen speed, ← / → and Esc
+### Usability (suggested 2026-10-31; stop/time left, export again, refine/undo, search, preview and keyboard done)
 - Seconds per photo selectable; length estimate counts real video durations (fixed 5 s today)
-- Keyboard browsing in the Library: ← / → steps through the detail panel, a key adds to the slideshow
 - Swap a pick for another shot of the same scene, right on the slideshow tile
 
 ## Risks / open points
