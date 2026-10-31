@@ -62,11 +62,15 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert web.stars({"aesthetic": "10", "interest": 10}) == "★★★★★" and web.stars({"aesthetic": 0}) == "★"
     assert web.stars({"aesthetic": "great"}) == web.stars({"aesthetic": "inf"}) == web.stars(None) == ""  # raw LLM output
     assert '<option value="name" selected>' in client.get("/").text
+    items = {Path(it["path"]).name: it["id"] for it in web._items()}
+    page = client.get(f"/?flag=video&photo={items['video.mp4']}").text  # a pushed URL, reloaded
+    assert f'hx-get="/media/{items["video.mp4"]}" hx-trigger="load"' in page and web.job["flag"] == "video"
+    assert f'hx-push-url="/?flag=video&amp;photo={items["video.mp4"]}"' in client.get("/grid").text
+    client.get("/grid?flag=all")
     client.get("/grid?sort=date")
     skipped = client.get("/grid?flag=skips_ai").text
     assert "very_blurry.jpg" in skipped and "burst_2.jpg" in skipped and "scene_1.jpg" not in skipped
 
-    items = {Path(it["path"]).name: it["id"] for it in web._items()}
     assert "fake caption" in client.get(f"/media/{items['video.mp4']}").text
     tagged = client.get("/grid?flag=tag:beach").text
     assert "burst_1.jpg" in tagged and "burst_2.jpg" not in tagged

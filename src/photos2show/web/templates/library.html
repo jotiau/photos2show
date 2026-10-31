@@ -6,6 +6,8 @@
   <title>photos2show – Library</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/htmx.min.js"></script>
+  <!-- Back/forward reload the URL (the server restores filter and photo) instead of caching ~1000 cards in localStorage. -->
+  <meta name="htmx-config" content='{"historyCacheSize": 0, "refreshOnHistoryMiss": true}'>
 </head>
 <body>
 {% include "_header.html" %}
@@ -33,7 +35,7 @@
 </div>
 <main>
   <section id="grid" hx-get="/grid" hx-trigger="load, analysed from:body"></section>
-  <aside id="detail"></aside>
+  <aside id="detail"{% if photo %} hx-get="/media/{{ photo }}" hx-trigger="load"{% endif %}></aside>
 </main>
 <div id="bulk" hidden>
   <span></span>

@@ -1,6 +1,7 @@
 <nav class="filters">
   {% for f, n in counts.items() %}
-  <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f | urlencode }}" hx-target="#grid">
+  <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f | urlencode }}" hx-target="#grid"
+    hx-push-url="/?flag={{ f | urlencode }}">
     {{ f.replace('_', ' ').replace('tag:', '#') }} <span>{{ n }}</span>
   </button>
   {% endfor %}
@@ -10,7 +11,7 @@
 {% if tags %}
 <details class="tags" {{ 'open' if flag.startswith('tag:') }}>
   <summary>Tags</summary>
-  {% for t, n in tags %}<button class="tag {{ 'active' if flag == 'tag:' ~ t }}" hx-get="/grid?flag={{ ('tag:' ~ t) | urlencode }}" hx-target="#grid">#{{ t }} <span>{{ n }}</span></button>{% endfor %}
+  {% for t, n in tags %}<button class="tag {{ 'active' if flag == 'tag:' ~ t }}" hx-get="/grid?flag={{ ('tag:' ~ t) | urlencode }}" hx-target="#grid" hx-push-url="/?flag={{ ('tag:' ~ t) | urlencode }}">#{{ t }} <span>{{ n }}</span></button>{% endfor %}
 </details>
 {% endif %}
 {% if not items %}
@@ -21,7 +22,7 @@
 <div class="cards">
   {% for it in items %}
   <article class="card {{ 'dim' if it.skip_ai }}" data-id="{{ it.id }}" hx-get="/media/{{ it.id }}" hx-target="#detail"
-    hx-trigger="click[!ctrlKey && !metaKey && !shiftKey]">
+    hx-trigger="click[!ctrlKey && !metaKey && !shiftKey]" hx-push-url="/?flag={{ flag | urlencode }}&amp;photo={{ it.id }}">
     <img src="/thumb/{{ it.id }}" loading="lazy" alt="">
     {% if it.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
     {% if more[it.id] %}<span class="stack" title="{{ more[it.id] }} more shot{{ 's' if more[it.id] != 1 }} of this scene – open to see them">+{{ more[it.id] }}</span>{% endif %}

@@ -286,7 +286,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
    - Proposal: a "Select" mode (or Shift/Ctrl-click) with checkboxes on cards and an action bar:
      *Add N to slideshow*, *Remove from slideshow*. One new route taking a list of ids.
 
-10. **State in the URL**
+10. **State in the URL** – **done 2026-11-01**
+    - Built: filter, tag and card clicks push `/?flag=…&photo=…`; back/forward reload that URL
+      (htmx history cache off), `index` restores filter and detail panel. Search and sort stay server-side.
     - Today: filter and open photo live only in server state; reload and the back button lose them.
     - Proposal: `hx-push-url` on filter buttons and card clicks (`/?flag=tag:fjord&photo=123`);
       `index` reads the query to restore filter and detail panel. Also makes a view shareable as a bookmark.

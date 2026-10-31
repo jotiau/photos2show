@@ -163,10 +163,13 @@ def _page(request: Request, template: str, **ctx) -> HTMLResponse:
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request):
+def index(request: Request, flag: str | None = None, photo: int | None = None):
+    """flag and photo come from the URL the filter buttons and cards push: reload, back and bookmarks keep the view."""
     if not job["project"] and (projects := db.load_projects()):
         _open(list(projects)[-1])
-    return _page(request, "library.html", page="library", sorts=SORTS)
+    if flag:
+        job["flag"] = flag
+    return _page(request, "library.html", page="library", sorts=SORTS, photo=photo)
 
 
 @app.post("/projects", response_class=HTMLResponse)
