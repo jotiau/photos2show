@@ -25,6 +25,7 @@
     <label for="target">Export to (new folder, outside the photo folder)</label>
     <input id="target" name="target" value="{{ default_target }}" required data-keep-name>
     <button type="button" class="browse" data-browse="target">Browse…</button>
+    <label><input type="checkbox" name="replace" value="true"> replace previous export in this folder</label>
     <button>Export</button>
     <span id="export-msg"></span>
   </form>

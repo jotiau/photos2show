@@ -1,3 +1,4 @@
+import threading
 import time
 import weakref
 from pathlib import Path
@@ -170,3 +171,26 @@ def test_cached_video_gets_a_better_date_and_scan_time_is_kept(tmp_path, monkeyp
     assert analyse_folder(folder)["analysed"] == 0  # no full re-scan
     assert items_by_name(folder)["clip.mp4"]["taken_at"] == "2026-07-15T13:13:05"
     assert db.project_stats(folder)["analysed_at"] >= first
+
+
+def test_stop_ends_scan_and_ai_early_and_keeps_what_is_done(tmp_path, monkeypatch, fake_ai):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = testdata.generate(tmp_path / "photos")
+    stop = threading.Event()
+    calls = []
+
+    def progress(done, total):
+        calls.append(done)
+        if done == 3:
+            stop.set()
+
+    summary = analyse_folder(folder, progress, stop)
+    assert summary["analysed"] == 3 and calls[-1] == 3
+    assert db.project_stats(folder)["analysed_at"] is None  # a stopped scan is not "analysed"
+    stop.clear()
+    assert analyse_folder(folder)["analysed"] == len(testdata.EXPECTED) - 3  # continues, cached files skipped
+
+    stop.set()
+    assert describe_folder(folder, stop=stop) == {"described": 0, "errors": []}  # queued requests skipped
+    stop.clear()
+    assert describe_folder(folder, stop=stop)["described"] > 0

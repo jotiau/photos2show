@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from html import escape
 from pathlib import Path
@@ -32,9 +33,22 @@ FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_br
 REFRESH = {"HX-Refresh": "true"}
 
 # Single local user, one analysis at a time.
-job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0,
-       "summary": None, "error": None, "flag": "all", "parallel": default_concurrency()}
+job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
+       "stopping": False, "summary": None, "error": None, "flag": "all", "parallel": default_concurrency()}
 lock = threading.Lock()
+stop = threading.Event()
+
+
+def time_left() -> str:
+    """Remaining time of the running phase, from its speed so far; empty until there is enough to go by."""
+    done, total = job["done"], job["total"]
+    if not job["running"] or job["stopping"] or done < 3 or done >= total:
+        return ""
+    minutes = (time.monotonic() - job["started"]) / done * (total - done) / 60
+    return "less than a minute left" if minutes < 1 else f"about {round(minutes)} min left"
+
+
+templates.env.globals["time_left"] = time_left
 
 
 @app.middleware("http")
@@ -57,11 +71,14 @@ def _open(name: str, projects: dict[str, str] | None = None) -> None:
 def _run(root: Path) -> None:
     progress = lambda done, total: job.update(done=done, total=total)  # noqa: E731
     try:
-        job["phase"] = "Scanning"
-        summary = analyse_folder(root, progress)
-        job.update(phase="Describing with AI", done=0, total=0)
-        described = describe_folder(root, progress, job["parallel"])
-        job["summary"] = {**summary, **described, "errors": summary["errors"] + described["errors"]}
+        job.update(phase="Scanning", started=time.monotonic())
+        summary = analyse_folder(root, progress, stop)
+        described = {"described": 0, "errors": []}
+        if not stop.is_set():
+            job.update(phase="Describing with AI", done=0, total=0, started=time.monotonic())
+            described = describe_folder(root, progress, job["parallel"], stop)
+        job["summary"] = {**summary, **described, "errors": summary["errors"] + described["errors"],
+                          "stopped": stop.is_set()}
     except (Exception, SystemExit) as e:  # SystemExit: AI endpoint not configured
         job["error"] = str(e)
     finally:
@@ -71,7 +88,8 @@ def _run(root: Path) -> None:
 def _start() -> None:
     with lock:
         if job["folder"] and not job["running"]:
-            job.update(running=True, done=0, total=0, summary=None, error=None)
+            stop.clear()
+            job.update(running=True, stopping=False, done=0, total=0, summary=None, error=None)
             threading.Thread(target=_run, args=(Path(job["folder"]),), daemon=True).start()
 
 
@@ -210,6 +228,14 @@ def analyse(request: Request, parallel: int = Form(ge=1, le=16)):
     return templates.TemplateResponse(request, "_progress.html", {"job": job})
 
 
+@app.post("/analyse/stop", response_class=HTMLResponse)
+def stop_analysis(request: Request):
+    if job["running"]:
+        stop.set()
+        job["stopping"] = True
+    return templates.TemplateResponse(request, "_progress.html", {"job": job})
+
+
 @app.get("/progress", response_class=HTMLResponse)
 def progress(request: Request):
     resp = templates.TemplateResponse(request, "_progress.html", {"job": job})
@@ -315,15 +341,16 @@ def _picks(request: Request, error: str | None = None) -> HTMLResponse:
              for p in slideshow.load(Path(job["folder"]))["picks"] if (it := db.get_media(conn, p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
         "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60,
-        "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}})
+        "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}, "can_undo": slideshow.can_undo(Path(job["folder"]))})
 
 
 @app.get("/slideshow", response_class=HTMLResponse)
 def slideshow_page(request: Request):
     if not job["folder"]:
         return _page(request, "slideshow.html", page="slideshow", selection=None)
-    return _page(request, "slideshow.html", page="slideshow", selection=slideshow.load(Path(job["folder"])),
-                 default_target=f"{job['folder']}_slideshow")
+    selection = slideshow.load(Path(job["folder"]))
+    return _page(request, "slideshow.html", page="slideshow", selection=selection,
+                 default_target=selection.get("exported_to") or f"{job['folder']}_slideshow")
 
 
 @app.get("/slideshow/picks", response_class=HTMLResponse)
@@ -338,7 +365,26 @@ def select(request: Request, description: str = Form(...)):
         picks = slideshow.select(db.connect(root), description)
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
-    slideshow.save(root, {"description": description, "picks": picks})
+    slideshow.change(root, {**slideshow.load(root), "description": description, "picks": picks, "refinements": []})
+    return _picks(request)
+
+
+@app.post("/slideshow/refine", response_class=HTMLResponse)
+def refine(request: Request, instruction: str = Form(...)):
+    root = Path(job["folder"])
+    selection = slideshow.load(root)
+    try:
+        picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction)
+    except (Exception, SystemExit) as e:
+        return _picks(request, error=str(e))
+    refinements = [*selection.get("refinements", []), instruction]  # kept for selection.json in the export
+    slideshow.change(root, {**selection, "picks": picks, "refinements": refinements})
+    return _picks(request)
+
+
+@app.post("/slideshow/undo", response_class=HTMLResponse)
+def undo(request: Request):
+    slideshow.undo(Path(job["folder"]))
     return _picks(request)
 
 
@@ -349,8 +395,7 @@ def sort(request: Request, by: str = Form(...)):
     root = Path(job["folder"])
     conn, selection = db.connect(root), slideshow.load(root)
     items = {p["id"]: it for p in selection["picks"] if (it := db.get_media(conn, p["id"]))}
-    selection["picks"] = slideshow.sort(selection["picks"], items, by)
-    slideshow.save(root, selection)
+    slideshow.change(root, {**selection, "picks": slideshow.sort(selection["picks"], items, by)})
     return _picks(request)
 
 
@@ -358,18 +403,34 @@ def sort(request: Request, by: str = Form(...)):
 def move(request: Request, id: int = Form(...), to: int = Form(...)):
     root = Path(job["folder"])
     selection = slideshow.load(root)
-    selection["picks"] = slideshow.move(selection["picks"], id, to)
-    slideshow.save(root, selection)
+    slideshow.change(root, {**selection, "picks": slideshow.move(selection["picks"], id, to)})
     return _picks(request)
 
 
 @app.post("/slideshow/export", response_class=HTMLResponse)
-def export(target: str = Form(...)):
+def export(target: str = Form(...), replace: bool = Form(False)):
     try:
-        n = slideshow.export(Path(job["folder"]), Path(target))
+        n = slideshow.export(Path(job["folder"]), Path(target), replace)
     except (ValueError, OSError) as e:  # OSError: full USB stick, no write rights – htmx shows nothing for a 500
         return HTMLResponse(f'<span class="error">{escape(str(e))}</span>')
-    return HTMLResponse(f"Exported {n} files to {escape(str(Path(target).expanduser()))}")
+    return HTMLResponse(f"Exported {n} files to {escape(str(Path(target).expanduser()))} "
+                        '<button type="button" hx-post="/slideshow/open-export" hx-swap="afterend">Open folder</button>')
+
+
+@app.post("/slideshow/open-export", response_class=HTMLResponse)
+def open_export():
+    """Show the last export in the system file manager; only that folder, never a path from the request."""
+    folder = slideshow.load(Path(job["folder"])).get("exported_to")
+    try:
+        if not folder or not Path(folder).is_dir():
+            raise FileNotFoundError("The export folder is gone.")
+        if sys.platform == "win32":
+            os.startfile(folder)  # noqa: S606
+        else:
+            subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", folder])
+    except OSError as e:  # e.g. no xdg-open on a minimal Linux: say so instead of a silent 500
+        return HTMLResponse(f' <span class="error">Could not open the folder: {escape(str(e))}</span>')
+    return HTMLResponse("")
 
 
 @app.post("/slideshow/{action}/{media_id}", response_class=HTMLResponse)
@@ -378,8 +439,7 @@ def edit(request: Request, action: str, media_id: int):
         raise HTTPException(404)
     root = Path(job["folder"])
     selection = slideshow.load(root)
-    selection["picks"] = slideshow.edit(selection["picks"], action, _item(media_id)["id"])
-    slideshow.save(root, selection)
+    slideshow.change(root, {**selection, "picks": slideshow.edit(selection["picks"], action, _item(media_id)["id"])})
     return HTMLResponse("In slideshow ✓") if action == "add" else _picks(request)
 
 

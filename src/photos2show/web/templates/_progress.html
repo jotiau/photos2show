@@ -1,11 +1,15 @@
 {% if job.running %}
 <div id="progress" hx-get="/progress" hx-trigger="every {{ '500ms' if job.phase == 'Scanning' else '2s' }}" hx-swap="outerHTML">
-  {{ job.phase }} <progress value="{{ job.done }}" max="{{ job.total or 1 }}"></progress> {{ job.done }} / {{ job.total }}
+  {% if job.stopping %}Stopping – waiting for the requests already sent…
+  {% else %}{{ job.phase }} <progress value="{{ job.done }}" max="{{ job.total or 1 }}"></progress> {{ job.done }} / {{ job.total }}
+  {{ time_left() }}
+  <button hx-post="/analyse/stop" hx-target="#progress" hx-swap="outerHTML">Stop</button>{% endif %}
 </div>
 {% elif job.error %}
 <div id="progress" class="error">Error: {{ job.error }}</div>
 {% elif job.summary %}
 <div id="progress">
+  {% if job.summary.stopped %}Stopped – <em>Analyse again</em> continues where it ended.{% endif %}
   {{ job.summary.total }} files, {{ job.summary.analysed }} newly scanned, {{ job.summary.described }} described by AI
   {% for e in job.summary.errors %}<div class="error">{{ e }}</div>{% endfor %}
 </div>

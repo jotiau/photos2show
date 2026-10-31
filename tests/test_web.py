@@ -65,6 +65,17 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     picks = client.post("/slideshow/sort", data={"by": "name"}).text
     assert picks.index("scene_1.jpg") < picks.index("scene_2.jpg") and "Sort by" in picks
     assert client.post("/slideshow/sort", data={"by": "nope"}).status_code == 400
+    picks = client.post("/slideshow/undo").text  # back to the order before sorting
+    assert picks.index("scene_2.jpg") < picks.index("scene_1.jpg") and "Undo" not in picks
+
+    refined = {"picks": [{"id": items["scene_1.jpg"]}, {"id": items["video.mp4"], "reason": "add the video"}]}
+    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: refined)
+    picks = client.post("/slideshow/refine", data={"instruction": "add the video"}).text
+    assert "add the video" in picks and "great view" in picks and "Undo" in picks  # old reason kept
+    assert web.slideshow.load(folder)["refinements"] == ["add the video"]
+    assert "Refine picks" in client.post("/slideshow/undo").text
+    assert "Describe the slideshow" in client.get("/slideshow").text
+
     def disk_full(src, dst):
         raise OSError(28, "No space left on device")
 
@@ -74,6 +85,47 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert resp.status_code == 200 and "No space left" in resp.text  # shown, not a silent 500
     assert "Exported 2 files" in client.post("/slideshow/export", data={"target": str(tmp_path / "show")}).text
     assert sorted(p.name for p in (tmp_path / "show").iterdir())[0].startswith("001_2026-08-11")
+    assert str(tmp_path / "show") in client.get("/slideshow").text  # the last export is suggested again
+    assert "replace previous export" in client.post("/slideshow/export", data={"target": str(tmp_path / "show")}).text
+    resp = client.post("/slideshow/export", data={"target": str(tmp_path / "show"), "replace": "true"})
+    assert "Exported 2 files" in resp.text and "Open folder" in resp.text
+    opened = []
+    monkeypatch.setattr(web.subprocess, "Popen", lambda cmd: opened.append(cmd))
+    monkeypatch.setattr(web.sys, "platform", "linux")
+    client.post("/slideshow/open-export")
+    assert opened == [["xdg-open", str((tmp_path / "show").resolve())]]
+
+    def no_xdg_open(cmd):
+        raise FileNotFoundError(2, "No such file or directory", "xdg-open")
+
+    monkeypatch.setattr(web.subprocess, "Popen", no_xdg_open)
+    assert "Could not open the folder" in client.post("/slideshow/open-export").text
+
+
+def test_stop_and_time_left(tmp_path, monkeypatch, fake_ai):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    for key, value in {"running": False, "project": "", "folder": "", "summary": None}.items():
+        monkeypatch.setitem(web.job, key, value)  # restored afterwards: job is shared by all tests
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+
+    monkeypatch.setitem(web.job, "running", True)
+    monkeypatch.setitem(web.job, "stopping", False)
+    monkeypatch.setitem(web.job, "started", time.monotonic() - 120)  # 4 of 10 done in 2 min: 3 min left
+    monkeypatch.setitem(web.job, "done", 4)
+    monkeypatch.setitem(web.job, "total", 10)
+    page = client.get("/progress").text
+    assert "about 3 min left" in page and "Stop" in page
+    monkeypatch.setitem(web.job, "done", 2)
+    assert web.time_left() == ""  # too early to tell
+    assert "Stopping" in client.post("/analyse/stop").text and web.stop.is_set()
+    monkeypatch.setitem(web.job, "running", False)
+
+    folder = testdata.generate(tmp_path / "photos")
+    monkeypatch.setattr(web, "describe_folder", lambda *a: (_ for _ in ()).throw(AssertionError("AI after stop")))
+    web.job.update(folder=str(folder), running=True)
+    web._run(folder)  # stop is still set: the scan ends at once and the AI pass is skipped
+    assert web.job["summary"]["stopped"] and "Stopped" in client.get("/progress").text
+    web.stop.clear()
 
 
 def test_pick_folder(tmp_path, monkeypatch):
