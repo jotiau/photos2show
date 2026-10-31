@@ -20,7 +20,8 @@
 {% endif %}
 <div class="cards">
   {% for it in items %}
-  <article class="card {{ 'dim' if it.skip_ai }}" data-id="{{ it.id }}" hx-get="/media/{{ it.id }}" hx-target="#detail">
+  <article class="card {{ 'dim' if it.skip_ai }}" data-id="{{ it.id }}" hx-get="/media/{{ it.id }}" hx-target="#detail"
+    hx-trigger="click[!ctrlKey && !metaKey && !shiftKey]">
     <img src="/thumb/{{ it.id }}" loading="lazy" alt="">
     {% if it.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
     {% if more[it.id] %}<span class="stack" title="{{ more[it.id] }} more shot{{ 's' if more[it.id] != 1 }} of this scene – open to see them">+{{ more[it.id] }}</span>{% endif %}

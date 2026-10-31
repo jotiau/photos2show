@@ -520,6 +520,27 @@ def edit(request: Request, action: str, media_id: int):
     return templates.TemplateResponse(request, "_toggle.html", {"id": media_id, "picks": _pick_numbers()})
 
 
+@app.post("/slideshow/bulk", response_class=HTMLResponse)
+def bulk(action: str = Form(...), ids: str = Form(...)):
+    """Add or remove the cards selected in the Library (ids: comma-separated); the grid reloads for the badges."""
+    try:
+        wanted = [int(i) for i in ids.split(",")]
+    except ValueError:
+        raise HTTPException(400) from None
+    if action not in ("add", "remove"):
+        raise HTTPException(400)
+    conn = db.connect(_root())
+    known = [i for i in wanted if db.get_media(conn, i)]
+
+    def change(s):
+        for i in known:
+            s = {**s, "picks": slideshow.edit(s["picks"], action, i)}
+        return s
+
+    slideshow.update(_root(), change)
+    return HTMLResponse("", headers={"HX-Trigger": "analysed"})
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="photos2show-web", description="Start the local photos2show web UI.")
     parser.add_argument("--no-browser", action="store_true", help="don't open the UI in the browser on start")

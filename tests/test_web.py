@@ -111,6 +111,14 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     picks = client.post("/slideshow/move", data={"id": items["video.mp4"], "to": 0}).text
     assert picks.index("video.mp4") < picks.index("scene_2.jpg") < picks.index("scene_1.jpg")
     assert "Add to slideshow" in client.post(f"/slideshow/remove/{items['burst_1.jpg']}").text  # not a pick: no-op
+    some = f"{items['burst_1.jpg']},{items['scene_3.jpg']},9999"  # 9999: unknown, skipped
+    resp = client.post("/slideshow/bulk", data={"action": "add", "ids": some})
+    assert resp.headers["HX-Trigger"] == "analysed"  # the grid reloads its badges
+    assert [p["id"] for p in web.slideshow.load(folder)["picks"]][-2:] == [items["burst_1.jpg"], items["scene_3.jpg"]]
+    client.post("/slideshow/bulk", data={"action": "remove", "ids": some})
+    assert len(web.slideshow.load(folder)["picks"]) == 3
+    assert client.post("/slideshow/bulk", data={"action": "add", "ids": "1,x"}).status_code == 400
+    assert client.post("/slideshow/bulk", data={"action": "move", "ids": "1"}).status_code == 400
     assert "2 photos" in client.post(f"/slideshow/remove/{items['video.mp4']}", headers={"HX-Target": "picks"}).text
     picks = client.post("/slideshow/sort", data={"by": "name"}).text
     assert picks.index("scene_1.jpg") < picks.index("scene_2.jpg") and "Sort by" in picks

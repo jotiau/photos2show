@@ -35,6 +35,43 @@
   <section id="grid" hx-get="/grid" hx-trigger="load, analysed from:body"></section>
   <aside id="detail"></aside>
 </main>
+<div id="bulk" hidden>
+  <span></span>
+  <button data-action="add">Add to slideshow</button>
+  <button data-action="remove" class="remove">Remove from slideshow</button>
+  <button data-action="">Clear</button>
+</div>
+<script>
+  // Bulk: Ctrl/⌘-click toggles a card, Shift-click adds the range from the last one; the bar acts on all of them.
+  const bulk = document.getElementById("bulk");
+  const checked = () => [...document.querySelectorAll(".cards .card.checked")];
+  const showBulk = () => {
+    const n = checked().length;
+    bulk.hidden = !n;
+    bulk.querySelector("span").textContent = `${n} selected`;
+  };
+  let lastChecked = null;
+  document.addEventListener("click", e => {
+    const card = e.target.closest(".cards .card");
+    if (!card || !(e.ctrlKey || e.metaKey || e.shiftKey)) return;
+    e.preventDefault();  // no text selection, no detail panel
+    const cards = [...document.querySelectorAll(".cards .card")];
+    if (e.shiftKey && cards.includes(lastChecked)) {
+      const [a, b] = [cards.indexOf(lastChecked), cards.indexOf(card)].sort((x, y) => x - y);
+      cards.slice(a, b + 1).forEach(c => c.classList.add("checked"));
+    } else card.classList.toggle("checked");
+    lastChecked = card;
+    showBulk();
+  });
+  bulk.addEventListener("click", e => {
+    const action = e.target.closest("button")?.dataset.action;
+    if (action) htmx.ajax("POST", "/slideshow/bulk", {source: bulk, swap: "none",
+      values: {action, ids: checked().map(c => c.dataset.id).join(",")}});
+    else if (action === "") checked().forEach(c => c.classList.remove("checked"));
+    showBulk();
+  });
+  document.body.addEventListener("htmx:afterSwap", showBulk);  // a reloaded grid starts without a selection
+</script>
 <script>
   // Keyboard: ← → step through the cards in grid order, A adds the open photo to the slideshow, Esc closes.
   const detail = document.getElementById("detail");

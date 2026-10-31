@@ -280,7 +280,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
      the thumbnails on first request – today the 1024 px AI image is only encoded in memory, never
      saved), and keep the link to the original on click. Makes keyboard stepping (2) fast.
 
-9. **Bulk select**
+9. **Bulk select** – **done 2026-11-01**
+   - Built: Ctrl/⌘-click toggles a card, Shift-click adds a range; a bar *Add to / Remove from
+     slideshow / Clear* posts the ids to `/slideshow/bulk` (one undo step), the grid reloads its badges.
    - Proposal: a "Select" mode (or Shift/Ctrl-click) with checkboxes on cards and an action bar:
      *Add N to slideshow*, *Remove from slideshow*. One new route taking a list of ids.
 
