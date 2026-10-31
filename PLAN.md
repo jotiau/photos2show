@@ -74,6 +74,8 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
   image of a scene is only known once its neighbours are scanned. Pass 2 then sends the remaining
   images to the LLM in small parallel batches (`AI_CONCURRENCY`, default 2, selectable in the UI and CLI; 4 was 2.4× faster than 1 in the test); each result is saved
   immediately, shows up live in the UI, and an interrupted run resumes where it stopped.
+  *Stop* lets running requests finish (saved) and skips the queued ones; a stopped scan ends
+  early and does not count as "last analysed". Time left = speed of the current phase so far.
 - **Save tokens – only send what is worth analysing:**
   - Very blurry images (`very_blurry` flag) are never sent to the LLM.
   - From several images of the same scene (duplicate/burst cluster) only the best one is sent.
@@ -92,6 +94,11 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
    No score-based fallback – on a bad answer the UI shows the error and you press *Select* again.
 6. Default order chronological unless the description says otherwise.
 7. One selection per project (`selection.json` in the project cache); editing by hand in the UI.
+8. *Refine*: an instruction plus the current picks in order (id | reason) is appended to the same
+   prompt; the LLM returns the complete new list. Current picks stay valid even if added by hand
+   (duplicates, undescribed); a pick without a new reason keeps its old one. Instructions are kept in
+   `refinements`. Every change of the picks (select, refine, sort, move, add, remove) saves the list
+   before it to `selection.prev.json` for one step of *Undo*.
 
 ### 6. Review UI
 Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
@@ -102,14 +109,19 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
   "also delete saved AI results" is ticked and no other project uses that folder.
 - **Library view**: progress bar → thumbnail grid with badges (score, flags, tags, video icon);
   filter by flag/tag; click for detail (caption, metrics, frames for videos, "Add to slideshow").
-- **Slideshow view**: prompt box → "Select" → ordered tiles of picks with reasons; drag & drop to
-  reorder, × to remove; "Export".
+- **Slideshow view**: prompt box → "Select" → ordered tiles of picks with reasons; "Refine picks"
+  with an instruction, "Undo"; drag & drop to reorder, × to remove; "Export", "Open folder".
 
 ### 7. Export
-- Copy to a new, empty folder outside the photo folder (default `<photo folder>_slideshow`) as
+- Copy to a new, empty folder outside the photo folder (default: the last export folder, else
+  `<photo folder>_slideshow`) as
   `001_2026-07-14_beach-sunset.jpg` (videos copied as `.mp4` in their slot). Never move or
   modify originals.
 - Write `selection.json` (prompt, ids, reasons) next to it for reproducibility.
+- *Replace previous export*: a non-empty folder is emptied first, but only if it holds a
+  `selection.json` and otherwise just `NNN_…` files; anything else is refused.
+- *Open folder* opens the last export folder (taken from the selection, never from the request)
+  with `xdg-open` / `open` / `os.startfile`.
 
 ## Tech stack
 - Python ≥ 3.12 managed with `uv` (no torch needed, so 3.14 works)
@@ -164,13 +176,8 @@ tests/
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
 
-### Usability (suggested 2026-10-31, not yet prioritised)
-- Stop button and time-left estimate for the AI run (~50 min for a trip, no cancel today)
-- Export again into the same folder ("overwrite previous export"), plus *Open folder* after export
-  (today a non-empty folder is refused, so every re-export needs a new folder)
+### Usability (suggested 2026-10-31; stop/time left, export again and refine/undo done)
 - Text search over AI captions in the Library (filters cover only flags and tags)
-- Refine the slideshow instead of starting over ("add 10 more sunsets, fewer people"), or at least
-  a warning/undo before *Select photos* replaces hand edits
 - Slideshow preview: play the picks full screen at the chosen speed, ← / → and Esc
 - Seconds per photo selectable; length estimate counts real video durations (fixed 5 s today)
 - Keyboard browsing in the Library: ← / → steps through the detail panel, a key adds to the slideshow

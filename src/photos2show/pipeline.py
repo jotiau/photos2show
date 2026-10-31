@@ -1,6 +1,7 @@
 """Analyse a folder: quality metrics, thumbnails, same-scene clusters and flags, cached in the library DB."""
 import hashlib
 import json
+import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -52,8 +53,12 @@ def analyse_file(path: Path, thumbs: Path) -> dict:
     }
 
 
-def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = None) -> dict:
-    """Analyse new/changed files under root (unchanged files are cached). Returns a summary."""
+def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = None,
+                   stop: threading.Event | None = None) -> dict:
+    """Analyse new/changed files under root (unchanged files are cached). Returns a summary.
+
+    stop: set it to end early; what is scanned so far is kept, the rest follows on the next run.
+    """
     root = root.resolve()  # stored paths must not depend on how the folder was typed
     if not root.is_dir():  # e.g. unplugged drive: would otherwise delete every row as "gone"
         raise FileNotFoundError(f"Folder not found: {root}")
@@ -63,6 +68,8 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     known = {r["path"]: r for r in conn.execute("SELECT path, size, mtime, kind, taken_at FROM media")}
     errors, analysed = [], 0
     for i, path in enumerate(paths):
+        if stop and stop.is_set():
+            break
         try:
             st = path.stat()  # inside: the file may vanish during the scan (phone sync)
             old = known.get(str(path))
@@ -84,15 +91,13 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     present = {str(p) for p in paths}
     gone_rows = [r for r in conn.execute("SELECT id, path, thumb, frames FROM media") if r["path"] not in present]
     gone = {r["id"] for r in gone_rows}
-    # SQLite gives a deleted top id to the next new file, so the slideshow must forget gone ids now.
-    selection = slideshow.load(root)
-    if any(p["id"] in gone for p in selection["picks"]):
-        slideshow.save(root, {**selection, "picks": [p for p in selection["picks"] if p["id"] not in gone]})
+    slideshow.forget(root, gone)  # before the ids are deleted and handed to new files
     conn.executemany("DELETE FROM media WHERE id = ?", [(i,) for i in gone])
     update_flags(conn)
     conn.commit()
     conn.close()
-    db.mark_analysed(root)
+    if not (stop and stop.is_set()):  # a stopped scan is not "analysed"
+        db.mark_analysed(root)
     for r in gone_rows:  # after the commit: no row may point at a deleted thumbnail
         for name in [r["thumb"], *(r["thumb"].replace(".jpg", f"_f{i}.jpg") for i in range(r["frames"]))]:
             (thumbs / name).unlink(missing_ok=True)
@@ -122,15 +127,24 @@ def skip_ai_reason(item: dict) -> str | None:
     return None
 
 
+class Stopped(Exception):
+    pass
+
+
 def describe_folder(root: Path, progress: Callable[[int, int], None] | None = None,
-                    concurrency: int | None = None) -> dict:
-    """Pass 2: send each image still worth describing to the LLM; every result is saved right away."""
+                    concurrency: int | None = None, stop: threading.Event | None = None) -> dict:
+    """Pass 2: send each image still worth describing to the LLM; every result is saved right away.
+
+    stop: set it to end early; requests already sent finish and are saved, queued ones are skipped.
+    """
     settings = load_settings()
     client = ai.make_client(settings)
     conn = db.connect(root)
     todo = [it for it in db.all_media(conn) if it["ai"] is None and skip_ai_reason(it) is None]
 
     def describe(it: dict) -> dict:
+        if stop and stop.is_set():
+            raise Stopped
         path = Path(it["path"])
         if it["kind"] == "video":
             frames, _ = scan.read_video_frames(path)
@@ -145,7 +159,7 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
             del img
             raise e.with_traceback(None)
 
-    errors = []
+    errors, described = [], 0
     with ThreadPoolExecutor(concurrency or default_concurrency()) as pool:
         futures = {pool.submit(describe, it): it for it in todo}
         for i, fut in enumerate(as_completed(futures)):
@@ -154,9 +168,12 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
             try:
                 conn.execute("UPDATE media SET ai = ? WHERE id = ?", (json.dumps(fut.result()), it["id"]))
                 conn.commit()
+                described += 1
+            except Stopped:
+                pass
             except Exception as e:  # one failed request must not stop the run; it is retried next time
                 errors.append(f"{Path(it['path']).name}: {e}")
             if progress:
                 progress(i + 1, len(todo))
     conn.close()
-    return {"described": len(todo) - len(errors), "errors": errors}
+    return {"described": described, "errors": errors}

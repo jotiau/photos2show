@@ -30,15 +30,19 @@ LM Studio if you'd rather keep your photos on your own computer.
 - A caption, content tags, scene type, people count, scores for aesthetic and interest, and visible
   issues (closed eyes, tilted horizon) for every photo worth keeping.
 - Videos are covered too: frames at 10 %, 50 % and 90 % of the clip, the sharpest one represents it.
-- Runs 1–8 requests in parallel, shows results live, and resumes where it stopped after an interruption.
+- Runs 1–8 requests in parallel, shows results live with the time left, can be stopped any time and
+  resumes where it stopped.
 - Everything is cached: re-runs only process new or changed files.
 
 **Slideshow from a description**
 - Describe length, audience, order and content in your own words; the model picks and orders the
   photos and says why it chose each one.
+- Refine in words ("add more sunsets, fewer people, start with the ferry") without losing your hand edits,
+  and undo the last change.
 - Fine-tune by hand: reorder, remove, add photos from the library, or sort by date, aesthetic,
   interest, technical quality or file name.
-- Export numbered copies plus a `selection.json` with your description and the reason for every pick.
+- Export numbered copies plus a `selection.json` with your description and the reason for every pick;
+  export again into the same folder after changes.
 
 **Library browser**
 - Thumbnail grid with filters by quality flag and tag; a detail panel with all metrics, the other
@@ -138,12 +142,17 @@ Tips for local models:
    - *Scanning*: local checks for blur, exposure, contrast, monotony and same-scene shots. Fast.
    - *Describing with AI*: each remaining photo goes to the model, 2 at a time by default
      (choose 1–8 next to *Analyse again*). Captions and tags appear live; skipped photos are marked
-     *no AI*. Interrupted? Press *Analyse again* and it continues where it stopped.
+     *no AI*. The progress bar shows the time left; *Stop* ends the run after the requests already
+     sent. Stopped or interrupted? Press *Analyse again* and it continues where it stopped.
 3. **Browse the Library**: filter by quality flag, click a card for details, click a tag to filter by it.
 4. **Build the slideshow** in the *Slideshow* tab: describe the show and press *Select photos*.
    The picks are shown as tiles: drag them to reorder (or use ← →), remove with ×, sort the whole
-   set, or add photos via *Add to slideshow* in the Library detail panel.
-5. **Export**: choose a new folder outside the photo folder and press *Export*.
+   set, or add photos via *Add to slideshow* in the Library detail panel. To change the set in words,
+   type an instruction next to *Refine picks* (e.g. "add 10 more sunsets, fewer people"); the model
+   keeps the rest, including your hand edits. *Undo* goes back one change.
+5. **Export**: choose a new folder outside the photo folder and press *Export*, then *Open folder*.
+   Changed the show? Export again into the same folder with *replace previous export* ticked; this only
+   deletes files of an earlier export, never a folder with other files in it.
 
 Each project keeps one slideshow; to make a second show from the same trip, export the first one,
 then select again.

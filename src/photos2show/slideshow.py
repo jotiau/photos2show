@@ -19,33 +19,55 @@ Candidates, one per line: id | date | kind | scene | tags | caption | aesthetic/
 Pick the photos that best fit the description, in the order they should be shown (chronological unless
 the description says otherwise). Respect a requested number of photos or duration (about {seconds} seconds
 per photo). Prefer high aesthetic and interest, avoid quality flags and repetitive shots.
-Answer ONLY with JSON: {{"picks": [{{"id": 12, "reason": "short reason"}}]}}"""
+"""
+
+REFINE_PROMPT = """
+The slideshow already has these photos, in this order (id | reason):
+{current}
+
+Change it as follows and keep everything else as it is (the order and photos the user added by hand):
+---
+{instruction}
+---
+Answer with the complete new slideshow, not only the changes.
+"""
+
+ANSWER = """Answer ONLY with JSON: {"picks": [{"id": 12, "reason": "short reason"}]}"""
 
 
 def _line(it: dict) -> str:
-    a = it["ai"]
+    a = it["ai"] or {}  # a photo added by hand may not be described
     return (f"{it['id']} | {(it['taken_at'] or '')[:16]} | {it['kind']} | {a.get('scene')} | "
             f"{', '.join(a.get('tags') or [])} | {a.get('caption')} | {a.get('aesthetic')} | "
             f"{a.get('interest')} | {','.join(it['flags']) or '-'}")
 
 
-def select(conn, description: str) -> list[dict]:
-    """Ask the LLM for picks; returns [{"id", "reason"}] restricted to described, non-duplicate items."""
-    items = [it for it in db.all_media(conn) if it["ai"] and not it["duplicate_of"]]
-    if not items:
+def select(conn, description: str, current: list[dict] | None = None, instruction: str = "") -> list[dict]:
+    """Ask the LLM for picks; returns [{"id", "reason"}] restricted to described, non-duplicate items.
+
+    With an instruction, the current picks are refined instead of chosen anew; they stay valid even if
+    added by hand (a duplicate or a photo without AI description).
+    """
+    current = current or []
+    kept = {p["id"] for p in current}
+    items = [it for it in db.all_media(conn) if (it["ai"] and not it["duplicate_of"]) or it["id"] in kept]
+    if not any(it["ai"] for it in items):
         raise ValueError("No photos described by AI yet – analyse the project first.")
     settings = load_settings()
     prompt = SELECT_PROMPT.format(description=description, lines="\n".join(map(_line, items)),
                                   seconds=SECONDS_PER_PHOTO)
-    answer = ai.complete_json(ai.make_client(settings), settings, [{"role": "user", "content": prompt}])
-    valid, picks = {it["id"] for it in items}, []
+    if instruction:
+        lines = "\n".join(f"{p['id']} | {p['reason'] or '-'}" for p in current)
+        prompt += REFINE_PROMPT.format(current=lines or "(empty)", instruction=instruction)
+    answer = ai.complete_json(ai.make_client(settings), settings, [{"role": "user", "content": prompt + ANSWER}])
+    valid, old_reason, picks = {it["id"] for it in items}, {p["id"]: p["reason"] for p in current}, []
     for p in answer.get("picks") or []:  # LLM output: drop unknown, repeated or malformed ids
         try:
             pid = int(p["id"])
         except (KeyError, TypeError, ValueError):
             continue
         if pid in valid and pid not in {q["id"] for q in picks}:
-            picks.append({"id": pid, "reason": str(p.get("reason") or "")})
+            picks.append({"id": pid, "reason": str(p.get("reason") or old_reason.get(pid, ""))})
     return picks
 
 
@@ -105,21 +127,70 @@ def save(root: Path, selection: dict) -> None:
     db.write_json(db.library_dir(root) / "selection.json", selection)
 
 
-def export(root: Path, target: Path) -> int:
-    """Copy the picks as 001_<date>_<tags>.<ext> into target; originals are never touched."""
+def _previous(root: Path) -> Path:
+    return db.library_dir(root) / "selection.prev.json"
+
+
+def change(root: Path, selection: dict) -> None:
+    """Save an edit of the picks and keep the list before it for one step of undo."""
+    old = load(root)
+    if old["picks"] != selection["picks"]:
+        db.write_json(_previous(root), old)
+    save(root, selection)
+
+
+def can_undo(root: Path) -> bool:
+    return _previous(root).exists()
+
+
+def undo(root: Path) -> None:
+    """Restore the picks before the last change (one step); the export folder stays remembered."""
+    f = _previous(root)
+    if f.exists():
+        current = load(root)
+        save(root, {**json.loads(f.read_text()), **({"exported_to": current["exported_to"]}
+                                                    if "exported_to" in current else {})})
+        f.unlink()
+
+
+def forget(root: Path, gone: set[int]) -> None:
+    """Drop deleted files from the picks and the undo copy: SQLite gives a deleted top id to the next new file."""
+    for f in (db.library_dir(root) / "selection.json", _previous(root)):
+        if f.exists():
+            selection = json.loads(f.read_text())
+            if any(p["id"] in gone for p in selection["picks"]):
+                db.write_json(f, {**selection, "picks": [p for p in selection["picks"] if p["id"] not in gone]})
+
+
+EXPORTED = re.compile(r"\d{3}_.+")  # file names written by export()
+
+
+def export(root: Path, target: Path, replace: bool = False) -> int:
+    """Copy the picks as 001_<date>_<tags>.<ext> into target; originals are never touched.
+
+    replace: target may hold an earlier export (selection.json + numbered files only); it is emptied first.
+    """
     root, target = root.resolve(), target.expanduser().resolve()
     if target.is_relative_to(root):
         raise ValueError("Export folder must be outside the photo folder, otherwise it gets scanned again.")
-    if target.exists() and any(target.iterdir()):
-        raise ValueError(f"{target} is not empty – choose a new folder.")
     selection, conn = load(root), db.connect(root)
     items = [it for p in selection["picks"] if (it := db.get_media(conn, p["id"]))]
     if not items:
         raise ValueError("Nothing selected.")
+    old = list(target.iterdir()) if target.is_dir() else []
+    if old and not replace:
+        raise ValueError(f"{target} is not empty – choose a new folder or tick 'replace previous export'.")
+    if old:
+        ours = lambda f: f.is_file() and (f.name == "selection.json" or EXPORTED.fullmatch(f.name))  # noqa: E731
+        if not (target / "selection.json").is_file() or not all(map(ours, old)):
+            raise ValueError(f"{target} holds files that are not from an export – choose another folder.")
+        for f in old:
+            f.unlink()
     target.mkdir(parents=True, exist_ok=True)
     for n, it in enumerate(items, 1):
         src = Path(it["path"])
         slug = re.sub(r"[^a-z0-9]+", "-", " ".join(((it["ai"] or {}).get("tags") or [])[:2]).lower()).strip("-")
         shutil.copy2(src, target / f"{n:03d}_{(it['taken_at'] or '')[:10]}_{slug or 'photo'}{src.suffix.lower()}")
-    db.write_json(target / "selection.json", selection)
+    db.write_json(target / "selection.json", {k: v for k, v in selection.items() if k != "exported_to"})
+    save(root, {**selection, "exported_to": str(target)})  # suggested again for the next export
     return len(items)

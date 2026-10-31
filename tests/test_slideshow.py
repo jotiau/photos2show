@@ -89,3 +89,63 @@ def test_export(described, tmp_path):
     assert names[1] == "002_2026-08-11_beach-sunset.jpg" and names[2] == "selection.json"
     with pytest.raises(ValueError, match="not empty"):
         slideshow.export(folder, tmp_path / "show")
+
+
+def test_refine_sends_current_picks_and_keeps_hand_added_ones(described, monkeypatch):
+    folder, ids = described
+    current = [{"id": ids["scene_1.jpg"], "reason": "great view"}, {"id": ids["burst_2.jpg"], "reason": "added by hand"}]
+    answer = {"picks": [{"id": ids["burst_2.jpg"]}, {"id": ids["scene_2.jpg"], "reason": "more beach"}]}
+    prompts = []
+    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, messages: prompts.append(messages) or answer)
+    picks = slideshow.select(db.connect(folder), "short show", current, "more beach, start with the burst")
+    # burst_2 is a duplicate, valid only because it is already in the show; its old reason is kept
+    assert picks == [{"id": ids["burst_2.jpg"], "reason": "added by hand"},
+                     {"id": ids["scene_2.jpg"], "reason": "more beach"}]
+    prompt = prompts[0][0]["content"]
+    assert f"\n{ids['scene_1.jpg']} | great view" in prompt and "more beach, start with the burst" in prompt
+    assert f"\n{ids['burst_2.jpg']} |" in prompt and prompt.endswith('"short reason"}]}')
+
+
+def test_undo_is_one_step_and_forgets_deleted_files(described):
+    folder, ids = described
+    a, b = {"id": ids["scene_1.jpg"], "reason": ""}, {"id": ids["scene_2.jpg"], "reason": ""}
+    assert not slideshow.can_undo(folder)
+    slideshow.change(folder, {"description": "d", "picks": [a, b]})
+    slideshow.change(folder, {"description": "d", "picks": [b]})
+    slideshow.change(folder, {"description": "d", "picks": [b]})  # no change: keeps the undo step
+    slideshow.save(folder, {**slideshow.load(folder), "exported_to": "/stick/show"})
+    slideshow.undo(folder)
+    assert slideshow.load(folder) == {"description": "d", "picks": [a, b], "exported_to": "/stick/show"}
+    assert not slideshow.can_undo(folder)
+    slideshow.undo(folder)  # nothing to undo: no error, no change
+    assert slideshow.load(folder)["picks"] == [a, b]
+
+    slideshow.change(folder, {"description": "d", "picks": [b]})
+    slideshow.forget(folder, {a["id"]})
+    slideshow.undo(folder)
+    assert slideshow.load(folder)["picks"] == [b]  # the undo copy forgot the deleted file too
+
+
+def test_export_again_replaces_only_an_earlier_export(described, tmp_path):
+    folder, ids = described
+    show = tmp_path / "show"
+    slideshow.save(folder, {"description": "d", "picks": [{"id": ids["scene_1.jpg"], "reason": ""},
+                                                           {"id": ids["scene_2.jpg"], "reason": ""}]})
+    assert slideshow.export(folder, show) == 2
+    assert slideshow.load(folder)["exported_to"] == str(show)
+    assert "exported_to" not in (show / "selection.json").read_text()
+    slideshow.save(folder, {**slideshow.load(folder), "picks": [{"id": ids["scene_2.jpg"], "reason": ""}]})
+    with pytest.raises(ValueError, match="replace previous export"):
+        slideshow.export(folder, show)
+    assert slideshow.export(folder, show, replace=True) == 1
+    assert sorted(p.name for p in show.iterdir()) == ["001_2026-08-11_beach-sunset.jpg", "selection.json"]
+
+    (show / "my notes.txt").write_text("keep me")
+    with pytest.raises(ValueError, match="not from an export"):
+        slideshow.export(folder, show, replace=True)
+    other = tmp_path / "holiday"
+    other.mkdir()
+    (other / "001_mine.jpg").write_bytes(b"x")  # numbered, but no selection.json: not ours
+    with pytest.raises(ValueError, match="not from an export"):
+        slideshow.export(folder, other, replace=True)
+    assert (show / "my notes.txt").exists() and (other / "001_mine.jpg").exists()
