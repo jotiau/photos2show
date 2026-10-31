@@ -125,8 +125,14 @@ def _found(it: dict, query: str) -> bool:
     return all(word in text for word in query.lower().split())
 
 
+def _root() -> Path:
+    if not job["folder"]:  # no project open: Path("") would be the server's working directory
+        raise HTTPException(404)
+    return Path(job["folder"])
+
+
 def _item(media_id: int) -> dict:
-    item = db.get_media(db.connect(Path(job["folder"])), media_id) if job["folder"] else None
+    item = db.get_media(db.connect(_root()), media_id)
     if not item:
         raise HTTPException(404)
     return item
@@ -340,7 +346,7 @@ def save_setting(key: str = Form(...), value: str = Form(...)):
 def thumb(media_id: int, frame: int | None = None):
     item = _item(media_id)
     name = item["thumb"] if frame is None else item["thumb"].replace(".jpg", f"_f{frame}.jpg")
-    return FileResponse(db.library_dir(Path(job["folder"])) / "thumbs" / name)
+    return FileResponse(db.library_dir(_root()) / "thumbs" / name)
 
 
 @app.get("/original/{media_id}")
@@ -352,20 +358,20 @@ def original(media_id: int):
 
 
 def _picks(request: Request, error: str | None = None) -> HTMLResponse:
-    conn = db.connect(Path(job["folder"]))
+    conn = db.connect(_root())
     picks = [{"item": it, "reason": p["reason"]}
-             for p in slideshow.load(Path(job["folder"]))["picks"] if (it := db.get_media(conn, p["id"]))]
+             for p in slideshow.load(_root())["picks"] if (it := db.get_media(conn, p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
         "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60,
         "seconds": slideshow.SECONDS_PER_PHOTO,
-        "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}, "can_undo": slideshow.can_undo(Path(job["folder"]))})
+        "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}, "can_undo": slideshow.can_undo(_root())})
 
 
 @app.get("/slideshow", response_class=HTMLResponse)
 def slideshow_page(request: Request):
     if not job["folder"]:
         return _page(request, "slideshow.html", page="slideshow", selection=None)
-    selection = slideshow.load(Path(job["folder"]))
+    selection = slideshow.load(_root())
     return _page(request, "slideshow.html", page="slideshow", selection=selection,
                  default_target=selection.get("exported_to") or f"{job['folder']}_slideshow")
 
@@ -377,7 +383,7 @@ def picks(request: Request):
 
 @app.post("/slideshow/select", response_class=HTMLResponse)
 def select(request: Request, description: str = Form(...)):
-    root = Path(job["folder"])
+    root = _root()
     try:
         picks = slideshow.select(db.connect(root), description)
     except (Exception, SystemExit) as e:
@@ -388,7 +394,7 @@ def select(request: Request, description: str = Form(...)):
 
 @app.post("/slideshow/refine", response_class=HTMLResponse)
 def refine(request: Request, instruction: str = Form(...)):
-    root = Path(job["folder"])
+    root = _root()
     selection = slideshow.load(root)
     try:
         picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction)
@@ -401,7 +407,7 @@ def refine(request: Request, instruction: str = Form(...)):
 
 @app.post("/slideshow/undo", response_class=HTMLResponse)
 def undo(request: Request):
-    slideshow.undo(Path(job["folder"]))
+    slideshow.undo(_root())
     return _picks(request)
 
 
@@ -409,7 +415,7 @@ def undo(request: Request):
 def sort(request: Request, by: str = Form(...)):
     if by not in slideshow.SORTS:
         raise HTTPException(400)
-    root = Path(job["folder"])
+    root = _root()
     items = {it["id"]: it for it in db.all_media(db.connect(root))}
     slideshow.update(root, lambda s: {**s, "picks": slideshow.sort(s["picks"], items, by)})
     return _picks(request)
@@ -417,14 +423,14 @@ def sort(request: Request, by: str = Form(...)):
 
 @app.post("/slideshow/move", response_class=HTMLResponse)
 def move(request: Request, id: int = Form(...), to: int = Form(...)):
-    slideshow.update(Path(job["folder"]), lambda s: {**s, "picks": slideshow.move(s["picks"], id, to)})
+    slideshow.update(_root(), lambda s: {**s, "picks": slideshow.move(s["picks"], id, to)})
     return _picks(request)
 
 
 @app.post("/slideshow/export", response_class=HTMLResponse)
 def export(target: str = Form(...), replace: bool = Form(False)):
     try:
-        n = slideshow.export(Path(job["folder"]), Path(target), replace)
+        n = slideshow.export(_root(), Path(target), replace)
     except (ValueError, OSError) as e:  # OSError: full USB stick, no write rights – htmx shows nothing for a 500
         return HTMLResponse(f'<span class="error">{escape(str(e))}</span>')
     return HTMLResponse(f"Exported {n} files to {escape(str(Path(target).expanduser()))} "
@@ -434,7 +440,7 @@ def export(target: str = Form(...), replace: bool = Form(False)):
 @app.post("/slideshow/open-export", response_class=HTMLResponse)
 def open_export():
     """Show the last export in the system file manager; only that folder, never a path from the request."""
-    folder = slideshow.load(Path(job["folder"])).get("exported_to")
+    folder = slideshow.load(_root()).get("exported_to")
     try:
         if not folder or not Path(folder).is_dir():
             raise FileNotFoundError("The export folder is gone.")
@@ -452,7 +458,7 @@ def edit(request: Request, action: str, media_id: int):
     if action not in ("add", "remove"):
         raise HTTPException(404)
     media_id = _item(media_id)["id"]  # 404 for an unknown id
-    slideshow.update(Path(job["folder"]), lambda s: {**s, "picks": slideshow.edit(s["picks"], action, media_id)})
+    slideshow.update(_root(), lambda s: {**s, "picks": slideshow.edit(s["picks"], action, media_id)})
     return HTMLResponse("In slideshow ✓") if action == "add" else _picks(request)
 
 

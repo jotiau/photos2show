@@ -17,6 +17,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert TestClient(web.app, base_url="http://rebound.example").get("/").status_code == 400  # DNS rebinding
 
     assert "Create a project" in client.get("/").text
+    assert client.post("/slideshow/undo").status_code == 404  # no project: never the server's working dir
     assert "Not a folder" in client.post("/projects", data={"name": "x", "folder": str(tmp_path / "nope")}).text
 
     def wait():
