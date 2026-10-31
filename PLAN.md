@@ -309,7 +309,8 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
       by the estimate, the player (1) and passed to the AI as context ("the show should be ~10 min").
       Videos count with their real duration.
 
-13. **Better feedback while the AI chooses**
+13. **Better feedback while the AI chooses** – **done 2026-11-01**
+    - Built: spinner, elapsed "1:12", picks dimmed and not clickable during *Select photos* and *Refine picks*.
     - Today: only the text "The AI is choosing… this can take a minute" appears.
     - Proposal: a spinner, the picks area dimmed and disabled (no edits that would be overwritten),
       and the elapsed time ("1:12"). Same for *Refine picks*.

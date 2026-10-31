@@ -2,7 +2,7 @@
 {% if picks or can_undo %}
 <div class="refine">
   {% if picks %}
-  <form hx-post="/slideshow/refine" hx-target="#picks" hx-indicator="#thinking" hx-disabled-elt="find button">
+  <form hx-post="/slideshow/refine" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button">
     <input name="instruction" required size="50" aria-label="Change the picks"
       placeholder="add 10 more sunsets, fewer people, start with the ferry">
     <button>Refine picks</button>

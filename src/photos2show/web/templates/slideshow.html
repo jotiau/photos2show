@@ -13,12 +13,13 @@
 {% if selection is none %}
   <p class="empty"><a href="/projects">Create a project</a> first.</p>
 {% else %}
-  <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking" hx-disabled-elt="find button">
+  <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button">
     <label for="description">Describe the slideshow</label>
     <textarea id="description" name="description" rows="4" required
       placeholder="10-minute show for my parents, chronological, mostly landscapes and the two of us, little food">{{ selection.description }}</textarea>
     <button>Select photos</button>
-    <span id="thinking" class="htmx-indicator">The AI is choosing… this can take a minute</span>
+    <span id="thinking" class="htmx-indicator"><span class="spinner"></span> The AI is choosing… this can take a minute
+      <span class="elapsed"></span></span>
   </form>
   <div id="picks" hx-get="/slideshow/picks" hx-trigger="load"></div>
   <form class="export" hx-post="/slideshow/export" hx-target="#export-msg">
@@ -34,6 +35,22 @@
 <dialog id="lightbox"></dialog>
 <dialog id="player"><div class="stage"></div><p class="status"></p></dialog>
 <script>
+  // Elapsed time while the AI selects or refines (both forms indicate on #thinking and #picks).
+  let ticker = null;
+  const isAiForm = e => e.detail.elt.matches?.("form[hx-indicator]");
+  document.body.addEventListener("htmx:beforeRequest", e => {
+    if (!isAiForm(e)) return;
+    const start = Date.now(), out = document.querySelector("#thinking .elapsed");
+    const tick = () => {
+      const s = Math.floor((Date.now() - start) / 1000);
+      out.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    };
+    tick();
+    clearInterval(ticker);
+    ticker = setInterval(tick, 1000);
+  });
+  document.body.addEventListener("htmx:afterRequest", e => isAiForm(e) && clearInterval(ticker));
+
   // Preview: the picks full screen in their order; photos for data-seconds, videos to their end.
   // ← → step, Space pauses, Esc (or leaving full screen) ends.
   const player = document.getElementById("player"), stage = player.querySelector(".stage");

@@ -101,6 +101,11 @@ main.slideshow form.export label[for] { width: 100%; }
 main.slideshow form.export input#target { flex: 1; min-width: 200px; }
 main.slideshow form.sort { flex-direction: row; align-items: center; }
 main.slideshow form.seconds { display: block; margin: 8px 0; }
+#picks.htmx-request { opacity: .4; pointer-events: none; transition: opacity .3s; }  /* edits now would be overwritten */
+#thinking .elapsed { font-variant-numeric: tabular-nums; color: var(--muted); }
+.spinner { display: inline-block; width: 1em; height: 1em; vertical-align: -2px; border: 2px solid var(--border);
+           border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 form.seconds input { width: 4em; padding: 2px 4px; }
 .refine { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
 main.slideshow .refine form { flex-direction: row; flex: 1; align-items: center; }
