@@ -164,6 +164,18 @@ tests/
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
 
+### Usability (suggested 2026-10-31, not yet prioritised)
+- Stop button and time-left estimate for the AI run (~50 min for a trip, no cancel today)
+- Export again into the same folder ("overwrite previous export"), plus *Open folder* after export
+  (today a non-empty folder is refused, so every re-export needs a new folder)
+- Text search over AI captions in the Library (filters cover only flags and tags)
+- Refine the slideshow instead of starting over ("add 10 more sunsets, fewer people"), or at least
+  a warning/undo before *Select photos* replaces hand edits
+- Slideshow preview: play the picks full screen at the chosen speed, ← / → and Esc
+- Seconds per photo selectable; length estimate counts real video durations (fixed 5 s today)
+- Keyboard browsing in the Library: ← / → steps through the detail panel, a key adds to the slideshow
+- Swap a pick for another shot of the same scene, right on the slideshow tile
+
 ## Risks / open points
 Reviewed with the user on 2026-10-23.
 
