@@ -331,7 +331,7 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
     - Proposal: a `.primary` class for the one main action per page (Create & analyse, Select photos,
       Export) and a neutral default style for the rest; destructive actions keep `.remove`.
 
-16. **Move "Parallel AI requests" to Settings**
+16. **Move "Parallel AI requests" to Settings** – **done 2026-11-01** (default from `AI_CONCURRENCY`)
     - Today: a technical option shown in the Library bar on every visit.
     - Proposal: a setting (default 2) in the Settings page; the Library bar keeps only
       *Analyse again* and the progress.
@@ -342,7 +342,7 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
     - Proposal: "Nothing here yet – analyse the project to see its photos" (or the filter-specific
       "No photos match this filter" when items exist but the filter is empty).
 
-18. **Short help text in Settings**
+18. **Short help text in Settings** – **done 2026-11-01**
     - Today: `db.SETTINGS` has only *Theme*; the page grows with 12 (seconds per photo) and
       16 (parallel AI requests), and *Unused data* already needs explaining.
     - Proposal: one muted line under each setting explaining what it changes, stored as a fourth

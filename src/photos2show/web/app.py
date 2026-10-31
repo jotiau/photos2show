@@ -19,7 +19,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from photos2show import db, scan, slideshow
-from photos2show.config import default_concurrency, env
+from photos2show.config import env
 from photos2show.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 HERE = Path(__file__).parent
@@ -39,7 +39,7 @@ TOP_TAGS = 30
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
        "stopping": False, "summary": None, "error": None, "flag": "all", "query": "", "stacks": True, "sort": "date",
-       "parallel": default_concurrency(), "grid_phase": "", "grid_done": 0}
+       "grid_phase": "", "grid_done": 0}
 lock = threading.Lock()
 stop = threading.Event()
 
@@ -90,7 +90,7 @@ def _run(root: Path) -> None:
         described = {"described": 0, "errors": []}
         if not stop.is_set():
             job.update(phase="Describing with AI", done=0, total=0, started=time.monotonic())
-            described = describe_folder(root, progress, job["parallel"], stop)
+            described = describe_folder(root, progress, int(db.load_settings()["parallel"]), stop)
         job["summary"] = {**summary, **described, "errors": summary["errors"] + described["errors"],
                           "stopped": stop.is_set()}
     except (Exception, SystemExit) as e:  # SystemExit: AI endpoint not configured
@@ -261,9 +261,7 @@ def remove_project(name: str = Form(...), delete_results: bool = Form(False)):
 
 
 @app.post("/analyse", response_class=HTMLResponse)
-def analyse(request: Request, parallel: int = Form(ge=1, le=16)):
-    if not job["running"]:
-        job["parallel"] = parallel
+def analyse(request: Request):
     _start()
     return templates.TemplateResponse(request, "_progress.html", {"job": job})
 
