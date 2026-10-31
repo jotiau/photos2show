@@ -36,6 +36,8 @@ def analyse_file(path: Path, thumbs: Path) -> dict:
     name = hashlib.sha1(str(path).encode()).hexdigest()[:16]
     if scan.is_video(path):
         frames, (w, h) = scan.read_video_frames(path)
+        for old in thumbs.glob(f"{name}_f*.jpg"):  # a changed video may now give fewer frames
+            old.unlink()
         for i, f in enumerate(frames):
             _save_thumb(f, thumbs / f"{name}_f{i}.jpg")
         m, rep = _sharpest(frames)
