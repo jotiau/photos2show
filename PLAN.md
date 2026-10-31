@@ -294,7 +294,8 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
       `index` reads the query to restore filter and detail panel. Also makes a view shareable as a bookmark.
 
 #### Slideshow
-11. **Next/previous in the lightbox**
+11. **Next/previous in the lightbox** – **done 2026-11-01**
+    - Built: ← / → and on-screen arrows, "3 / 104 · reason" line (as text: the reason is LLM output).
     - Today: the lightbox shows one photo; you have to close it and click the next tile.
     - Proposal: ← / → and on-screen arrows step through the picks; shows the pick number and
       reason. Shares code with the player (1).

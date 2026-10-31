@@ -78,15 +78,32 @@
   });
   document.addEventListener("fullscreenchange", () => !document.fullscreenElement && player.open && player.close());
 
-  // Picks are swapped in by htmx, so listen on the document. Click the enlarged photo, outside it or Esc to close.
+  // Picks are swapped in by htmx, so listen on the document. ← → or the arrows step through the picks;
+  // click the enlarged photo, outside it or Esc to close.
   const box = document.getElementById("lightbox");
+  let boxAt = 0;
+  const boxShow = i => {
+    const imgs = [...document.querySelectorAll(".picks img")];
+    if (!imgs.length) return box.close();
+    boxAt = Math.max(0, Math.min(imgs.length - 1, i));
+    const img = imgs[boxAt];
+    const media = document.createElement("video" in img.dataset ? "video" : "img");
+    Object.assign(media, {src: img.dataset.full, controls: true, autoplay: true});
+    const caption = document.createElement("p");  // the reason is LLM text: textContent, never HTML
+    caption.textContent = `${boxAt + 1} / ${imgs.length} · ${img.closest("li").querySelector(".meta").textContent}`;
+    box.replaceChildren(media, caption);
+    box.insertAdjacentHTML("beforeend", '<button class="prev" aria-label="Previous">‹</button><button class="next" aria-label="Next">›</button>');
+  };
   document.addEventListener("click", e => {
     const img = e.target.closest(".picks img");
     if (img) {
-      box.innerHTML = "video" in img.dataset
-        ? `<video src="${img.dataset.full}" controls autoplay></video>` : `<img src="${img.dataset.full}" alt="">`;
+      boxShow([...document.querySelectorAll(".picks img")].indexOf(img));
       box.showModal();
-    } else if (e.target === box || e.target.matches("#lightbox img")) box.close();
+    } else if (e.target.matches("#lightbox .prev, #lightbox .next")) boxShow(boxAt + (e.target.matches(".next") ? 1 : -1));
+    else if (e.target === box || e.target.matches("#lightbox img")) box.close();
+  });
+  box.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") boxShow(boxAt + (e.key === "ArrowRight" ? 1 : -1));
   });
   box.addEventListener("close", () => box.innerHTML = "");
 
