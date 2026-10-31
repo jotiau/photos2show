@@ -148,7 +148,7 @@ Tips for local models:
 Each project keeps one slideshow; to make a second show from the same trip, export the first one,
 then select again.
 
-The *Projects* tab lists all projects with their state (files, AI-described, picks, missing folder).
+The *Projects* tab lists all projects with their state (files, AI-described, picks, when last analysed, missing folder).
 Rename a project, point it to another photo folder (e.g. after moving the photos; press *Analyse again*
 afterwards) or remove it. Removing never deletes photos. The saved AI results and thumbnails stay in the
 data folder, so creating a project for the same folder again picks them up, unless you tick *also delete saved
@@ -174,7 +174,8 @@ AI descriptions are made once per file; later runs take seconds.
 ## Supported files
 
 JPEG photos (`.jpg`, `.jpeg`) and MP4 videos. Dates come from the photo's EXIF data; for videos
-from phone-style file names (`20260725_130945.mp4`), else the file date. HEIC and RAW are on the roadmap.
+from phone-style file names (`20260725_130945.mp4`), else the recording time stored in the video,
+else the file date. HEIC and RAW are on the roadmap.
 
 ## Configuration
 
@@ -207,7 +208,6 @@ Planned, roughly in this order of interest:
 
 - HEIC and RAW support
 - Several saved slideshows per project; projects spanning several folders
-- Projects page: show when a project was last analysed
 - Face detection and grouping ("everyone appears at least once")
 - Map and location grouping from GPS
 - Local semantic search (CLIP) and smarter duplicate grouping

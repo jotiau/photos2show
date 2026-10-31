@@ -60,12 +60,18 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     conn = db.connect(root)
     thumbs = db.library_dir(root) / "thumbs"
     paths = scan.find_media(root)
-    known = {r["path"]: (r["size"], r["mtime"]) for r in conn.execute("SELECT path, size, mtime FROM media")}
+    known = {r["path"]: r for r in conn.execute("SELECT path, size, mtime, kind, taken_at FROM media")}
     errors, analysed = [], 0
     for i, path in enumerate(paths):
         try:
             st = path.stat()  # inside: the file may vanish during the scan (phone sync)
-            row = analyse_file(path, thumbs) if known.get(str(path)) != (st.st_size, st.st_mtime) else None
+            old = known.get(str(path))
+            cached = old is not None and (old["size"], old["mtime"]) == (st.st_size, st.st_mtime)
+            row = None if cached else analyse_file(path, thumbs)
+            # Video dates got better (MP4 header before mtime): fix cached rows without a full re-scan.
+            if cached and old["kind"] == "video" and (taken := scan.file_time(path)) != old["taken_at"]:
+                conn.execute("UPDATE media SET taken_at = ? WHERE path = ?", (taken, str(path)))
+                conn.commit()
         except Exception as e:  # one broken file must not stop the whole scan
             errors.append(f"{path.name}: {e}")
         else:
@@ -86,6 +92,7 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     update_flags(conn)
     conn.commit()
     conn.close()
+    db.mark_analysed(root)
     for r in gone_rows:  # after the commit: no row may point at a deleted thumbnail
         for name in [r["thumb"], *(r["thumb"].replace(".jpg", f"_f{i}.jpg") for i in range(r["frames"]))]:
             (thumbs / name).unlink(missing_ok=True)

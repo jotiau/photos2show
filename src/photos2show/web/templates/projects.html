@@ -37,7 +37,8 @@
     </form>
     <p class="state">
       {% if not s.exists %}<span class="error">Folder not found</span> ·{% endif %}
-      {% if s.files %}{{ s.files }} files · {{ s.described }} described by AI · {{ s.picks }} in slideshow
+      {% if s.files or s.analysed_at %}{{ s.files }} files · {{ s.described }} described by AI · {{ s.picks }} in slideshow
+      {% if s.analysed_at %}· last analysed {{ s.analysed_at.day }} {{ s.analysed_at.strftime("%b %Y, %H:%M") }}{% endif %}
       {% else %}not analysed yet{% endif %}
     </p>
     <div class="actions">

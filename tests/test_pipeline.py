@@ -155,3 +155,18 @@ def test_rescan_uses_cache_and_drops_removed_files(library):
     assert "grey_sky.jpg" not in items_by_name(folder)
     assert not any(t.exists() for t in gone)  # thumbnails and video frames deleted too
     assert (thumbs / items["scene_1.jpg"]["thumb"]).exists()
+
+
+def test_cached_video_gets_a_better_date_and_scan_time_is_kept(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = tmp_path / "photos"
+    folder.mkdir()
+    testdata.save_video(folder / "clip.mp4", 1)
+    assert db.project_stats(folder)["analysed_at"] is None
+    analyse_folder(folder)
+    first = db.project_stats(folder)["analysed_at"]
+    assert first is not None
+    monkeypatch.setattr(scan, "file_time", lambda path: "2026-07-15T13:13:05")  # e.g. now read from the header
+    assert analyse_folder(folder)["analysed"] == 0  # no full re-scan
+    assert items_by_name(folder)["clip.mp4"]["taken_at"] == "2026-07-15T13:13:05"
+    assert db.project_stats(folder)["analysed_at"] >= first

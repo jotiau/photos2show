@@ -36,7 +36,10 @@ folder ─► 1 Scan ─► 2 Quality ─► 3 Dedup ─► 4 AI analysis ─►
 - Create thumbnails: ~400px for the UI, ~1024px long edge for the LLM (keeps token use low).
 - Videos: OpenCV `VideoCapture` grabs frames at 10 % / 50 % / 90 % of duration; the sharpest
   frame represents the video. Date: from the phone-style file name (`YYYYMMDD_HHMMSS`), else
-  file mtime (mtime was 1 h off for copied Norway videos).
+  the MP4 movie header `creation_time` (UTC, shown in local time), else file mtime (mtime was 1 h
+  off for copied Norway videos). The name goes first: it is the phone's local time like the photo
+  EXIF, while the header is absolute and differed by 1 h for 2 Norway clips. Cached videos are
+  re-dated on every scan without a full re-analysis.
 - Cache key: path + size + mtime.
 
 ### 2. Classic quality (OpenCV + NumPy, no AI)
@@ -94,7 +97,7 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
 Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step):
 - **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
   dropdown in the header to switch; the *Projects* page has "New project" to create and analyse and lists
-  them with their state (files, described, picks, folder missing) to rename, change the folder or remove.
+  them with their state (files, described, picks, last analysed, folder missing) to rename, change the folder or remove.
   Removing keeps the cached AI results (they are keyed by folder, not by project name) unless
   "also delete saved AI results" is ticked and no other project uses that folder.
 - **Library view**: progress bar → thumbnail grid with badges (score, flags, tags, video icon);
@@ -160,7 +163,6 @@ tests/
 - HEIC / RAW support
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
-- Projects page: last-analysed date
 
 ## Risks / open points
 Reviewed with the user on 2026-10-23.
@@ -170,7 +172,7 @@ Reviewed with the user on 2026-10-23.
 | Endpoint: vision, JSON mode, image size | Resolved – works; JSON mode supported (1 request per image) |
 | Throughput | Resolved – ~30–70 min per ~900-file holiday once, then cached; parallel requests selectable |
 | Selection on a full holiday (~850 candidates, ~60k-token prompt) | Resolved – tested on all 857 Norway files: 104 good picks in 294 s, well under the 10-min client timeout |
-| Video dates from mtime off by 1 h | Fixed – date from file name, mtime fallback |
+| Video dates from mtime off by 1 h | Fixed – date from file name, then MP4 header, mtime last |
 | AI scores compressed (mostly 6–8) | Accepted – selection works via captions/tags; prompt unchanged |
 | AI results lost if a cache cleaner runs | Fixed – data moved from `~/.cache` to `~/.local/share/photos2show` |
 | No backup of the code | Resolved – on GitHub (`jotiau/photos2show`) |

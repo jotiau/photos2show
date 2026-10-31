@@ -1,6 +1,7 @@
 """Find media files, read capture dates, extract video frames."""
 import re
-from datetime import datetime
+import struct
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import cv2
@@ -65,15 +66,61 @@ def read_video_frames(path: Path) -> tuple[list[Image.Image], tuple[int, int]]:
 NAME_DATE = re.compile(r"(20\d{6})[_-](\d{6})")  # phone naming, e.g. 20260725_130945.mp4
 
 
+MP4_EPOCH = datetime(1904, 1, 1, tzinfo=timezone.utc)
+
+
+def _boxes(f, end: int):
+    """Yield (type, payload start, payload end) of the MP4 boxes from the current position up to end."""
+    while (pos := f.tell()) + 8 <= end:
+        size, kind = struct.unpack(">I4s", f.read(8))
+        header = 8
+        if size == 1:  # 64-bit size follows
+            size, header = struct.unpack(">Q", f.read(8))[0], 16
+        elif size == 0:  # box runs to the end of the file
+            size = end - pos
+        if size < header:
+            return
+        yield kind, pos + header, pos + size
+        f.seek(pos + size)
+
+
+def mp4_created(path: Path) -> str | None:
+    """creation_time of the MP4 movie header (moov/mvhd) as local ISO time, or None if missing or unset.
+
+    Phones store it in UTC; converted with this computer's time zone, like the photo dates.
+    """
+    try:
+        with open(path, "rb") as f:
+            end = f.seek(0, 2)
+            f.seek(0)
+            for kind, start, stop in _boxes(f, end):
+                if kind != b"moov":
+                    continue
+                f.seek(start)
+                for kind, start, _ in _boxes(f, stop):
+                    if kind == b"mvhd":
+                        f.seek(start)
+                        version = f.read(1)[0]
+                        f.read(3)  # flags
+                        secs = struct.unpack(">Q" if version == 1 else ">I", f.read(8 if version == 1 else 4))[0]
+                        if not secs:  # 0 = not set (common in edited or exported clips)
+                            return None
+                        t = (MP4_EPOCH + timedelta(seconds=secs)).astimezone().replace(tzinfo=None)
+                        return t.isoformat()
+                return None
+    except (OSError, struct.error, IndexError, OverflowError):
+        return None
+    return None
+
+
 def file_time(path: Path) -> str:
-    """Capture time for videos: from the file name if it has one, else file mtime.
+    """Capture time for videos: from the file name if it has one, else the MP4 header, else file mtime.
 
     mtime can be off by hours after copying (seen: exactly 1 h, time zone).
-    shortcut: MP4 creation_time is not read; add a metadata parser if names lack dates.
     """
     if m := NAME_DATE.search(path.stem):
         try:
             return datetime.strptime(m[1] + m[2], "%Y%m%d%H%M%S").isoformat()
         except ValueError:
             pass
-    return datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()
+    return mp4_created(path) or datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()
