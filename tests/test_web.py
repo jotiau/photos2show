@@ -59,6 +59,9 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert client.get(f"/thumb/{items['video.mp4']}?frame=2").headers["content-type"] == "image/jpeg"
     assert client.get(f"/original/{items['video.mp4']}").status_code == 200
     assert client.get("/media/9999").status_code == 404
+    (folder / "burst_3.jpg").rename(tmp_path / "away.jpg")  # deleted after the scan
+    assert client.get(f"/original/{items['burst_3.jpg']}").status_code == 404
+    (tmp_path / "away.jpg").rename(folder / "burst_3.jpg")
 
     # Slideshow: GLM picks, edit by hand, export
     answer = {"picks": [{"id": items["scene_1.jpg"], "reason": "great view"}, {"id": items["scene_2.jpg"]}]}

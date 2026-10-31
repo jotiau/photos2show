@@ -345,7 +345,10 @@ def thumb(media_id: int, frame: int | None = None):
 
 @app.get("/original/{media_id}")
 def original(media_id: int):
-    return FileResponse(_item(media_id)["path"])
+    path = _item(media_id)["path"]
+    if not Path(path).is_file():  # deleted or drive unplugged since the scan
+        raise HTTPException(404)
+    return FileResponse(path)
 
 
 def _picks(request: Request, error: str | None = None) -> HTMLResponse:
