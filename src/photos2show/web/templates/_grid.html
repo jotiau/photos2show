@@ -1,19 +1,21 @@
 <nav class="filters">
   {% for f, n in counts.items() %}
-  <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f }}" hx-target="#grid">
+  <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f | urlencode }}" hx-target="#grid">
     {{ f.replace('_', ' ').replace('tag:', '#') }} <span>{{ n }}</span>
   </button>
   {% endfor %}
 </nav>
 {% if not items %}
 <p class="empty">{% if query %}No photos match “{{ query }}”{% if flag != 'all' %} with this filter{% endif %}.
-{% else %}Nothing here yet – enter a folder and press Analyse.{% endif %}</p>
+{% elif counts.all %}No photos match this filter.
+{% else %}Nothing here yet – analyse the project to see its photos.{% endif %}</p>
 {% endif %}
 <div class="cards">
   {% for it in items %}
   <article class="card {{ 'dim' if it.skip_ai }}" data-id="{{ it.id }}" hx-get="/media/{{ it.id }}" hx-target="#detail">
     <img src="/thumb/{{ it.id }}" loading="lazy" alt="">
     {% if it.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
+    <span id="pick-{{ it.id }}" class="pick" title="Position in the slideshow">{{ '✓ %d' % it.pick if it.pick }}</span>
     <div class="name">#{{ it.id }} {{ it.path | basename }}</div>
     <div class="meta">{{ (it.taken_at or '')[:16].replace('T', ' ') }} · sharp {{ it.metrics.sharpness | round | int }}</div>
     {% if it.ai %}<div class="meta" title="{{ it.ai.caption }}">★ {{ it.ai.aesthetic }}/{{ it.ai.interest }} · {{ (it.ai.tags or [])[:4] | join(', ') }}</div>{% endif %}

@@ -1,6 +1,6 @@
 <button class="close" onclick="this.parentElement.innerHTML=''">×</button>
 <h2 data-id="{{ it.id }}">#{{ it.id }} {{ it.path | basename }}</h2>
-<p class="keys">← → previous / next · A add to slideshow · Esc close</p>
+<p class="keys">← → previous / next · A add to / remove from slideshow · Esc close</p>
 {% if it.kind == 'video' %}
 <video src="/original/{{ it.id }}" controls preload="metadata"></video>
 <div class="frames">
@@ -9,7 +9,7 @@
 {% else %}
 <a href="/original/{{ it.id }}" target="_blank"><img src="/original/{{ it.id }}" alt=""></a>
 {% endif %}
-<button class="add" hx-post="/slideshow/add/{{ it.id }}" hx-swap="outerHTML">Add to slideshow</button>
+{% with id = it.id, picks = {it.id: it.pick} if it.pick else {} %}{% include "_toggle.html" %}{% endwith %}
 <p class="path">{{ it.path }}</p>
 <p>{{ (it.taken_at or 'no date').replace('T', ' ') }} · {{ it.width }}×{{ it.height }}</p>
 <div class="flags">

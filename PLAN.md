@@ -214,7 +214,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
      sibling and triggers its `hx-get`. Ignore keys while focus is in an input/select.
    - Done when: a whole filtered set can be reviewed and curated with the keyboard only.
 
-3. **Show what is already in the slideshow**
+3. **Show what is already in the slideshow** – **done 2026-11-01**
+   - Built: "✓ 3" badge (pick number) on cards, *Add* / *Remove from slideshow* toggle in the detail
+     panel (also on `a`) that renumbers every badge, filter "in slideshow".
    - Today: Library cards don't show if a photo is a pick, and the detail panel always offers
      "Add to slideshow", even for photos already picked.
    - Proposal: a ✓ badge (with the pick number) on cards that are in the slideshow; in the detail
@@ -225,7 +227,9 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
      button plus an out-of-band swap (`hx-swap-oob`) for the card badge.
    - Done when: you can curate the show from the Library without switching to the Slideshow tab to check.
 
-4. **Stop the grid jumping during AI analysis**
+4. **Stop the grid jumping during AI analysis** – **done 2026-11-01 (option b)**
+   - Built: the grid reloads when a phase starts and once at the end; in between the progress bar
+     shows "Show N new results".
    - Today: `/progress` sends `HX-Trigger: analysed` every 2 s while the AI runs, and the whole
      `#grid` (filters + up to ~1000 cards) is re-rendered each time. That is heavy and can move
      the scroll position, change the hovered card and reset what you were looking at.
@@ -316,7 +320,7 @@ All of them stay within the current stack (Jinja2 + HTMX + a little inline JS, n
     - Proposal: a setting (default 2) in the Settings page; the Library bar keeps only
       *Analyse again* and the progress.
 
-17. **Fix outdated empty-state text**
+17. **Fix outdated empty-state text** – **done 2026-11-01**
     - Today: `_grid.html` says "Nothing here yet – enter a folder and press Analyse", but folders
       are now set on the Projects page.
     - Proposal: "Nothing here yet – analyse the project to see its photos" (or the filter-specific

@@ -29,13 +29,13 @@ templates.env.filters["basename"] = lambda p: Path(p).name
 templates.env.globals["settings"] = db.load_settings
 
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
-           "low_contrast", "monotone", "duplicate", "video")
+           "low_contrast", "monotone", "duplicate", "video", "in_slideshow")
 REFRESH = {"HX-Refresh": "true"}
 
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
        "stopping": False, "summary": None, "error": None, "flag": "all", "query": "",
-       "parallel": default_concurrency()}
+       "parallel": default_concurrency(), "grid_phase": "", "grid_done": 0}
 lock = threading.Lock()
 stop = threading.Event()
 
@@ -97,10 +97,15 @@ def _start() -> None:
 def _items() -> list[dict]:
     if not job["folder"] or not Path(job["folder"]).is_dir():
         return []
-    items = db.all_media(db.connect(Path(job["folder"])))
+    items, picks = db.all_media(db.connect(_root())), _pick_numbers()
     for it in items:
-        it["skip_ai"] = skip_ai_reason(it)
+        it["skip_ai"], it["pick"] = skip_ai_reason(it), picks.get(it["id"])
     return items
+
+
+def _pick_numbers() -> dict[int, int]:
+    """media id -> its position in the slideshow (1 = first)."""
+    return {p["id"]: n for n, p in enumerate(slideshow.load(_root())["picks"], 1)}
 
 
 def _matches(it: dict, flag: str) -> bool:
@@ -112,6 +117,8 @@ def _matches(it: dict, flag: str) -> bool:
         return it["skip_ai"] is not None
     if flag == "video":
         return it["kind"] == "video"
+    if flag == "in_slideshow":
+        return it["pick"] is not None
     if flag.startswith("tag:"):
         return flag[4:] in ((it["ai"] or {}).get("tags") or [])
     return flag in it["flags"]
@@ -125,8 +132,14 @@ def _found(it: dict, query: str) -> bool:
     return all(word in text for word in query.lower().split())
 
 
+def _root() -> Path:
+    if not job["folder"]:  # no project open: Path("") would be the server's working directory
+        raise HTTPException(404)
+    return Path(job["folder"])
+
+
 def _item(media_id: int) -> dict:
-    item = db.get_media(db.connect(Path(job["folder"])), media_id) if job["folder"] else None
+    item = db.get_media(db.connect(_root()), media_id)
     if not item:
         raise HTTPException(404)
     return item
@@ -148,6 +161,8 @@ def create_project(name: str = Form(...), folder: str = Form(...)):
     root = Path(folder).expanduser()
     if not name.strip() or not root.is_dir():
         return HTMLResponse(f'<span class="error">Not a folder: {escape(folder)}</span>' if name.strip() else "Name missing")
+    if name.strip() in db.load_projects():  # would silently point the old project at the new folder
+        return HTMLResponse(f'<span class="error">A project called {escape(name.strip())} already exists.</span>')
     if job["running"]:
         return HTMLResponse('<span class="error">Wait until the running analysis is finished.</span>')
     db.save_project(name.strip(), root.resolve())
@@ -248,8 +263,10 @@ def stop_analysis(request: Request):
 @app.get("/progress", response_class=HTMLResponse)
 def progress(request: Request):
     resp = templates.TemplateResponse(request, "_progress.html", {"job": job})
-    if not job["running"] or job["phase"] != "Scanning":
-        resp.headers["HX-Trigger"] = "analysed"  # tells the grid to reload, live while AI results come in
+    # Reload the grid when a phase starts and once at the end; in between a "Show N new results" button,
+    # so browsing during a long AI run doesn't jump.
+    if not job["running"] or job["phase"] != job["grid_phase"]:
+        resp.headers["HX-Trigger"] = "analysed"
     return resp
 
 
@@ -257,6 +274,7 @@ def progress(request: Request):
 def grid(request: Request, flag: str | None = None, q: str | None = None):
     flag = job["flag"] = flag or job["flag"]  # remembered so live reloads keep the filter
     query = job["query"] = (job["query"] if q is None else q).strip()  # q="" clears the search
+    job.update(grid_phase=job["phase"], grid_done=job["done"])  # what the grid shows: newer = "new results"
     items = [it for it in _items() if _found(it, query)]
     counts = {f: sum(_matches(it, f) for it in items) for f in FILTERS}
     if flag.startswith("tag:"):
@@ -269,7 +287,7 @@ def grid(request: Request, flag: str | None = None, q: str | None = None):
 @app.get("/media/{media_id}", response_class=HTMLResponse)
 def detail(request: Request, media_id: int):
     item = _item(media_id)
-    item["skip_ai"] = skip_ai_reason(item)
+    item["skip_ai"], item["pick"] = skip_ai_reason(item), _pick_numbers().get(media_id)
     best = item["duplicate_of"] or item["id"]
     scene = [it for it in _items() if (it["duplicate_of"] or it["id"]) == best and it["id"] != item["id"]]
     return templates.TemplateResponse(request, "_detail.html", {"it": item, "scene": scene})
@@ -338,29 +356,32 @@ def save_setting(key: str = Form(...), value: str = Form(...)):
 def thumb(media_id: int, frame: int | None = None):
     item = _item(media_id)
     name = item["thumb"] if frame is None else item["thumb"].replace(".jpg", f"_f{frame}.jpg")
-    return FileResponse(db.library_dir(Path(job["folder"])) / "thumbs" / name)
+    return FileResponse(db.library_dir(_root()) / "thumbs" / name)
 
 
 @app.get("/original/{media_id}")
 def original(media_id: int):
-    return FileResponse(_item(media_id)["path"])
+    path = _item(media_id)["path"]
+    if not Path(path).is_file():  # deleted or drive unplugged since the scan
+        raise HTTPException(404)
+    return FileResponse(path)
 
 
 def _picks(request: Request, error: str | None = None) -> HTMLResponse:
-    conn = db.connect(Path(job["folder"]))
+    conn = db.connect(_root())
     picks = [{"item": it, "reason": p["reason"]}
-             for p in slideshow.load(Path(job["folder"]))["picks"] if (it := db.get_media(conn, p["id"]))]
+             for p in slideshow.load(_root())["picks"] if (it := db.get_media(conn, p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
         "picks": picks, "error": error, "minutes": len(picks) * slideshow.SECONDS_PER_PHOTO / 60,
         "seconds": slideshow.SECONDS_PER_PHOTO,
-        "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}, "can_undo": slideshow.can_undo(Path(job["folder"]))})
+        "sorts": {k: v[0] for k, v in slideshow.SORTS.items()}, "can_undo": slideshow.can_undo(_root())})
 
 
 @app.get("/slideshow", response_class=HTMLResponse)
 def slideshow_page(request: Request):
     if not job["folder"]:
         return _page(request, "slideshow.html", page="slideshow", selection=None)
-    selection = slideshow.load(Path(job["folder"]))
+    selection = slideshow.load(_root())
     return _page(request, "slideshow.html", page="slideshow", selection=selection,
                  default_target=selection.get("exported_to") or f"{job['folder']}_slideshow")
 
@@ -372,31 +393,31 @@ def picks(request: Request):
 
 @app.post("/slideshow/select", response_class=HTMLResponse)
 def select(request: Request, description: str = Form(...)):
-    root = Path(job["folder"])
+    root = _root()
     try:
         picks = slideshow.select(db.connect(root), description)
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
-    slideshow.change(root, {**slideshow.load(root), "description": description, "picks": picks, "refinements": []})
+    slideshow.update(root, lambda s: {**s, "description": description, "picks": picks, "refinements": []})
     return _picks(request)
 
 
 @app.post("/slideshow/refine", response_class=HTMLResponse)
 def refine(request: Request, instruction: str = Form(...)):
-    root = Path(job["folder"])
+    root = _root()
     selection = slideshow.load(root)
     try:
         picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction)
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
-    refinements = [*selection.get("refinements", []), instruction]  # kept for selection.json in the export
-    slideshow.change(root, {**selection, "picks": picks, "refinements": refinements})
+    # refinements: kept for selection.json in the export
+    slideshow.update(root, lambda s: {**s, "picks": picks, "refinements": [*s.get("refinements", []), instruction]})
     return _picks(request)
 
 
 @app.post("/slideshow/undo", response_class=HTMLResponse)
 def undo(request: Request):
-    slideshow.undo(Path(job["folder"]))
+    slideshow.undo(_root())
     return _picks(request)
 
 
@@ -404,25 +425,22 @@ def undo(request: Request):
 def sort(request: Request, by: str = Form(...)):
     if by not in slideshow.SORTS:
         raise HTTPException(400)
-    root = Path(job["folder"])
-    conn, selection = db.connect(root), slideshow.load(root)
-    items = {p["id"]: it for p in selection["picks"] if (it := db.get_media(conn, p["id"]))}
-    slideshow.change(root, {**selection, "picks": slideshow.sort(selection["picks"], items, by)})
+    root = _root()
+    items = {it["id"]: it for it in db.all_media(db.connect(root))}
+    slideshow.update(root, lambda s: {**s, "picks": slideshow.sort(s["picks"], items, by)})
     return _picks(request)
 
 
 @app.post("/slideshow/move", response_class=HTMLResponse)
 def move(request: Request, id: int = Form(...), to: int = Form(...)):
-    root = Path(job["folder"])
-    selection = slideshow.load(root)
-    slideshow.change(root, {**selection, "picks": slideshow.move(selection["picks"], id, to)})
+    slideshow.update(_root(), lambda s: {**s, "picks": slideshow.move(s["picks"], id, to)})
     return _picks(request)
 
 
 @app.post("/slideshow/export", response_class=HTMLResponse)
 def export(target: str = Form(...), replace: bool = Form(False)):
     try:
-        n = slideshow.export(Path(job["folder"]), Path(target), replace)
+        n = slideshow.export(_root(), Path(target), replace)
     except (ValueError, OSError) as e:  # OSError: full USB stick, no write rights – htmx shows nothing for a 500
         return HTMLResponse(f'<span class="error">{escape(str(e))}</span>')
     return HTMLResponse(f"Exported {n} files to {escape(str(Path(target).expanduser()))} "
@@ -432,7 +450,7 @@ def export(target: str = Form(...), replace: bool = Form(False)):
 @app.post("/slideshow/open-export", response_class=HTMLResponse)
 def open_export():
     """Show the last export in the system file manager; only that folder, never a path from the request."""
-    folder = slideshow.load(Path(job["folder"])).get("exported_to")
+    folder = slideshow.load(_root()).get("exported_to")
     try:
         if not folder or not Path(folder).is_dir():
             raise FileNotFoundError("The export folder is gone.")
@@ -449,10 +467,12 @@ def open_export():
 def edit(request: Request, action: str, media_id: int):
     if action not in ("add", "remove"):
         raise HTTPException(404)
-    root = Path(job["folder"])
-    selection = slideshow.load(root)
-    slideshow.change(root, {**selection, "picks": slideshow.edit(selection["picks"], action, _item(media_id)["id"])})
-    return HTMLResponse("In slideshow ✓") if action == "add" else _picks(request)
+    media_id = _item(media_id)["id"]  # 404 for an unknown id
+    slideshow.update(_root(), lambda s: {**s, "picks": slideshow.edit(s["picks"], action, media_id)})
+    if request.headers.get("hx-target") == "picks":  # × on the Slideshow page
+        return _picks(request)
+    # Library: the new toggle plus every card badge, as numbers shift after a removal
+    return templates.TemplateResponse(request, "_toggle.html", {"id": media_id, "picks": _pick_numbers()})
 
 
 def main() -> None:

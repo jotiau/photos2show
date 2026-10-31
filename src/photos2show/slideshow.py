@@ -2,6 +2,7 @@
 import json
 import re
 import shutil
+import threading
 from pathlib import Path
 
 from photos2show import ai, db
@@ -131,6 +132,16 @@ def _previous(root: Path) -> Path:
     return db.library_dir(root) / "selection.prev.json"
 
 
+# FastAPI runs routes in parallel threads: two quick edits must not both start from the same old file.
+lock = threading.Lock()
+
+
+def update(root: Path, fn) -> None:
+    """Apply fn(selection) -> new selection under the lock, keeping one step of undo."""
+    with lock:
+        change(root, fn(load(root)))
+
+
 def change(root: Path, selection: dict) -> None:
     """Save an edit of the picks and keep the list before it for one step of undo."""
     old = load(root)
@@ -146,7 +157,9 @@ def can_undo(root: Path) -> bool:
 def undo(root: Path) -> None:
     """Restore the picks before the last change (one step); the export folder stays remembered."""
     f = _previous(root)
-    if f.exists():
+    with lock:
+        if not f.exists():
+            return
         current = load(root)
         save(root, {**json.loads(f.read_text()), **({"exported_to": current["exported_to"]}
                                                     if "exported_to" in current else {})})
@@ -155,11 +168,12 @@ def undo(root: Path) -> None:
 
 def forget(root: Path, gone: set[int]) -> None:
     """Drop deleted files from the picks and the undo copy: SQLite gives a deleted top id to the next new file."""
-    for f in (db.library_dir(root) / "selection.json", _previous(root)):
-        if f.exists():
-            selection = json.loads(f.read_text())
-            if any(p["id"] in gone for p in selection["picks"]):
-                db.write_json(f, {**selection, "picks": [p for p in selection["picks"] if p["id"] not in gone]})
+    with lock:
+        for f in (db.library_dir(root) / "selection.json", _previous(root)):
+            if f.exists():
+                selection = json.loads(f.read_text())
+                if any(p["id"] in gone for p in selection["picks"]):
+                    db.write_json(f, {**selection, "picks": [p for p in selection["picks"] if p["id"] not in gone]})
 
 
 EXPORTED = re.compile(r"\d{3}_.+")  # file names written by export()
@@ -192,5 +206,6 @@ def export(root: Path, target: Path, replace: bool = False) -> int:
         slug = re.sub(r"[^a-z0-9]+", "-", " ".join(((it["ai"] or {}).get("tags") or [])[:2]).lower()).strip("-")
         shutil.copy2(src, target / f"{n:03d}_{(it['taken_at'] or '')[:10]}_{slug or 'photo'}{src.suffix.lower()}")
     db.write_json(target / "selection.json", {k: v for k, v in selection.items() if k != "exported_to"})
-    save(root, {**selection, "exported_to": str(target)})  # suggested again for the next export
+    with lock:  # re-read: picks may have been edited while copying
+        save(root, {**load(root), "exported_to": str(target)})  # suggested again for the next export
     return len(items)

@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -149,3 +150,11 @@ def test_export_again_replaces_only_an_earlier_export(described, tmp_path):
     with pytest.raises(ValueError, match="not from an export"):
         slideshow.export(folder, other, replace=True)
     assert (show / "my notes.txt").exists() and (other / "001_mine.jpg").exists()
+
+
+def test_parallel_edits_are_not_lost(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    add = lambda i: slideshow.update(tmp_path, lambda s: {**s, "picks": slideshow.edit(s["picks"], "add", i)})  # noqa: E731
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(add, range(40)))
+    assert sorted(p["id"] for p in slideshow.load(tmp_path)["picks"]) == list(range(40))
