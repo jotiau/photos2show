@@ -216,6 +216,12 @@ tests/
 5. **Full width** like the Library (drop the 1100 px cap); tiles the Library size (180 px).
 6. **Calmer tiles**: reason up to two lines; × as a small overlay at the top-right corner;
    ← → stay always visible but smaller (keyboard and touch need them; drag is mouse-only).
+7. **▶ Play fills the window**: every photo and video scales to the window size, smaller ones
+   enlarged too (today only `max-width/max-height: 100%`, so small files stay small), aspect ratio
+   kept, black bars where it does not fit; follows window resizes.
+8. **Player control panel** on screen, not only keys: ⏮ previous · ⏯ hold/continue · ⏭ next ·
+   ✕ close, plus "3 / 42". Shows with the reason on mouse move or tap, fades out after a few
+   seconds; keys ← → Space Esc keep working.
 
 ## Next: smaller visual improvements (agreed with the user, 2026-11-01)
 1. **Library path**: the toolbar shows only the folder name; the full path on hover.
