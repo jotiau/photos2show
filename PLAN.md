@@ -147,7 +147,7 @@ per page; destructive actions red.
   remove, "⇄ N other shots" to swap a pick for another shot of its scene (same place and reason);
   lightbox with ← → through the picks; *▶ Play* fills the window, with the reason and a control
   panel (back, hold, forward, close) on mouse move or tap; keys ← → Space Esc.
-- **Settings**: theme, parallel AI requests, review duplicates before AI, photo details for choosing
+- **Settings**: theme (auto / light / dark / grey), accent colour, parallel AI requests, review duplicates before AI, photo details for choosing
   (each with a help line); delete cached data of folders
   no project uses.
 

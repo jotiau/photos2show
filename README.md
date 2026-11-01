@@ -187,7 +187,7 @@ Under *Edit*, rename a project or point it to another photo folder (e.g. after m
 data folder, so creating a project for the same folder again picks them up, unless you tick *also delete saved
 AI results* (kept anyway while another project uses the same folder).
 
-The *Settings* tab has the colour theme (auto follows your system, or light / dark), the number of
+The *Settings* tab has the colour theme (auto follows your system, or light / dark / a neutral grey), an accent colour, the number of
 parallel AI requests (1 = strictly one by one; local models usually want 1), *Review duplicates before AI*
 (on by default: Analyse pauses so you can pick the best shot of each new group or let the AI compare them;
 off: the technically best shot is used without asking), *Photo details for choosing* (how much the
