@@ -93,8 +93,12 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
    "people_count": 2, "aesthetic": 1-10, "interest": 1-10, "issues": ["closed eyes", "tilted horizon"]}
   ```
 - Use `response_format={"type": "json_object"}`; if the server rejects JSON mode, the request is
-  sent again without it and the answer is parsed leniently. An unusable answer (not a JSON object)
-  counts as failed and is retried on the next run.
+  sent again without it and the answer is parsed leniently. `AI_THINKING=off` adds
+  `reasoning_effort: none` (Ollama) and `chat_template_kwargs.enable_thinking: false` (vLLM, SGLang,
+  llama.cpp) to every request; a server that rejects them gets a last, plain request (no JSON mode,
+  no fields), so a wrong guess about the server only costs speed. Default `on` sends neither,
+  because thinking is a model property and unknown fields can break strict servers.
+  An unusable answer (not a JSON object) counts as failed and is retried on the next run.
 - **Two passes:** pass 1 (steps 1–3, local, fast) runs over all files first, because the best
   image of a scene is only known once its neighbours are scanned. Pass 2 then sends the remaining
   images to the LLM in small parallel batches (Settings → *Parallel AI requests*, default from
@@ -184,7 +188,7 @@ per page; destructive actions red.
 - SQLite via stdlib `sqlite3`
 - `pytest` for tests
 - Config via `.env`: `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL` (`prod` on the BLUM server),
-  `AI_CONCURRENCY`, `PHOTOS2SHOW_CACHE` (data folder, default `~/.local/share/photos2show`)
+  `AI_CONCURRENCY`, `AI_THINKING`, `PHOTOS2SHOW_CACHE` (data folder, default `~/.local/share/photos2show`)
 
 ## Project layout
 ```

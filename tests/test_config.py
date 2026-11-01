@@ -1,6 +1,6 @@
 import pytest
 
-from photos2show.config import cache_root, default_concurrency, load_settings
+from photos2show.config import cache_root, default_concurrency, load_settings, thinking
 
 
 def test_env_references_are_expanded_and_bad_urls_refused(monkeypatch):
@@ -40,3 +40,13 @@ def test_bad_ai_concurrency_is_refused_clearly(monkeypatch, value):
         default_concurrency()
     monkeypatch.setenv("AI_CONCURRENCY", " 4 ")
     assert default_concurrency() == 4
+
+
+def test_ai_thinking_is_on_unless_switched_off(monkeypatch):
+    monkeypatch.delenv("AI_THINKING", raising=False)
+    assert thinking() is True
+    monkeypatch.setenv("AI_THINKING", " OFF ")
+    assert thinking() is False
+    monkeypatch.setenv("AI_THINKING", "no")
+    with pytest.raises(SystemExit, match="AI_THINKING"):
+        thinking()
