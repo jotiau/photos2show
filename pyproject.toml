@@ -26,6 +26,7 @@ dependencies = [
     "pillow-heif>=1.8.1",
     "python-dotenv>=1.0",
     "python-multipart>=0.0.32",
+    "rawpy>=0.28.0",
     "uvicorn>=0.54.0",
 ]
 

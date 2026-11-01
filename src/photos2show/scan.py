@@ -1,19 +1,25 @@
 """Find media files, read capture dates, extract video frames."""
 import functools
+import os
 import re
 import struct
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import cv2
+import rawpy
 from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 
 register_heif_opener()  # Image.open() reads iPhone HEIC photos like JPEGs, EXIF included
 
 HEIF_EXT = {".heic", ".heif"}
-IMAGE_EXT = {".jpg", ".jpeg"} | HEIF_EXT
-VIDEO_EXT = {".mp4"}
+BROWSER_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif", ".bmp"}  # others are sent as JPEG
+RAW_EXT = {".dng", ".cr2", ".cr3", ".nef", ".nrw", ".arw", ".orf", ".rw2", ".raf", ".pef", ".srw"}  # via LibRaw
+IMAGE_EXT = BROWSER_IMAGE_EXT | HEIF_EXT | RAW_EXT | {".tif", ".tiff"}
+MP4_EXT = {".mp4", ".mov", ".m4v", ".3gp"}  # ISO/QuickTime boxes: mp4_created() can read their date
+VIDEO_EXT = MP4_EXT | {".avi", ".mkv", ".webm", ".mts", ".m2ts", ".wmv", ".mpg", ".mpeg"}
 VIDEO_POSITIONS = (0.1, 0.5, 0.9)  # sampled frames, as fraction of the duration
 LOAD_EDGE = 2048  # decode JPEGs at reduced size; analysis and thumbnails need less
 
@@ -33,6 +39,10 @@ def is_video(path: Path) -> bool:
 
 def read_image(path: Path) -> tuple[Image.Image, str | None, tuple[int, int]]:
     """Return (oriented RGB image, capture time as ISO string or None, original size)."""
+    if path.suffix.lower() in RAW_EXT:
+        img, taken, size = read_raw(path)
+        img.thumbnail((LOAD_EDGE, LOAD_EDGE))
+        return img, taken, size
     img = Image.open(path)
     size = img.size
     exif = img.getexif()
@@ -49,6 +59,17 @@ def read_image(path: Path) -> tuple[Image.Image, str | None, tuple[int, int]]:
     if exif.get(274, 1) in (5, 6, 7, 8):  # rotated by 90°
         size = size[::-1]
     return img, taken, size
+
+
+def read_raw(path: Path, half_size: bool = True) -> tuple[Image.Image, str | None, tuple[int, int]]:
+    """A camera RAW file developed by LibRaw (rotated, camera white balance), like read_image().
+    half_size: 4x faster, plenty for analysis and previews; the export develops at full size."""
+    with rawpy.imread(str(path)) as raw:
+        s = raw.sizes  # before postprocess(): half_size halves them
+        rgb = raw.postprocess(half_size=half_size, use_camera_wb=True)
+        stamp = raw.other.timestamp  # EXIF capture time, read as local time like read_image()
+    size = (s.height, s.width) if s.flip in (5, 6) else (s.width, s.height)  # 5, 6: rotated by 90°
+    return Image.fromarray(rgb), stamp.isoformat() if stamp and stamp.year > 1970 else None, size
 
 
 def read_video_frames(path: Path) -> tuple[list[Image.Image], tuple[int, int]]:
@@ -133,8 +154,10 @@ def mp4_created(path: Path) -> str | None:
 
 
 def file_time(path: Path) -> str:
-    """Capture time for videos: from the file name if it has one, else the MP4 header, else file mtime.
+    """Capture time of a video or an image without EXIF date: from the file name if it has one,
+    else the MP4 header (videos), else the earlier of file creation and modification time.
 
+    Copying sets the creation time to the copy date but usually keeps mtime; editing does the reverse.
     mtime can be off by hours after copying (seen: exactly 1 h, time zone).
     """
     if m := NAME_DATE.search(path.stem):
@@ -142,4 +165,19 @@ def file_time(path: Path) -> str:
             return datetime.strptime(m[1] + m[2], "%Y%m%d%H%M%S").isoformat()
         except ValueError:
             pass
-    return mp4_created(path) or datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()
+    if path.suffix.lower() in MP4_EXT and (header := mp4_created(path)):
+        return header
+    st = path.stat()
+    t = min(filter(None, (birth_time(path, st), st.st_mtime)))
+    return datetime.fromtimestamp(t).replace(microsecond=0).isoformat()
+
+
+def birth_time(path: Path, st: os.stat_result) -> float | None:
+    """File creation time, None if the system or file system doesn't keep it."""
+    if hasattr(st, "st_birthtime"):  # macOS, Windows
+        return st.st_birthtime or None
+    try:  # Linux: Python < 3.15 can't read it, GNU stat can (0 or "-" when unknown)
+        out = subprocess.run(["stat", "-c", "%W", str(path)], capture_output=True, text=True, check=True).stdout
+        return float(out) or None
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return None

@@ -13,7 +13,7 @@ result, deviation from this plan), stop and come back to ask before proceeding �
 | Topic | Decision |
 |---|---|
 | AI model | Self-hosted **GLM-5.3 Flash** via OpenAI-compatible API (natively multimodal: image input, ~1M context) |
-| Input | Several hundred JPGs + some MP4s (videos: a few sampled frames only) |
+| Input | Several hundred photos + some videos in the common formats incl. camera RAW (videos: a few sampled frames only) |
 | Output | Sorted folder with copied, numbered files (originals untouched) |
 | UI | Simple local web UI from the start |
 | Faces / people | Not in scope – possible future feature |
@@ -31,16 +31,27 @@ folder ─► 1 Scan ─► 2 Quality ─► 3 Dedup ─► 4 AI analysis ─►
 ```
 
 ### 1. Scan
-- Walk folder recursively for `.jpg/.jpeg`, `.heic/.heif` (via `pillow-heif`) and `.mp4`. Browsers
-  other than Safari can't show HEIC, so `/original` sends HEIC as a JPEG; export copies the `.heic`.
-- Read EXIF `DateTimeOriginal` with Pillow; apply EXIF orientation (camera/GPS not read yet).
+- Walk folder recursively (hidden folders skipped) for photos: JPEG, PNG, WebP, AVIF, GIF (first
+  frame), BMP, TIFF, HEIC/HEIF (via `pillow-heif`) and camera RAW (DNG, CR2, CR3, NEF, NRW, ARW, ORF,
+  RW2, RAF, PEF, SRW via `rawpy`/LibRaw); videos: MP4, MOV, M4V, 3GP, AVI, MKV, WebM, MTS/M2TS, WMV,
+  MPG. A folder without any of them shows "No photos or videos found" instead of an empty result.
+- Browsers can't show HEIC, TIFF or RAW, so `/original` sends those as a JPEG. Browsers play only
+  some video formats (MP4/WebM everywhere, MOV/MKV mostly); the others still get analysed, the
+  detail panel shows their sampled frames and the slideshow preview skips them.
+- RAW: developed by LibRaw at half size (camera white balance, rotation applied; ~0.25 s per photo)
+  for analysis, previews and the AI; date from its EXIF via LibRaw.
+- Read EXIF `DateTimeOriginal` with Pillow; apply EXIF orientation (camera/GPS not read yet). Photos
+  without an EXIF date (screenshots, most PNGs) are dated like videos (below); already scanned
+  undated photos get that date on the next scan without a re-analysis.
 - Thumbnails: ~400 px for the grid, saved in the cache. The ~1024 px image for the LLM is only
   encoded in memory; a ~1024 px preview for the detail panel is made on first view and cached.
   A changed or deleted file loses its thumbnail, video frames and preview.
 - Videos: OpenCV `VideoCapture` grabs frames at 10 % / 50 % / 90 % of duration; the sharpest
   frame represents the video. Date: from the phone-style file name (`YYYYMMDD_HHMMSS`), else
-  the MP4 movie header `creation_time` (UTC, shown in local time), else file mtime (mtime was 1 h
-  off for copied Norway videos). The name goes first: it is the phone's local time like the photo
+  the MP4 movie header `creation_time` (MP4, MOV, M4V, 3GP; UTC, shown in local time), else the
+  earlier of file creation and modification time: copying resets creation (all Norway photos and
+  screenshots showed the copy day) while editing resets mtime; mtime was 1 h off for copied Norway
+  videos. Linux: creation time via GNU `stat -c %W` (Python < 3.15 can't read it there). The name goes first: it is the phone's local time like the photo
   EXIF, while the header is absolute and differed by 1 h for 2 Norway clips. Cached videos are
   re-dated on every scan without a full re-analysis. Video length (for the slideshow) is read
   when needed and cached by path + mtime.
@@ -154,8 +165,9 @@ per page; destructive actions red.
 ### 7. Export
 - Copy to a new, empty folder outside the photo folder (default: the last export folder, else
   `<photo folder>_slideshow`) as
-  `001_2026-07-14_beach-sunset.jpg` (videos copied as `.mp4` in their slot). Never move or
-  modify originals.
+  `001_2026-07-14_beach-sunset.jpg` (other files copied as they are, e.g. `.mp4`, `.heic`, in their
+  slot). RAW photos are developed to a full-size JPEG (quality 92), since TVs and slideshow apps
+  can't show RAW. Never move or modify originals.
 - Write `selection.json` (prompt, ids, reasons) next to it for reproducibility.
 - *Replace previous export*: a non-empty folder is emptied first, but only if it holds a
   `selection.json` and otherwise just `NNN_…` files; anything else is refused.
@@ -164,7 +176,7 @@ per page; destructive actions red.
 
 ## Tech stack
 - Python ≥ 3.12 managed with `uv` (no torch needed, so 3.14 works)
-- `pillow`, `opencv-python-headless`, `numpy`, `imagehash`
+- `pillow`, `pillow-heif` (HEIC), `rawpy` (camera RAW via LibRaw), `opencv-python-headless`, `numpy`, `imagehash`
 - `openai` (client with custom `base_url`, thread pool for concurrency)
 - `fastapi`, `uvicorn`, `jinja2`, HTMX (vendored static file)
 - SQLite via stdlib `sqlite3`
@@ -178,7 +190,7 @@ pyproject.toml
 src/photos2show/
   config.py     # settings from .env
   db.py         # SQLite schema + cache, projects, app settings
-  scan.py       # file walk, EXIF, video frames, dates and length
+  scan.py       # file walk, EXIF, RAW developing, video frames, dates and length
   quality.py    # classic metrics + flags
   dedup.py      # phash clustering
   pipeline.py   # pass 1 (scan, thumbnails, flags) and pass 2 (LLM descriptions)
@@ -197,7 +209,6 @@ tests/
 - Local CLIP embeddings for fast semantic search and better duplicate grouping
 - Learned IQA models (pyiqa: MUSIQ/TOPIQ/NIMA) if GLM aesthetic scores prove noisy
 - Deeper video handling (scene detection, picking clips)
-- RAW support
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
 

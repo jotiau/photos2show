@@ -5,9 +5,11 @@ Usage: photos2show-smoke [IMAGE]   (without IMAGE a synthetic test picture is us
 import json
 import sys
 import time
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from photos2show import scan
 from photos2show.ai import analyse_image, make_client
 from photos2show.config import load_settings
 
@@ -35,7 +37,7 @@ def main() -> None:
         print(f"Could not list models ({e.__class__.__name__}); continuing.")
 
     if len(sys.argv) > 1:
-        img = Image.open(sys.argv[1])
+        img = scan.read_image(Path(sys.argv[1]))[0]  # any supported photo, RAW and HEIC too, rotated
         print(f"Image: {sys.argv[1]}")
     else:
         img = synthetic_image()

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, TiffImagePlugin
 
 SIZE = (1600, 1200)
 START = datetime(2026, 8, 11, 9, 0, 0)
@@ -53,6 +53,15 @@ def save_jpg(img: Image.Image, path: Path, taken: datetime) -> None:
     exif = Image.Exif()
     exif.get_ifd(0x8769)[36867] = taken.strftime("%Y:%m:%d %H:%M:%S")
     img.save(path, "JPEG", quality=90, exif=exif)
+
+
+def save_dng(img: Image.Image, path: Path, taken: datetime, orientation: int = 1) -> None:
+    """A minimal camera RAW file (linear DNG) that LibRaw develops: tests need no real camera files."""
+    info = TiffImagePlugin.ImageFileDirectory_v2()
+    info[50706], info.tagtype[50706] = b"\x01\x04\x00\x00", 1  # DNGVersion 1.4 (BYTE)
+    info[262], info[274] = 34892, orientation  # PhotometricInterpretation: LinearRaw
+    info[271], info[272], info[306] = "Test", "Camera", taken.strftime("%Y:%m:%d %H:%M:%S")
+    img.convert("RGB").save(path, "TIFF", tiffinfo=info)
 
 
 def save_video(path: Path, seed: int) -> None:

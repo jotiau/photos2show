@@ -223,3 +223,22 @@ def test_chosen_best_shot_survives_regrouping(tmp_path, monkeypatch):
     best = items["burst_2.jpg"]["id"]
     assert items["burst_2.jpg"]["duplicate_of"] is None and "duplicate" not in items["burst_2.jpg"]["flags"]
     assert items["burst_1.jpg"]["duplicate_of"] == best and items["burst_3.jpg"]["duplicate_of"] == best
+
+
+def test_image_without_exif_date_gets_the_file_date_also_when_cached(tmp_path, monkeypatch):
+    import os
+    from datetime import datetime
+
+    from PIL import Image
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = tmp_path / "photos"
+    folder.mkdir()
+    Image.new("RGB", (64, 48), "blue").save(folder / "shot.png")
+    os.utime(folder / "shot.png", (0, datetime(2026, 7, 14, 9, 30).timestamp()))
+    analyse_folder(folder)
+    assert items_by_name(folder)["shot.png"]["taken_at"] == "2026-07-14T09:30:00"
+    conn = db.connect(folder)  # a row scanned before this fallback existed
+    conn.execute("UPDATE media SET taken_at = NULL")
+    conn.commit()
+    assert analyse_folder(folder)["analysed"] == 0  # no full re-scan
+    assert items_by_name(folder)["shot.png"]["taken_at"] == "2026-07-14T09:30:00"
