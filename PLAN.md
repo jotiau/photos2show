@@ -70,7 +70,7 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
   and the detail panel; clicking another shot overrules it, and a later run never compares again on its own.
   If the request fails, the error shows under the group and the best stays as it was.
 - The user can override it (`chosen` column, kept across regrouping): *Make this the best shot* in the
-  detail panel describes the new best right away; with *Review duplicates before AI* on, Analyse pauses
+  detail panel describes the new best right away; with *Review duplicates before AI* on (default), Analyse pauses
   after the scan and shows every group without a description so the best can be picked before the AI pass.
 
 ### 4. AI analysis (GLM-5.3 Flash, per image)
