@@ -1,0 +1,8 @@
+<div class="review-scene">
+  {% for s in scene %}
+  <button class="shot {{ 'best' if not s.duplicate_of }}" hx-post="/best/{{ s.id }}" hx-target="closest .review-scene"
+    hx-swap="outerHTML" title="#{{ s.id }} {{ s.path | basename }}" aria-pressed="{{ 'false' if s.duplicate_of else 'true' }}">
+    <img src="/thumb/{{ s.id }}" alt="{{ s.path | basename }}">{% if not s.duplicate_of %}<span>best</span>{% endif %}
+  </button>
+  {% endfor %}
+</div>

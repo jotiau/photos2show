@@ -27,7 +27,9 @@ def same_scene(a: dict, b: dict) -> bool:
 
 
 def best_of_clusters(items: list[dict]) -> dict[int, int]:
-    """items: dicts with id, phash, taken_at, width, height, score. Returns {id: best id of its cluster}."""
+    """items: dicts with id, phash, taken_at, width, height, score, chosen. Returns {id: best id of its cluster}.
+
+    The best is the shot the user chose (chosen=1), else the one with the highest technical score."""
     parent = {it["id"]: it["id"] for it in items}
 
     def find(x):
@@ -46,7 +48,7 @@ def best_of_clusters(items: list[dict]) -> dict[int, int]:
         clusters.setdefault(find(it["id"]), []).append(it)
     best = {}
     for members in clusters.values():
-        winner = max(members, key=lambda it: it["score"])["id"]
+        winner = max(members, key=lambda it: (bool(it.get("chosen")), it["score"]))["id"]
         for it in members:
             best[it["id"]] = winner
     return best

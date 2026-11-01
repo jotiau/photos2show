@@ -227,3 +227,14 @@ dialog.confirm form { flex-direction: column; align-items: stretch; }
 dialog.confirm label { color: var(--muted); }
 dialog.confirm .buttons { display: flex; gap: 6px; justify-content: flex-end; }
 @media (max-width: 760px) { .project.card-row { flex-direction: column; } }
+
+dialog.review { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text);
+  width: min(900px, calc(100vw - 32px)); max-height: 90vh; padding: 0 16px; }
+dialog.review .buttons { display: flex; gap: 6px; justify-content: flex-end; position: sticky; bottom: 0;
+  background: var(--panel); padding: 10px 0; }
+.review-scene { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.review-scene .shot { position: relative; padding: 0; border: 3px solid transparent; border-radius: 4px; background: none; cursor: pointer; }
+.review-scene .shot.best { border-color: var(--ok); }
+.review-scene img { display: block; width: 160px; height: 120px; object-fit: contain; }
+.review-scene .shot span { position: absolute; top: 4px; left: 4px; background: var(--ok); color: #fff;
+  font-size: 12px; padding: 0 4px; border-radius: 3px; }

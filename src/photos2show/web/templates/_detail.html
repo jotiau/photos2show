@@ -24,6 +24,9 @@
 </div>
 {% if it.ai.issues %}<p>Issues: {{ it.ai.issues | join(', ') }}</p>{% endif %}
 {% elif it.skip_ai %}<p>Not sent to AI: {{ it.skip_ai }}</p>
+{% elif it.id in describing and describing[it.id] %}<p class="error">AI description failed: {{ describing[it.id] }}.
+  <em>Analyse</em> tries again.</p>
+{% elif it.id in describing %}<p hx-get="/describing/{{ it.id }}" hx-trigger="every 2s">Describing with AI…</p>
 {% else %}<p>Waiting for AI description</p>{% endif %}
 <details class="tech"><summary>Technical details</summary>
 <table>
@@ -33,6 +36,8 @@
 </details>
 {% if scene %}
 <h3>Same scene</h3>
+{% if it.duplicate_of %}<p>Not the best shot of this scene (green).
+  <button hx-post="/best/{{ it.id }}" hx-target="#detail">Make this the best shot</button></p>{% endif %}
 <div class="frames">
   {% for s in scene %}
   <img src="/thumb/{{ s.id }}" title="#{{ s.id }}" hx-get="/media/{{ s.id }}" hx-target="#detail" class="{{ 'best' if not s.duplicate_of }}">

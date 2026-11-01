@@ -208,3 +208,18 @@ def test_grouping_runs_only_when_something_changed(library, monkeypatch):
     conn.commit()
     analyse_folder(folder)
     assert calls == [1] and items_by_name(folder)["burst_2.jpg"]["flags"] == ["duplicate"]
+
+
+def test_chosen_best_shot_survives_regrouping(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = testdata.generate(tmp_path / "photos")
+    analyse_folder(folder)
+    conn = db.connect(folder)
+    pipeline.choose_best(conn, items_by_name(folder)["burst_2.jpg"]["id"])
+    conn.execute("UPDATE media SET flags = NULL")  # as after a changed file: the next scan regroups
+    conn.commit()
+    analyse_folder(folder)
+    items = items_by_name(folder)
+    best = items["burst_2.jpg"]["id"]
+    assert items["burst_2.jpg"]["duplicate_of"] is None and "duplicate" not in items["burst_2.jpg"]["flags"]
+    assert items["burst_1.jpg"]["duplicate_of"] == best and items["burst_3.jpg"]["duplicate_of"] == best
