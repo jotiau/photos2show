@@ -24,7 +24,7 @@
   {{ time_left() }}
   <button hx-post="/analyse/stop" hx-target="#progress" hx-swap="outerHTML">Stop</button>
   {% set new = job.done - job.grid_done if job.phase == job.grid_phase and job.phase != 'Scanning' else 0 %}
-  {% if new > 0 %}<button hx-get="/grid" hx-target="#grid">Show {{ new }} new result{{ 's' if new != 1 }}</button>{% endif %}
+  {% if new > 0 %}<button hx-get="/grid" hx-target="#grid" hx-swap="innerHTML">Show {{ new }} new result{{ 's' if new != 1 }}</button>{% endif %}
   {% endif %}
 </div>
 {% elif job.error %}
