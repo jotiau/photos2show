@@ -10,6 +10,7 @@ class Settings:
     base_url: str
     api_key: str
     model: str
+    thinking: bool = True
 
 
 def load_settings() -> Settings:
@@ -23,7 +24,16 @@ def load_settings() -> Settings:
         base_url=base_url,
         api_key=os.path.expandvars(os.environ.get("OPENAI_API_KEY", "")) or "none",  # empty: server without auth
         model=os.environ.get("MODEL", "glm-5.3-flash"),
+        thinking=thinking(),
     )
+
+
+def thinking() -> bool:
+    """AI_THINKING: off asks thinking models (Qwen3.5, GLM, ...) to answer without reasoning first."""
+    value = os.environ.get("AI_THINKING", "on").strip().lower()
+    if value not in ("on", "off"):  # a typo would otherwise silently keep the slow reasoning
+        raise SystemExit(f"AI_THINKING must be on or off, not {value!r} – check .env.")
+    return value == "on"
 
 
 def default_concurrency() -> int:

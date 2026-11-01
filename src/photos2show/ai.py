@@ -60,14 +60,23 @@ def analyse_image(client: OpenAI, settings: Settings, img: Image.Image) -> dict:
     }])  # tags are cleaned when read back (db.row_to_dict)
 
 
+NO_THINKING = {"reasoning_effort": "none",  # Ollama
+               "chat_template_kwargs": {"enable_thinking": False}}  # vLLM, SGLang, llama.cpp
+
+
 def complete_json(client: OpenAI, settings: Settings, messages: list) -> dict:
-    try:
-        resp = client.chat.completions.create(
-            model=settings.model, messages=messages, response_format={"type": "json_object"}
-        )
-    except BadRequestError:
-        # Server may not support JSON mode; rely on the prompt instead.
-        resp = client.chat.completions.create(model=settings.model, messages=messages)
+    extra = {} if settings.thinking else NO_THINKING
+    # Servers may reject JSON mode (then the prompt asks for JSON) or the no-thinking fields: drop them in turn.
+    attempts = [{"response_format": {"type": "json_object"}, "extra_body": extra}, {"extra_body": extra}]
+    if extra:
+        attempts.append({})
+    for kwargs in attempts:
+        try:
+            resp = client.chat.completions.create(model=settings.model, messages=messages, **kwargs)
+            break
+        except BadRequestError:
+            if kwargs is attempts[-1]:
+                raise
     return parse_json(resp.choices[0].message.content)
 
 

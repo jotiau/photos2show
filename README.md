@@ -59,11 +59,12 @@ Any server that speaks the OpenAI chat API and accepts images works:
 | Where the model runs | `OPENAI_BASE_URL` | `MODEL` |
 |---|---|---|
 | OpenAI | `https://api.openai.com/v1` | a vision model of your choice |
-| [Ollama](https://ollama.com) (local) | `http://localhost:11434/v1` | e.g. `qwen2.5vl:7b` |
+| [Ollama](https://ollama.com) (local) | `http://localhost:11434/v1` | e.g. `gemma4:e4b` |
 | [LM Studio](https://lmstudio.ai) (local) | `http://localhost:1234/v1` | the model id LM Studio shows |
 
 Local models need a context of 32k or more for the slideshow step and work best with 1 parallel
-request; see [Configuration](docs/configuration.md#local-models).
+request. For thinking models (Qwen3.5, Qwen3.8, GLM) set `AI_THINKING=off`; see
+[Configuration](docs/configuration.md#local-models).
 
 ## Documentation
 

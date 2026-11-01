@@ -28,7 +28,7 @@ def synthetic_image() -> Image.Image:
 def main() -> None:
     settings = load_settings()
     client = make_client(settings)
-    print(f"Endpoint: {settings.base_url}  model: {settings.model}")
+    print(f"Endpoint: {settings.base_url}  model: {settings.model}  thinking: {'on' if settings.thinking else 'off'}")
 
     try:
         models = [m.id for m in client.models.list()]

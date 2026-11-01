@@ -13,6 +13,7 @@ Copy `.env.example` to `.env` in the project folder. `.env` is git-ignored.
 | `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth |
 | `MODEL` | `glm-5.3-flash` | model id exactly as the server lists it |
 | `AI_CONCURRENCY` | `2` | parallel AI requests (whole number ≥ 1); default for *Parallel AI requests* and `photos2show-scan --parallel` |
+| `AI_THINKING` | `on` | `off` asks thinking models to answer without reasoning first (see [Thinking models](#thinking-models)); `on` or `off` |
 | `PHOTOS2SHOW_CACHE` | `~/.local/share/photos2show` (`$XDG_DATA_HOME/photos2show`) | data folder for projects, AI results and thumbnails |
 | `PHOTOS2SHOW_PORT` | `8000` | port of the web UI |
 
@@ -52,7 +53,7 @@ Any server that speaks the OpenAI chat API and accepts images works.
 | Where the model runs | `OPENAI_BASE_URL` | `OPENAI_API_KEY` | `MODEL` |
 |---|---|---|---|
 | OpenAI | `https://api.openai.com/v1` | your key | a vision model of your choice |
-| Ollama (local) | `http://localhost:11434/v1` | empty | e.g. `qwen2.5vl:7b` |
+| Ollama (local) | `http://localhost:11434/v1` | empty | e.g. `gemma4:e4b` |
 | LM Studio (local) | `http://localhost:1234/v1` | empty | the model id LM Studio shows |
 | Self-hosted (vLLM, SGLang, …) | your server's `/v1` URL | your key, if any | as the server lists it |
 
@@ -63,39 +64,57 @@ If you try one, please share how it went in an issue (*Model experience* templat
 The app asks for JSON answers (`response_format: json_object`); servers that reject JSON mode get the
 same request without it, and the answer is parsed leniently.
 
+### Thinking models
+
+Some models reason before they answer (Qwen3.5, Qwen3.8, Qwen3-VL without `-instruct`, GLM). For a photo
+caption that only costs time: several times more seconds and output tokens per photo, and the 90 s limit
+can be reached. With `AI_THINKING=off` every request asks the model to skip it: `reasoning_effort: none`
+(Ollama) and `chat_template_kwargs: {enable_thinking: false}` (vLLM, SGLang, llama.cpp). A server that
+rejects these fields gets the request again without them, so the model then thinks as before. The
+default `on` sends neither field. `photos2show-smoke` shows which one is active.
+
 ### Local models
 
-Untested starting points that run on one consumer GPU or a recent Mac:
+Untested starting points for one consumer GPU or a recent Mac (Ollama tags as of November 2026; the
+size is the download, add 1–2 GB for images and context):
 
-| Model | Ollama | Rough memory | Notes |
+| Model | Ollama | Size | Notes |
 |---|---|---|---|
-| Qwen2.5-VL 7B | `qwen2.5vl:7b` | ~6 GB | good all-rounder, follows the JSON format well |
-| Qwen3-VL 8B | `qwen3-vl:8b` | ~6 GB | newer Qwen, more detailed captions |
-| Gemma 3 12B | `gemma3:12b` | ~9 GB | good descriptions; `gemma3:4b` for small GPUs |
-| MiniCPM-V 8B | `minicpm-v:8b` | ~6 GB | fast, fine for tagging |
-| Llama 3.2 Vision 11B | `llama3.2-vision:11b` | ~8 GB | solid, slower than the ones above |
+| Gemma 4 E4B | `gemma4:e4b` | 6.6 GB | good default for 6–8 GB GPUs: reliable JSON, ~2 s per photo; weaker on non-English tags |
+| Gemma 4 E2B | `gemma4:e2b` | 4.6 GB | smaller and faster, for small GPUs |
+| Gemma 4 12B | `gemma4:12b` | 8 GB | better captions on a 12 GB GPU |
+| Qwen3-VL 8B Instruct | `qwen3-vl:8b-instruct` | 6.2 GB | best at naming what is in a photo; take an `-instruct` tag (the others think) |
+| Qwen3-VL 4B / 2B Instruct | `qwen3-vl:4b-instruct`, `qwen3-vl:2b-instruct` | 3.3 / 1.9 GB | small GPUs; JSON less reliable, tends to give too many tags |
+| Qwen3.5 4B / 9B | `qwen3.5:4b`, `qwen3.5:9b` | 4 / 7.6 GB | fast captions; thinking model, set `AI_THINKING=off` |
+| Gemma 4 26B (MoE) | `gemma4:26b` | 16–19 GB | 24 GB GPU: large-model quality at about the speed of a 4B model |
+| Qwen3-VL 30B-A3B Instruct | `qwen3-vl:30b-a3b-instruct` | 20 GB | 24 GB GPU, fast mixture-of-experts |
+| Qwen3.8 27B | `qwen3.8` | 18 GB | newest Qwen, 24 GB GPU; thinking model, set `AI_THINKING=off` |
+
+Older models such as LLaVA, Llama 3.2 Vision, Qwen2.5-VL and Gemma 3 still work but are superseded by the
+ones above. Without a GPU, `gemma4:e2b` or `qwen3-vl:2b-instruct` take about a minute per photo.
 
 **Ollama**
 
 ```bash
-ollama pull qwen2.5vl:7b
+ollama pull gemma4:e4b
 OLLAMA_CONTEXT_LENGTH=32768 ollama serve   # larger context for the slideshow step, see below
 ```
 
 ```ini
 OPENAI_BASE_URL=http://localhost:11434/v1
 OPENAI_API_KEY=
-MODEL=qwen2.5vl:7b
+MODEL=gemma4:e4b
 AI_CONCURRENCY=1
+AI_THINKING=off    # only matters for thinking models, harmless otherwise
 ```
 
-**LM Studio**: download a vision model (e.g. *Qwen2.5-VL-7B-Instruct*, marked with an eye icon), load it
-with a context length of 32k or more, and start the server in the *Developer* tab.
+**LM Studio**: download a vision model (e.g. *Gemma 4 E4B* or *Qwen3-VL 8B Instruct*, marked with an eye
+icon), load it with a context length of 32k or more, and start the server in the *Developer* tab.
 
 ```ini
 OPENAI_BASE_URL=http://localhost:1234/v1
 OPENAI_API_KEY=
-MODEL=qwen2.5-vl-7b-instruct    # the id LM Studio shows; photos2show-smoke lists it too
+MODEL=    # the id LM Studio shows; photos2show-smoke lists it too
 AI_CONCURRENCY=1
 ```
 

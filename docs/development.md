@@ -25,7 +25,7 @@ CI (`.github/workflows/tests.yml`) runs `uv run pytest` on Linux, macOS and Wind
 
 ```
 src/photos2show/
-  config.py     # .env settings, AI_CONCURRENCY, data folder location
+  config.py     # .env settings, AI_CONCURRENCY, AI_THINKING, data folder location
   db.py         # SQLite schema, projects.json, settings.json (SETTINGS), project stats, unused data
   scan.py       # file walk, supported formats, EXIF, RAW, video frames, dates, video length
   quality.py    # OpenCV metrics, thresholds, flags, technical score
