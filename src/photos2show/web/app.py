@@ -7,9 +7,10 @@ import sys
 import threading
 import time
 import webbrowser
-from collections import Counter
+from collections import Counter, defaultdict
 from html import escape
 from pathlib import Path
+from urllib.parse import urlencode
 
 import uvicorn
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -163,13 +164,25 @@ def _page(request: Request, template: str, **ctx) -> HTMLResponse:
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, flag: str | None = None, photo: int | None = None):
-    """flag and photo come from the URL the filter buttons and cards push: reload, back and bookmarks keep the view."""
+def index(request: Request, flag: str | None = None, q: str | None = None, sort: str | None = None,
+          photo: int | None = None):
+    """The view comes from the URL (library_url): reload, back/forward and bookmarks keep it.
+    A bare / (typed, or a bookmark of the start page) keeps the last view."""
     if not job["project"] and (projects := db.load_projects()):
         _open(list(projects)[-1])
     if flag:
-        job["flag"] = flag
+        job.update(flag=flag, query=(q or "").strip(), sort=sort if sort in SORTS else "date")
     return _page(request, "library.html", page="library", sorts=SORTS, photo=photo)
+
+
+def library_url(**changes) -> str:
+    """The Library URL of the current view (flag, search, sort), with changes; always has flag, so a bare /
+    means "keep the last view"."""
+    state = {"flag": job["flag"], "q": job["query"], "sort": job["sort"], **changes}
+    return "/?" + urlencode({k: v for k, v in state.items() if k == "flag" or v not in (None, "", "date")})
+
+
+templates.env.globals["library_url"] = library_url
 
 
 @app.post("/projects", response_class=HTMLResponse)
@@ -201,6 +214,15 @@ def open_project(name: str = Form(...)):
 def projects_page(request: Request):
     stats = {name: db.project_stats(Path(folder)) for name, folder in db.load_projects().items()}
     return _page(request, "projects.html", page="projects", stats=stats)
+
+
+@app.get("/projects/cover")
+def project_cover(name: str):
+    folder = db.load_projects().get(name)
+    cover = folder and db.project_stats(Path(folder))["cover"]
+    if not cover or not cover.is_file():
+        raise HTTPException(404)
+    return FileResponse(cover)
 
 
 def _edit_projects(name: str, change) -> HTMLResponse:
@@ -306,17 +328,19 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
     known = [it for it in shown if key(it) is not None]  # without a value (no date, no AI score): at the end
     shown = sorted(known, key=key, reverse=desc) + [it for it in shown if key(it) is None]
     tags = Counter(t for it in visible for t in {str(t) for t in (it["ai"] or {}).get("tags") or []})
-    return templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
+    resp = templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
                                                               "query": query, "stacked": stacked, "more": more,
                                                               "tags": tags.most_common(TOP_TAGS)})
+    if q is not None or sort is not None:  # typing or sorting replaces the URL; filters push their own
+        resp.headers["HX-Replace-Url"] = library_url()
+    return resp
 
 
 @app.get("/media/{media_id}", response_class=HTMLResponse)
 def detail(request: Request, media_id: int):
     item = _item(media_id)
     item["skip_ai"], item["pick"] = skip_ai_reason(item), _pick_numbers().get(media_id)
-    best = item["duplicate_of"] or item["id"]
-    scene = [it for it in _items() if (it["duplicate_of"] or it["id"]) == best and it["id"] != item["id"]]
+    scene = [it for it in _items() if _scene(it) == _scene(item) and it["id"] != item["id"]]
     return templates.TemplateResponse(request, "_detail.html", {"it": item, "scene": scene})
 
 
@@ -413,10 +437,32 @@ def original(media_id: int):
     return FileResponse(path)
 
 
+def _scene(it: dict) -> int:
+    """Shots of the same scene share this id: the best shot's."""
+    return it["duplicate_of"] or it["id"]
+
+
+@app.post("/slideshow/swap", response_class=HTMLResponse)
+def swap(request: Request, id: int = Form(...), to: int = Form(...)):
+    """Replace a pick by another shot of its scene, in the same place and with the same reason."""
+    conn = db.connect(_root())
+    a, b = db.get_media(conn, id), db.get_media(conn, to)
+    if not a or not b or _scene(a) != _scene(b):
+        raise HTTPException(400)
+    slideshow.update(_root(), lambda s: {**s, "picks": slideshow.swap(s["picks"], id, to)})
+    return _picks(request)
+
+
 def _picks(request: Request, error: str | None = None) -> HTMLResponse:
     conn, selection = db.connect(_root()), slideshow.load(_root())
     seconds = slideshow.per_photo(selection)
-    picks = [{"item": it, "reason": p["reason"]} for p in selection["picks"] if (it := db.get_media(conn, p["id"]))]
+    items = {it["id"]: it for it in db.all_media(conn)}
+    scenes = defaultdict(list)  # best shot id -> every shot of that scene
+    for it in items.values():
+        scenes[_scene(it)].append(it["id"])
+    picked = {p["id"] for p in selection["picks"]}
+    picks = [{"item": it, "reason": p["reason"], "alts": [i for i in scenes[_scene(it)] if i not in picked]}
+             for p in selection["picks"] if (it := items.get(p["id"]))]
     return templates.TemplateResponse(request, "_picks.html", {
         "picks": picks, "error": error, "seconds": seconds,
         "minutes": sum(slideshow.on_screen(p["item"], seconds) for p in picks) / 60,

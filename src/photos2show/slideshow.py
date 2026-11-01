@@ -92,6 +92,13 @@ def edit(picks: list[dict], action: str, media_id: int) -> list[dict]:
     return [p for p in picks if p["id"] != media_id]
 
 
+def swap(picks: list[dict], media_id: int, other: int) -> list[dict]:
+    """Put other in media_id's place, keeping position and reason; unchanged if other is already a pick."""
+    if any(p["id"] == other for p in picks):
+        return picks
+    return [{**p, "id": other} if p["id"] == media_id else p for p in picks]
+
+
 def move(picks: list[dict], media_id: int, index: int) -> list[dict]:
     """Move one item to position index (clamped, as in the list without it); returns a new list."""
     moved = [p for p in picks if p["id"] == media_id]

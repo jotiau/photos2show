@@ -19,7 +19,7 @@
 <p class="caption">{{ it.ai.caption }}</p>
 <p>{{ it.ai.scene }} · {{ it.ai.people_count }} people · aesthetic {{ it.ai.aesthetic }}/10 · interest {{ it.ai.interest }}/10</p>
 <div class="flags">
-  {% for t in it.ai.tags or [] %}<button class="tag" hx-get="/grid?flag={{ ('tag:' ~ t) | urlencode }}" hx-target="#grid" hx-push-url="/?flag={{ ('tag:' ~ t) | urlencode }}">#{{ t }}</button>{% endfor %}
+  {% for t in it.ai.tags or [] %}<button class="tag" hx-get="/grid?flag={{ ('tag:' ~ t) | urlencode }}" hx-target="#grid" hx-push-url="{{ library_url(flag='tag:' ~ t) }}">#{{ t }}</button>{% endfor %}
 </div>
 {% if it.ai.issues %}<p>Issues: {{ it.ai.issues | join(', ') }}</p>{% endif %}
 {% elif it.skip_ai %}<p>Not sent to AI: {{ it.skip_ai }}</p>

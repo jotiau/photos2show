@@ -111,24 +111,27 @@ Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step). One primary
 per page; destructive actions red.
 - **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
   dropdown in the header to switch; the *Projects* page has "New project" to create and analyse
-  (names must be unique) and lists them with their state (files, described, picks, last analysed,
-  folder missing) to rename, change the folder or remove. Removing keeps the cached AI results
-  (they are keyed by folder, not by project name) unless "also delete saved AI results" is ticked
-  and no other project uses that folder.
+  (names must be unique) and shows each as a card: cover (the photo the AI liked best), name,
+  state (files, described, picks, last analysed, folder missing) and *Open*; rename and change
+  folder behind *Edit*. *Remove…* asks in a dialog; it keeps the cached AI results (they are keyed
+  by folder, not by project name) unless "also delete saved AI results" is ticked there and no
+  other project uses that folder.
 - **Library**: progress bar with *Stop* and time left; during the AI pass the grid stays still and
   a "Show N new results" button reloads it (automatic reload only when a phase starts and ends).
   Grid cards: date, 1–5 stars from aesthetic + interest, caption, flags, "✓ 3" pick number, video
   icon. Same-scene shots are stacked (best shot with "+N"; *Show all shots* toggle). Filters by
   flag, "in slideshow", tag list (30 most common) and search (every word in caption, tags, scene,
-  issues or file name); sort by date, scores, quality or name. Filter and open photo are in the
-  URL (reload, back/forward, bookmarks). Detail panel: 1024 px preview (click → original), caption,
-  metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: ← → step
+  issues or file name); sort by date, scores, quality or name. Filter, search, sort and open photo
+  are in the URL (reload, back/forward, bookmarks; typing replaces the URL instead of adding history,
+  a bare `/` reopens the last view). Detail panel: 1024 px preview (click → original), caption,
+  metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: Tab to a card, Enter/Space opens it, ← → step
   through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a
   bulk add/remove bar.
 - **Slideshow**: description → *Select photos* (spinner, elapsed time, picks locked meanwhile) →
   ordered tiles with reasons; *Refine picks*, *Undo*, sort, drag & drop or ← → to reorder, × to
-  remove; seconds per photo with the length estimate (videos at their length); lightbox with
-  ← → through the picks; *▶ Play* full screen (← → Space Esc); *Export*, *Open folder*.
+  remove, "⇄ N other shots" to swap a pick for another shot of its scene (same place and reason);
+  seconds per photo with the length estimate (videos at their length); lightbox with
+  ← → through the picks; *▶ Play* full screen (← → Space Esc; the reason shows on mouse move or tap); *Export*, *Open folder*.
 - **Settings**: theme, parallel AI requests (each with a help line); delete cached data of folders
   no project uses.
 
@@ -182,20 +185,10 @@ tests/
 - **M5 – Usability and UI review** *(done 2026-11-01)*: stop/time left, export again, refine/undo,
   search, Play preview, keyboard, picks shown in the Library, calm grid during analysis, stacks,
   sort and tag list, readable cards, preview images, bulk select, state in the URL, lightbox
-  navigation, seconds per photo, AI wait feedback, button hierarchy, settings with help;
-  plus the fixes of a code audit (selection lock, 404s, duplicate project names).
-
-## Open
-Small UI items (from the 2026-11-01 review, not yet built):
-- **Calmer Projects page**: every project shows rename + change-folder forms, Open, Remove and the
-  "also delete saved AI results" checkbox next to Remove (easy to tick by mistake). Proposal:
-  cards with a cover thumbnail, name, stats and *Open* as the main action; rename/change folder
-  behind an *Edit* toggle (`<details>`); the delete choice moves into the remove confirmation
-  (a small `<dialog>` instead of `hx-confirm`).
-- **Swap a pick** for another shot of the same scene, right on the slideshow tile.
-- **Player**: show the pick's reason on hover/tap.
-- **Library keyboard access**: cards are not Tab-focusable (Enter/Space to open).
-- **URL**: search and sort are kept server-side, not in the URL.
+  navigation, seconds per photo, AI wait feedback, button hierarchy, settings with help, calmer
+  Projects page with covers, swapping a pick for another shot of its scene, the reason in the
+  player, Tab/Enter in the Library; plus the fixes of a code audit (selection lock, 404s,
+  duplicate project names).
 
 ## Future features
 - Face detection / clustering ("everyone appears at least once")

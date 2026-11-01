@@ -127,12 +127,17 @@ def mark_analysed(root: Path) -> None:
 def project_stats(folder: Path) -> dict:
     """State for the projects page; reads only, so a missing or never analysed folder creates no cache."""
     d = library_path(folder)
-    stats = {"exists": folder.is_dir(), "files": 0, "described": 0, "picks": 0, "analysed_at": None}
+    stats = {"exists": folder.is_dir(), "files": 0, "described": 0, "picks": 0, "analysed_at": None, "cover": None}
     if (d / "analysed_at").exists():
         stats["analysed_at"] = datetime.fromisoformat((d / "analysed_at").read_text().strip())
     if (d / "photos2show.db").exists():
         conn = sqlite3.connect(d / "photos2show.db")
         stats["files"], stats["described"] = conn.execute("SELECT COUNT(*), COUNT(ai) FROM media").fetchone()
+        # Cover: the photo the AI liked best (aesthetic + interest), else the technically best one.
+        cover = conn.execute("SELECT thumb FROM media WHERE kind = 'image' ORDER BY "
+                             "json_extract(ai, '$.aesthetic') + json_extract(ai, '$.interest') DESC NULLS LAST, "
+                             "score DESC LIMIT 1").fetchone()
+        stats["cover"] = cover and d / "thumbs" / cover[0]
         conn.close()
     if (d / "selection.json").exists():
         stats["picks"] = len(json.loads((d / "selection.json").read_text())["picks"])

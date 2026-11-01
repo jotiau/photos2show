@@ -36,6 +36,9 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     resp = wait()
     assert f"{len(testdata.EXPECTED)} files" in resp.text and "9 described by AI" in resp.text
     assert "Norway 2026" in client.get("/").text
+    assert 'src="/projects/cover?name=Norway%202026"' in client.get("/projects").text
+    assert client.get("/projects/cover?name=Norway 2026").headers["content-type"] == "image/jpeg"
+    assert client.get("/projects/cover?name=nope").status_code == 404
     assert "already exists" in client.post("/projects", data={"name": "Norway 2026", "folder": str(tmp_path)}).text
     assert web.db.load_projects()["Norway 2026"] == str(folder.resolve())
     used, describe = [], web.describe_folder
@@ -66,7 +69,14 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     page = client.get(f"/?flag=video&photo={items['video.mp4']}").text  # a pushed URL, reloaded
     assert f'hx-get="/media/{items["video.mp4"]}" hx-trigger="load"' in page and web.job["flag"] == "video"
     assert f'hx-push-url="/?flag=video&amp;photo={items["video.mp4"]}"' in client.get("/grid").text
-    client.get("/grid?flag=all")
+    resp = client.get("/grid?q=fake")  # typing replaces the URL, filters push one with the search in it
+    assert resp.headers["HX-Replace-Url"] == "/?flag=video&q=fake" and 'hx-push-url="/?flag=all&amp;q=fake"' in resp.text
+    assert client.get("/grid?sort=name").headers["HX-Replace-Url"] == "/?flag=video&q=fake&sort=name"
+    assert "HX-Replace-Url" not in client.get("/grid").headers  # live reloads leave the URL alone
+    client.get("/?flag=all&q=beach")  # back/forward or a bookmark: the URL is the view
+    assert (web.job["flag"], web.job["query"], web.job["sort"]) == ("all", "beach", "date")
+    assert 'href="/?flag=all&amp;q=beach"' in client.get("/").text and web.job["query"] == "beach"  # bare /: kept
+    client.get("/?flag=all")
     client.get("/grid?sort=date")
     skipped = client.get("/grid?flag=skips_ai").text
     assert "very_blurry.jpg" in skipped and "burst_2.jpg" in skipped and "scene_1.jpg" not in skipped
@@ -166,6 +176,20 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
 
     monkeypatch.setattr(web.subprocess, "Popen", no_xdg_open)
     assert "Could not open the folder" in client.post("/slideshow/open-export").text
+
+    # Swap a pick for another shot of its scene
+    client.post(f"/slideshow/add/{items['burst_1.jpg']}")
+    picks = client.get("/slideshow/picks").text
+    assert "⇄ 2 other shots" in picks and f'"to": {items["burst_2.jpg"]}' in picks
+    before = [p["id"] for p in web.slideshow.load(folder)["picks"]]
+    picks = client.post("/slideshow/swap", data={"id": items["burst_1.jpg"], "to": items["burst_2.jpg"]}).text
+    after = [p["id"] for p in web.slideshow.load(folder)["picks"]]
+    assert after == [items["burst_2.jpg"] if i == items["burst_1.jpg"] else i for i in before]  # same place
+    assert web.slideshow.load(folder)["picks"][-1]["reason"] == "added by hand"  # reason kept
+    bad = client.post("/slideshow/swap", data={"id": items["burst_2.jpg"], "to": items["scene_1.jpg"]})
+    assert bad.status_code == 400  # another scene
+    client.post("/slideshow/undo")
+    assert [p["id"] for p in web.slideshow.load(folder)["picks"]] == before
 
 
 def test_stop_and_time_left(tmp_path, monkeypatch, fake_ai):
@@ -300,6 +324,7 @@ def test_projects_page(tmp_path, monkeypatch):
     client.post("/projects/folder", data={"name": "Alps 2026", "folder": str(b)})
     web.db.mark_analysed(b)  # as if analysed
     assert "0 files" in client.get("/projects").text and "last analysed" in client.get("/projects").text
+    assert client.get("/projects/cover?name=Alps 2026").status_code == 404  # no photos, no cover
     assert web.db.load_projects()["Alps 2026"] == str(b.resolve()) and web.job["folder"] == str(b.resolve())
 
     monkeypatch.setitem(web.job, "running", True)
