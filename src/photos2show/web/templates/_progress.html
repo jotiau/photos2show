@@ -14,7 +14,11 @@
 <div id="progress">
   {% if job.summary.stopped %}Stopped – <em>Analyse again</em> continues where it ended.{% endif %}
   {{ job.summary.total }} files, {{ job.summary.analysed }} newly scanned, {{ job.summary.described }} described by AI
-  {% for e in job.summary.errors %}<div class="error">{{ e }}</div>{% endfor %}
+  {% if job.summary.errors %}{% set n = job.summary.errors | length %}
+  <details class="errors"><summary>{{ n }} error{{ 's' if n != 1 }}</summary>
+    {% for e in job.summary.errors %}<div class="error">{{ e }}</div>{% endfor %}
+  </details>
+  {% endif %}
 </div>
 {% else %}
 <div id="progress"></div>

@@ -10,8 +10,8 @@
 <body>
 {% include "_header.html" %}
 <main class="projects">
-  <section class="project new">
-    <h2>New project</h2>
+  <details class="project new" {{ 'open' if not projects }}>
+    <summary><h2>New project</h2></summary>
     {% if not projects %}<p class="empty">One project per trip: give it a name and the folder with your photos.</p>{% endif %}
     <form hx-post="/projects" hx-target="#new-msg">
       <input name="name" placeholder="Norway 2026" required aria-label="Project name">
@@ -20,7 +20,7 @@
       <button class="primary">Create &amp; analyse</button>
       <span id="new-msg"></span>
     </form>
-  </section>
+  </details>
 {% for name, folder in projects.items() %}
   {% set s = stats[name] %}
   {% set i = loop.index %}

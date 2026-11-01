@@ -24,7 +24,7 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .filters button span { color: var(--muted); margin-left: 4px; }
 .filters button.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); grid-auto-rows: 1fr; gap: 12px; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
         cursor: pointer; position: relative; }
 .card:hover { border-color: var(--accent); }
@@ -53,12 +53,18 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 #detail:empty { display: none; }
 #detail { width: 380px; flex-shrink: 0; background: var(--panel); border: 1px solid var(--border);
           border-radius: 8px; padding: 12px; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow: auto; }
-#detail h2 { font-size: 15px; margin: 0 24px 8px 0; word-break: break-all; }
+#detail h2 { font-size: 15px; margin: 0 64px 8px 0; word-break: break-all; }  /* right: room for ? and × */
 #detail img, #detail video { width: 100%; border-radius: 4px; }
 /* one box for every photo: portrait ones get side padding instead of a taller panel */
 #detail > a img, #detail > video { display: block; aspect-ratio: 4/3; object-fit: contain; background: #0002; }
 #detail .close { position: absolute; right: 8px; top: 8px; border: none; font-size: 18px; }
 #detail .path { color: var(--muted); font-size: 12px; word-break: break-all; }
+#detail .keys > summary { position: absolute; right: 40px; top: 10px; width: 22px; height: 22px; border-radius: 50%;
+                          border: 1px solid var(--border); display: grid; place-items: center; cursor: pointer; list-style: none; }
+#detail .keys > summary::-webkit-details-marker { display: none; }
+#detail .keys > summary:hover, #detail .keys[open] > summary { border-color: var(--accent); color: var(--accent); }
+#detail .tech > summary { cursor: pointer; color: var(--muted); margin: 8px 0 4px; }
+.errors > summary { color: var(--bad); cursor: pointer; }
 #detail table { width: 100%; border-collapse: collapse; font-size: 12px; }
 #detail th { text-align: left; font-weight: normal; color: var(--muted); }
 #detail td { text-align: right; font-variant-numeric: tabular-nums; }
@@ -67,7 +73,7 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .frames img.best { outline: 2px solid var(--ok); }
 @media (max-width: 760px) {
   main { flex-direction: column-reverse; }
-  #detail { width: 100%; position: static; max-height: none; }
+  #detail { width: 100%; position: relative; top: auto; max-height: none; }  /* relative: keeps × and ? inside the panel */
 }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; }
 .caption { font-style: italic; }
@@ -186,6 +192,14 @@ main.projects { flex-direction: column; align-items: stretch; max-width: 1100px;
 .project { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
            display: flex; flex-direction: column; gap: 8px; }
 .project.current { border-color: var(--accent); }
+/* New project: a card when open, a "+ New project" button once projects exist */
+details.project.new > summary { list-style: none; cursor: pointer; }
+details.project.new > summary::-webkit-details-marker { display: none; }
+details.project.new:not([open]) { background: none; border: none; padding: 0; align-items: flex-start; }
+details.project.new:not([open]) > summary { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+                                            background: var(--panel); }
+details.project.new:not([open]) > summary:hover { border-color: var(--accent); }
+details.project.new:not([open]) h2::before { content: "+ "; }
 .project form, .project .actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .project form input[name="folder"] { flex: 1; min-width: 200px; }
 .project h2 { font-size: 15px; margin: 0; }

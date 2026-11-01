@@ -195,17 +195,9 @@ tests/
   Library search with icon top-left, sort at the filter row, *Tags* button, portrait previews
   padded to landscape height; Settings as cards; Slideshow page in two steps (Describe collapses,
   sticky toolbar with *Export…* dialog and *▶ Play*, full width, calmer tiles); the player fills
-  the window and has an on-screen control panel.
-
-## Next: smaller visual improvements (agreed with the user, 2026-11-01)
-1. **Library path**: the toolbar shows only the folder name; the full path on hover.
-2. **Analysis errors**: collapsed to one line ("10 errors ▾") instead of a tall red list above the grid.
-3. **Filter buttons**: hide categories with 0 photos, or split quality flags (blurry, dark…) from the
-   rest, so the 13 buttons no longer wrap onto two rows.
-4. **Detail panel**: the keyboard hint behind a small "?"; the raw metrics table behind
-   "Technical details ▾".
-5. **Projects page**: once a project exists, "New project" shrinks to a "+ New project" button.
-6. **Grid tiles**: equal height, so rows line up whether or not a tile has a caption and flags.
+  the window and has an on-screen control panel. Calmer Library: folder name instead of the
+  path, analysis errors folded into "N errors", empty filters hidden, equal-height tiles,
+  shortcut hint behind "?" and metrics behind "Technical details"; "+ New project" button.
 
 ## Future features
 - Face detection / clustering ("everyone appears at least once")

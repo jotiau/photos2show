@@ -15,7 +15,7 @@
 <div class="bar">
   <input class="search" type="search" name="q" value="{{ job.query }}" placeholder="Search captions, tags, file names… (e.g. boat sunset)"
     aria-label="Search" hx-get="/grid" hx-target="#grid" hx-trigger="input changed delay:300ms, search">
-  <span class="path">{{ job.folder }}</span>
+  <span class="path" title="{{ job.folder }}">{{ job.folder | basename }}</span>
   <form hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">
     <button class="primary" title="{{ settings().parallel }} parallel AI requests (see Settings)">Analyse again</button>
   </form>

@@ -1,5 +1,5 @@
 <nav class="filters">
-  {% for f, n in counts.items() %}
+  {% for f, n in counts.items() if n or f in ('all', flag) %}{# empty categories hidden, unless selected #}
   <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f | urlencode }}" hx-target="#grid"
     hx-push-url="{{ library_url(flag=f) }}">
     {{ f.replace('_', ' ').replace('tag:', '#') }} <span>{{ n }}</span>
