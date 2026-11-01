@@ -11,27 +11,31 @@
 {% include "_header.html" %}
 <main class="settings">
   {% for key, (label, choices, _, help) in fields.items() %}
-  <label for="s-{{ key }}">{{ label }}</label>
-  <div>
-    <select id="s-{{ key }}" name="value" hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change"
-      aria-describedby="h-{{ key }}">
-      {% for c in choices %}<option {{ 'selected' if c == settings()[key] }}>{{ c }}</option>{% endfor %}
-    </select>
+  <section class="setting">
+    <div>
+      <label for="s-{{ key }}">{{ label }}</label>
+      <select id="s-{{ key }}" name="value" hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change"
+        aria-describedby="h-{{ key }}">
+        {% for c in choices %}<option {{ 'selected' if c == settings()[key] }}>{{ c }}</option>{% endfor %}
+      </select>
+    </div>
     <p class="help" id="h-{{ key }}">{{ help }}</p>
-  </div>
+  </section>
   {% endfor %}
-  <span>Unused data</span>
-  <div>
+  <section class="setting">
+    <div>
+      <span class="label">Unused data</span>
+      {% if unused %}
+      <p>{{ unused }} folder{{ 's' if unused != 1 }} of saved AI results and thumbnails ({{ '%.1f' % unused_mb }} MB) belong to no project.</p>
+      <button class="remove" hx-post="/settings/cleanup" hx-target="#cleanup-msg"
+        hx-confirm="Delete saved AI results and thumbnails of {{ unused }} folder{{ 's' if unused != 1 }} that no project uses? Photos stay untouched, but analysing those folders again takes time.">Delete unused data</button>
+      {% else %}
+      <p>None – all saved data belongs to a project.</p>
+      {% endif %}
+      <span id="cleanup-msg"></span>
+    </div>
     <p class="help">Saved AI results and thumbnails of folders that no project uses any more, e.g. after removing a project.</p>
-    {% if unused %}
-    {{ unused }} folder{{ 's' if unused != 1 }} of saved AI results and thumbnails ({{ '%.1f' % unused_mb }} MB) belong to no project.
-    <button class="remove" hx-post="/settings/cleanup" hx-target="#cleanup-msg"
-      hx-confirm="Delete saved AI results and thumbnails of {{ unused }} folder{{ 's' if unused != 1 }} that no project uses? Photos stay untouched, but analysing those folders again takes time.">Delete unused data</button>
-    {% else %}
-    None – all saved data belongs to a project.
-    {% endif %}
-    <span id="cleanup-msg"></span>
-  </div>
+  </section>
 </main>
 </body>
 </html>

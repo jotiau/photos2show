@@ -1,30 +1,33 @@
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
-{% if picks or can_undo %}
-<div class="refine">
-  {% if picks %}
-  <form hx-post="/slideshow/refine" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button">
-    <input name="instruction" required size="50" aria-label="Change the picks"
-      placeholder="add 10 more sunsets, fewer people, start with the ferry">
-    <button>Refine picks</button>
+<div class="toolbar">
+  <form class="seconds" hx-post="/slideshow/seconds" hx-target="#picks" hx-trigger="change">
+    <strong>{{ picks | length }} photos</strong> · about {{ '%.1f' % minutes }} min ·
+    <input type="number" name="seconds" value="{{ seconds }}" min="2" max="15" aria-label="Seconds per photo"> s per photo
+  </form>
+  {% if picks | length > 1 %}
+  <form class="sort" hx-post="/slideshow/sort" hx-target="#picks" hx-trigger="change">
+    <label for="sort-by">Sort by</label>
+    <select id="sort-by" name="by">
+      <option value="" selected disabled>choose…</option>
+      {% for key, label in sorts.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select>
   </form>
   {% endif %}
   {% if can_undo %}<button hx-post="/slideshow/undo" hx-target="#picks" title="Back to the picks before the last change">Undo</button>{% endif %}
+  {% if picks %}
+  <span class="end">
+    <button type="button" onclick="document.getElementById('export').showModal()">Export…</button>
+    <button type="button" class="play primary" data-seconds="{{ seconds }}">▶ Play</button>
+  </span>
+  {% endif %}
 </div>
-{% endif %}
-{% if picks %}<button type="button" class="play" data-seconds="{{ seconds }}">▶ Play</button>{% endif %}
-<form class="seconds" hx-post="/slideshow/seconds" hx-target="#picks" hx-trigger="change">
-  {{ picks | length }} photos · about {{ '%.1f' % minutes }} min at
-  <input type="number" name="seconds" value="{{ seconds }}" min="2" max="15" aria-label="Seconds per photo"> s per photo
-  (videos at their length). Drag tiles to reorder, add more from the Library detail panel.
+{% if picks %}
+<form class="refine" hx-post="/slideshow/refine" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button">
+  <input name="instruction" required size="50" aria-label="Change the picks"
+    placeholder="add 10 more sunsets, fewer people, start with the ferry">
+  <button>Refine picks</button>
 </form>
-{% if picks | length > 1 %}
-<form class="sort" hx-post="/slideshow/sort" hx-target="#picks" hx-trigger="change">
-  <label for="sort-by">Sort by</label>
-  <select id="sort-by" name="by">
-    <option value="" selected disabled>choose…</option>
-    {% for key, label in sorts.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
-  </select>
-</form>
+<p class="hint">Videos play at their length. Drag tiles to reorder, add more from the Library detail panel.</p>
 {% endif %}
 <ol class="picks">
   {% for p in picks %}
@@ -35,10 +38,10 @@
     {% if p.item.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
     <div class="name">#{{ p.item.id }} {{ p.item.path | basename }}</div>
     <div class="meta" title="{{ p.reason }}">{{ p.reason }}</div>
+    <button class="drop" hx-post="/slideshow/remove/{{ p.item.id }}" hx-target="#picks" aria-label="Remove" title="Remove from slideshow">×</button>
     <div class="actions">
-      <button hx-post="/slideshow/move" hx-vals='{"id": {{ p.item.id }}, "to": {{ loop.index0 - 1 }}}' hx-target="#picks" aria-label="Move earlier">←</button>
-      <button hx-post="/slideshow/move" hx-vals='{"id": {{ p.item.id }}, "to": {{ loop.index0 + 1 }}}' hx-target="#picks" aria-label="Move later">→</button>
-      <button hx-post="/slideshow/remove/{{ p.item.id }}" hx-target="#picks" aria-label="Remove">×</button>
+      <button hx-post="/slideshow/move" hx-vals='{"id": {{ p.item.id }}, "to": {{ loop.index0 - 1 }}}' hx-target="#picks" aria-label="Move earlier" title="Move earlier">‹</button>
+      <button hx-post="/slideshow/move" hx-vals='{"id": {{ p.item.id }}, "to": {{ loop.index0 + 1 }}}' hx-target="#picks" aria-label="Move later" title="Move later">›</button>
     </div>
     {% if p.alts %}
     <details class="swap">

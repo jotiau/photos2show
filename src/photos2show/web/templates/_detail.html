@@ -1,6 +1,7 @@
 <button class="close" onclick="this.parentElement.innerHTML=''">×</button>
 <h2 data-id="{{ it.id }}">#{{ it.id }} {{ it.path | basename }}</h2>
-<p class="keys">← → previous / next · A add to / remove from slideshow · Esc close</p>
+<details class="keys"><summary title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</summary>
+  ← → previous / next · A add to / remove from slideshow · Esc close</details>
 {% if it.kind == 'video' %}
 <video src="/original/{{ it.id }}" controls preload="metadata"></video>
 <div class="frames">
@@ -24,10 +25,12 @@
 {% if it.ai.issues %}<p>Issues: {{ it.ai.issues | join(', ') }}</p>{% endif %}
 {% elif it.skip_ai %}<p>Not sent to AI: {{ it.skip_ai }}</p>
 {% else %}<p>Waiting for AI description</p>{% endif %}
+<details class="tech"><summary>Technical details</summary>
 <table>
   {% for k, v in it.metrics.items() %}<tr><th>{{ k.replace('_', ' ') }}</th><td>{{ '%.3f' % v if v < 10 else '%.1f' % v }}</td></tr>{% endfor %}
   <tr><th>score</th><td>{{ '%.2f' % it.score }}</td></tr>
 </table>
+</details>
 {% if scene %}
 <h3>Same scene</h3>
 <div class="frames">

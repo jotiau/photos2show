@@ -64,7 +64,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     assert ">★★★</span>" in by_name and "fake caption" in by_name  # aesthetic 7, interest 6
     assert web.stars({"aesthetic": "10", "interest": 10}) == "★★★★★" and web.stars({"aesthetic": 0}) == "★"
     assert web.stars({"aesthetic": "great"}) == web.stars({"aesthetic": "inf"}) == web.stars(None) == ""  # raw LLM output
-    assert '<option value="name" selected>' in client.get("/").text
+    assert '<option value="name" selected>' in client.get("/grid").text
     items = {Path(it["path"]).name: it["id"] for it in web._items()}
     page = client.get(f"/?flag=video&photo={items['video.mp4']}").text  # a pushed URL, reloaded
     assert f'hx-get="/media/{items["video.mp4"]}" hx-trigger="load"' in page and web.job["flag"] == "video"

@@ -172,7 +172,7 @@ def index(request: Request, flag: str | None = None, q: str | None = None, sort:
         _open(list(projects)[-1])
     if flag:
         job.update(flag=flag, query=(q or "").strip(), sort=sort if sort in SORTS else "date")
-    return _page(request, "library.html", page="library", sorts=SORTS, photo=photo)
+    return _page(request, "library.html", page="library", photo=photo)
 
 
 def library_url(**changes) -> str:
@@ -330,7 +330,8 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
     tags = Counter(t for it in visible for t in set((it["ai"] or {}).get("tags", [])))
     resp = templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
                                                               "query": query, "stacked": stacked, "more": more,
-                                                              "tags": tags.most_common(TOP_TAGS)})
+                                                              "tags": tags.most_common(TOP_TAGS),
+                                                              "sorts": SORTS, "sort": by})
     if q is not None or sort is not None:  # typing or sorting replaces the URL; filters push their own
         resp.headers["HX-Replace-Url"] = library_url()
     return resp

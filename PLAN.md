@@ -113,7 +113,7 @@ per page; destructive actions red.
   dropdown in the header to switch; the *Projects* page has "New project" to create and analyse
   (names must be unique) and shows each as a card: cover (the photo the AI liked best), name,
   state (files, described, picks, last analysed, folder missing) and *Open*; rename and change
-  folder behind *Edit*. *Remove…* asks in a dialog; it keeps the cached AI results (they are keyed
+  folder and *Remove project…* behind *Edit*. Remove asks in a dialog; it keeps the cached AI results (they are keyed
   by folder, not by project name) unless "also delete saved AI results" is ticked there and no
   other project uses that folder.
 - **Library**: progress bar with *Stop* and time left; during the AI pass the grid stays still and
@@ -127,11 +127,13 @@ per page; destructive actions red.
   metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: Tab to a card, Enter/Space opens it, ← → step
   through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a
   bulk add/remove bar.
-- **Slideshow**: description → *Select photos* (spinner, elapsed time, picks locked meanwhile) →
-  ordered tiles with reasons; *Refine picks*, *Undo*, sort, drag & drop or ← → to reorder, × to
+- **Slideshow**: two step cards. ① description → *Select photos* (spinner, elapsed time, picks
+  locked meanwhile); collapses to one line with *Edit* once there are picks. ② ordered tiles with
+  reasons under a sticky toolbar (count and length, seconds per photo, sort, *Undo*, *Export…*
+  dialog with *Open folder*, *▶ Play*) and *Refine picks*; drag & drop or ‹ › to reorder, × to
   remove, "⇄ N other shots" to swap a pick for another shot of its scene (same place and reason);
-  seconds per photo with the length estimate (videos at their length); lightbox with
-  ← → through the picks; *▶ Play* full screen (← → Space Esc; the reason shows on mouse move or tap); *Export*, *Open folder*.
+  lightbox with ← → through the picks; *▶ Play* fills the window, with the reason and a control
+  panel (back, hold, forward, close) on mouse move or tap; keys ← → Space Esc.
 - **Settings**: theme, parallel AI requests (each with a help line); delete cached data of folders
   no project uses.
 
