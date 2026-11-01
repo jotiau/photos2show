@@ -1,5 +1,6 @@
 """Local web UI: holiday projects, analysis, browsing, slideshow selection and export."""
 import argparse
+import io
 import os
 import shutil
 import subprocess
@@ -14,14 +15,21 @@ from urllib.parse import urlencode
 
 import uvicorn
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from photos2show import db, scan, slideshow
 from photos2show.config import env
-from photos2show.pipeline import analyse_folder, choose_best, describe_folder, skip_ai_reason
+from photos2show.pipeline import (
+    AI_PICK,
+    ai_choose_best,
+    analyse_folder,
+    choose_best,
+    describe_folder,
+    skip_ai_reason,
+)
 
 HERE = Path(__file__).parent
 app = FastAPI(title="photos2show")
@@ -29,6 +37,8 @@ app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
 templates.env.filters["basename"] = lambda p: Path(p).name
 templates.env.globals["settings"] = db.load_settings
+templates.env.globals["setting_fields"] = db.SETTINGS
+templates.env.globals["AI_PICK"] = AI_PICK
 
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
            "low_contrast", "monotone", "duplicate", "video", "in_slideshow")
@@ -480,6 +490,10 @@ def original(media_id: int):
     path = _item(media_id)["path"]
     if not Path(path).is_file():  # deleted or drive unplugged since the scan
         raise HTTPException(404)
+    if Path(path).suffix.lower() in scan.HEIF_EXT:  # only Safari shows HEIC: send a JPEG
+        buf = io.BytesIO()
+        scan.read_image(Path(path))[0].save(buf, "JPEG", quality=90)
+        return Response(buf.getvalue(), media_type="image/jpeg")
     return FileResponse(path)
 
 
@@ -504,6 +518,21 @@ def best_shot(request: Request, media_id: int):
         return resp
     scene = [it for it in _items() if _scene(it) == media_id]  # duplicate review during Analyse
     return templates.TemplateResponse(request, "_scene.html", {"scene": scene})
+
+
+@app.post("/best/ai/{scene_id}", response_class=HTMLResponse)
+def ai_best_shot(request: Request, scene_id: int):
+    """Duplicate review: the AI compares the shots of a scene and picks the best; the user can still click another."""
+    ids = {it["id"] for it in _items() if _scene(it) == scene_id}
+    if job["phase"] != REVIEW or len(ids) < 2:  # the AI compares only when asked during the review
+        raise HTTPException(400)
+    error = None
+    try:
+        ai_choose_best(db.connect(_root()), [it for it in _items() if it["id"] in ids])
+    except (Exception, SystemExit) as e:  # SystemExit: AI endpoint not configured
+        error = str(e)
+    scene = [it for it in _items() if it["id"] in ids]  # the best, and so the scene id, may have changed
+    return templates.TemplateResponse(request, "_scene.html", {"scene": scene, "error": error})
 
 
 @app.get("/describing/{media_id}", response_class=HTMLResponse)
@@ -558,8 +587,12 @@ def picks(request: Request):
 
 
 @app.post("/slideshow/select", response_class=HTMLResponse)
-def select(request: Request, description: str = Form(...)):
+def select(request: Request, description: str = Form(...), desc_size: str | None = Form(None)):
     root = _root()
+    if desc_size is not None:  # the same choice as on the settings page, offered next to the description
+        if desc_size not in db.SETTINGS["desc_size"][1]:
+            raise HTTPException(400)
+        db.save_setting("desc_size", desc_size)
     try:
         picks = slideshow.select(db.connect(root), description, seconds=slideshow.per_photo(slideshow.load(root)))
     except (Exception, SystemExit) as e:

@@ -5,10 +5,12 @@
   <dialog class="review" oncancel="event.preventDefault()" aria-labelledby="review-title">
     <h2 id="review-title">Pick the best shot of each scene</h2>
     <p>{{ scenes | length }} group{{ 's' if scenes | length != 1 }} of same-scene shots. Only the best shot (green) is
-      described by the AI and offered for the slideshow. Click another shot to use it instead.</p>
+      described by the AI and offered for the slideshow. Click another shot to use it instead, or let the AI compare
+      the shots – you can still overrule its pick.</p>
     {% for scene in scenes %}{% include "_scene.html" %}{% endfor %}
     <div class="buttons">
       <button hx-post="/analyse/stop" hx-target="#progress" hx-swap="outerHTML">Stop</button>
+      <button type="button" onclick="htmx.trigger(document.body, 'ai-compare-all')">Let the AI compare all</button>
       <button hx-post="/analyse/continue" hx-target="#progress" hx-swap="outerHTML">Continue with AI</button>
     </div>
   </dialog>

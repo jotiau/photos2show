@@ -7,8 +7,12 @@ from pathlib import Path
 
 import cv2
 from PIL import Image, ImageOps
+from pillow_heif import register_heif_opener
 
-IMAGE_EXT = {".jpg", ".jpeg"}
+register_heif_opener()  # Image.open() reads iPhone HEIC photos like JPEGs, EXIF included
+
+HEIF_EXT = {".heic", ".heif"}
+IMAGE_EXT = {".jpg", ".jpeg"} | HEIF_EXT
 VIDEO_EXT = {".mp4"}
 VIDEO_POSITIONS = (0.1, 0.5, 0.9)  # sampled frames, as fraction of the duration
 LOAD_EDGE = 2048  # decode JPEGs at reduced size; analysis and thumbnails need less
@@ -41,6 +45,7 @@ def read_image(path: Path) -> tuple[Image.Image, str | None, tuple[int, int]]:
             pass
     img.draft("RGB", (LOAD_EDGE, LOAD_EDGE))
     img = ImageOps.exif_transpose(img).convert("RGB")
+    img.thumbnail((LOAD_EDGE, LOAD_EDGE))  # draft() only shrinks JPEGs: a 24 MP HEIC would stay ~70 MB
     if exif.get(274, 1) in (5, 6, 7, 8):  # rotated by 90°
         size = size[::-1]
     return img, taken, size

@@ -33,6 +33,35 @@ def test_select_keeps_only_valid_picks(described, monkeypatch):
         slideshow.select(db.connect(folder), "x")
 
 
+def test_description_size_shortens_the_candidate_lines(described, monkeypatch):
+    folder, _ = described
+    prompts = []
+    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: prompts.append(m[0]["content"]) or {"picks": []})
+    monkeypatch.setattr("photos2show.ai.context_length", lambda c, s: None)
+    for size in ("full", "short", "minimal", "auto"):
+        db.save_setting("desc_size", size)
+        with pytest.raises(ValueError):  # no picks: only the prompt matters here
+            slideshow.select(db.connect(folder), "x")
+    full, short, minimal, auto = prompts
+    assert "fake caption" in full and "fake caption" in short and "fake caption" not in minimal
+    assert "| caption |" not in minimal and len(minimal) < len(short) <= len(full)
+    assert auto == full  # the server does not report its context size
+
+
+def test_auto_size_picks_the_most_that_fits():
+    item = {"id": 1, "taken_at": "2026-07-14T10:00", "kind": "image", "flags": [],
+            "ai": {"scene": "landscape", "tags": [f"tag{i}" for i in range(10)], "aesthetic": 7, "interest": 6,
+                   "caption": "A long caption about a sunny beach with people walking along the waves at dusk"}}
+    items = [item] * 100
+    chars = {s: len(slideshow._candidates(items, s)["lines"]) for s in slideshow.SIZES}
+    tokens = lambda s: chars[s] / slideshow.CHARS_PER_TOKEN * 2  # context that just fits
+    assert slideshow.fitting_size(items, None) == "full"
+    assert slideshow.fitting_size(items, int(tokens("full")) + 1) == "full"
+    assert slideshow.fitting_size(items, int(tokens("short")) + 1) == "short"
+    assert slideshow.fitting_size(items, int(tokens("minimal")) + 1) == "minimal"
+    assert slideshow.fitting_size(items, 10) == "minimal"
+
+
 def test_rescan_forgets_picks_of_deleted_files(described):
     folder, ids = described
     top = max(ids.values())

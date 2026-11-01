@@ -136,6 +136,9 @@ details.describe > summary::-webkit-details-marker { display: none; }
 details.describe[open] > summary { display: none; }
 details.describe .quote { font-style: italic; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 details.describe .edit { color: var(--accent); flex-shrink: 0; }
+details.describe .options { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+details.describe .options .more { color: var(--muted); font-size: 12px; }
+details.describe .options button { margin-left: auto; }
 #thinking:not(.htmx-request) { display: none; }
 #thinking { display: block; margin-top: 8px; }
 /* sticky under the header (its height) while the tiles scroll */
@@ -238,3 +241,5 @@ dialog.review .buttons { display: flex; gap: 6px; justify-content: flex-end; pos
 .review-scene img { display: block; width: 160px; height: 120px; object-fit: contain; }
 .review-scene .shot span { position: absolute; top: 4px; left: 4px; background: var(--ok); color: #fff;
   font-size: 12px; padding: 0 4px; border-radius: 3px; }
+.review-scene .ai-pick { align-self: center; }
+.review-scene .error { flex-basis: 100%; margin: 0; }

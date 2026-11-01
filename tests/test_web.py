@@ -111,8 +111,11 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     answer = {"picks": [{"id": items["scene_1.jpg"], "reason": "great view"}, {"id": items["scene_2.jpg"]}]}
     monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: answer)
     assert "Describe the slideshow" in client.get("/slideshow").text
-    picks = client.post("/slideshow/select", data={"description": "short"}).text
+    assert client.post("/slideshow/select", data={"description": "x", "desc_size": "huge"}).status_code == 400
+    picks = client.post("/slideshow/select", data={"description": "short", "desc_size": "short"}).text
     assert "great view" in picks and "2 photos" in picks
+    assert web.db.load_settings()["desc_size"] == "short"  # kept, as on the settings page
+    assert "<option selected>short</option>" in client.get("/slideshow").text
     toggle = client.post(f"/slideshow/add/{items['video.mp4']}").text  # from the Library detail panel
     assert "Remove from slideshow (#3)" in toggle and f'id="pick-{items["scene_1.jpg"]}"' in toggle  # all badges
     assert "✓ 3" in client.get(f"/media/{items['video.mp4']}").text
@@ -355,10 +358,21 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
         time.sleep(0.1)
     assert 'hx-get="/progress"' not in resp.text and not fake_ai  # no polling, no AI call yet
     items = {Path(it["path"]).name: it["id"] for it in web._items()}
-    scene = client.post(f"/best/{items['burst_2.jpg']}").text  # the review row comes back
-    assert f'class="shot best" hx-post="/best/{items["burst_2.jpg"]}"' in scene
+    bursts = sorted((it for it in web._items() if Path(it["path"]).name.startswith("burst_")), key=lambda it: -it["score"])
+
+    # Only when asked: the AI compares the shots side by side; its pick is marked and can be overruled.
+    monkeypatch.setattr("photos2show.ai.pick_best", lambda c, s, imgs: 1 / 0)
+    failed = client.post(f"/best/ai/{bursts[0]['id']}").text
+    assert "AI comparison failed: division by zero" in failed and "AI pick" not in failed
+    monkeypatch.setattr("photos2show.ai.pick_best", lambda c, s, imgs: len(imgs) - 1)  # the technically weakest
+    scene = client.post(f"/best/ai/{bursts[0]['id']}").text
+    assert f'class="shot best" hx-post="/best/{bursts[-1]["id"]}"' in scene and "<span>AI pick</span>" in scene
+    assert client.post(f"/best/ai/{items['video.mp4']}").status_code == 400  # not a scene of several shots
+    scene = client.post(f"/best/{items['burst_2.jpg']}").text  # the user overrules; the review row comes back
+    assert f'class="shot best" hx-post="/best/{items["burst_2.jpg"]}"' in scene and "AI pick" not in scene
     assert client.post(f"/best/{items['video.mp4']}").status_code == 400
     client.post("/analyse/continue")
+    assert client.post(f"/best/ai/{items['burst_2.jpg']}").status_code == 400  # outside the review: never
     for _ in range(100):
         if not web.job["running"]:
             break
@@ -388,3 +402,18 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
     client.post(f"/best/{items['burst_3.jpg']}", headers={"HX-Target": "detail"})
     failed = poll(items["burst_3.jpg"]).text
     assert 'class="error">AI description failed: burst_3.jpg: model offline' in failed
+
+
+def test_heic_original_is_sent_as_jpeg(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = tmp_path / "photos"
+    folder.mkdir()
+    Image.new("RGB", (60, 40), "red").save(folder / "IMG_0001.heic")  # only Safari shows HEIC
+    Image.new("RGB", (60, 40), "blue").save(folder / "plain.jpg")
+    web.analyse_folder(folder)
+    monkeypatch.setitem(web.job, "folder", str(folder))
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    ids = {Path(it["path"]).name: it["id"] for it in web._items()}
+    resp = client.get(f"/original/{ids['IMG_0001.heic']}")
+    assert resp.headers["content-type"] == "image/jpeg" and Image.open(io.BytesIO(resp.content)).size == (60, 40)
+    assert client.get(f"/original/{ids['plain.jpg']}").content == (folder / "plain.jpg").read_bytes()  # untouched

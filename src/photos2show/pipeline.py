@@ -125,12 +125,30 @@ def update_flags(conn) -> None:
         conn.execute("UPDATE media SET flags = ?, duplicate_of = ? WHERE id = ?", (json.dumps(flags), dup, it["id"]))
 
 
-def choose_best(conn, media_id: int) -> None:
+USER_PICK, AI_PICK = 1, 2  # values of media.chosen
+
+
+def choose_best(conn, media_id: int, by: int = USER_PICK) -> None:
     """Make media_id the best shot of its scene: it is kept when the scene is regrouped (later scans too)."""
     scene = conn.execute("SELECT COALESCE(duplicate_of, id) FROM media WHERE id = ?", (media_id,)).fetchone()[0]
-    conn.execute("UPDATE media SET chosen = (id = ?) WHERE id = ? OR duplicate_of = ?", (media_id, scene, scene))
+    conn.execute("UPDATE media SET chosen = (id = ?) * ? WHERE id = ? OR duplicate_of = ?",
+                 (media_id, by, scene, scene))
     update_flags(conn)
     conn.commit()
+
+
+BEST_OF = 6  # shots of one scene the AI compares side by side; the rest rank too low on the technical score
+
+
+def ai_choose_best(conn, scene: list[dict]) -> None:
+    """Let the AI compare the shots of one scene side by side and make its pick the best (chosen = AI_PICK).
+
+    Raises on a failed request or bad answer; the best shot stays as it was.
+    """
+    shots = sorted(scene, key=lambda it: -it["score"])[:BEST_OF]
+    settings = load_settings()
+    imgs = [scan.read_image(Path(it["path"]))[0] for it in shots]
+    choose_best(conn, shots[ai.pick_best(ai.make_client(settings), settings, imgs)]["id"], AI_PICK)
 
 
 def skip_ai_reason(item: dict) -> str | None:

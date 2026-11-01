@@ -60,3 +60,15 @@ def test_hidden_files_and_folders_are_skipped(tmp_path):
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_bytes(b"")
     assert [p.relative_to(tmp_path).as_posix() for p in find_media(tmp_path)] == ["a.jpg", "sub/d.JPG"]
+
+
+def test_heic_is_found_and_read_with_date_and_rotation(tmp_path):
+    from PIL import Image
+
+    from photos2show.scan import read_image
+    exif = Image.Exif()
+    exif[306], exif[274] = "2026:07:14 09:30:00", 6  # DateTime; rotated 90°
+    Image.new("RGB", (60, 40), "red").save(tmp_path / "IMG_0001.HEIC", exif=exif.tobytes())
+    assert find_media(tmp_path) == [tmp_path / "IMG_0001.HEIC"]
+    img, taken, size = read_image(tmp_path / "IMG_0001.HEIC")
+    assert taken == "2026-07-14T09:30:00" and img.size == size == (40, 60)
