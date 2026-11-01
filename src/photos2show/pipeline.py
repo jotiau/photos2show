@@ -116,7 +116,9 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
 def update_flags(conn) -> None:
     items = db.all_media(conn)
     # Very blurry images and videos never compete for "best of scene".
-    candidates = [it for it in items if it["kind"] == "image" and quality.VERY_BLURRY <= it["metrics"]["sharpness"]]
+    # Shots the user kept on their own (SEPARATE) are never grouped again.
+    candidates = [it for it in items if it["kind"] == "image" and quality.VERY_BLURRY <= it["metrics"]["sharpness"]
+                  and it["chosen"] != SEPARATE]
     best = dedup.best_of_clusters(candidates)
     for it in items:
         flags = quality.flags(it["metrics"])
@@ -127,7 +129,7 @@ def update_flags(conn) -> None:
         conn.execute("UPDATE media SET flags = ?, duplicate_of = ? WHERE id = ?", (json.dumps(flags), dup, it["id"]))
 
 
-USER_PICK, AI_PICK = 1, 2  # values of media.chosen
+USER_PICK, AI_PICK, SEPARATE = 1, 2, 3  # values of media.chosen; SEPARATE: "not similar", kept on its own
 
 
 def choose_best(conn, media_id: int, by: int = USER_PICK) -> None:
@@ -135,6 +137,13 @@ def choose_best(conn, media_id: int, by: int = USER_PICK) -> None:
     scene = conn.execute("SELECT COALESCE(duplicate_of, id) FROM media WHERE id = ?", (media_id,)).fetchone()[0]
     conn.execute("UPDATE media SET chosen = (id = ?) * ? WHERE id = ? OR duplicate_of = ?",
                  (media_id, by, scene, scene))
+    update_flags(conn)
+    conn.commit()
+
+
+def keep_separate(conn, ids: list[int]) -> None:
+    """Take these shots out of their scene: each is its own picture, described by the AI (later scans too)."""
+    conn.executemany("UPDATE media SET chosen = ? WHERE id = ?", [(SEPARATE, i) for i in ids])
     update_flags(conn)
     conn.commit()
 

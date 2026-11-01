@@ -224,6 +224,14 @@ def test_chosen_best_shot_survives_regrouping(tmp_path, monkeypatch):
     assert items["burst_2.jpg"]["duplicate_of"] is None and "duplicate" not in items["burst_2.jpg"]["flags"]
     assert items["burst_1.jpg"]["duplicate_of"] == best and items["burst_3.jpg"]["duplicate_of"] == best
 
+    pipeline.keep_separate(conn, [best])  # "not similar": out of the scene, also after regrouping
+    conn.execute("UPDATE media SET flags = NULL")
+    conn.commit()
+    analyse_folder(folder)
+    items = items_by_name(folder)
+    assert items["burst_2.jpg"]["duplicate_of"] is None and items["burst_2.jpg"]["chosen"] == pipeline.SEPARATE
+    assert items["burst_3.jpg"]["duplicate_of"] == items["burst_1.jpg"]["id"]
+
 
 def test_image_without_exif_date_gets_the_file_date_also_when_cached(tmp_path, monkeypatch):
     import os

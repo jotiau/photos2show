@@ -411,6 +411,26 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
     assert 'class="error">AI description failed: burst_3.jpg: model offline' in failed
 
 
+def test_keep_shots_of_a_scene_separately(tmp_path, monkeypatch, fake_ai):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = testdata.generate(tmp_path / "photos")
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    client.post("/settings", data={"key": "review_duplicates", "value": "off"})
+    client.post("/projects", data={"name": "Keep", "folder": str(folder)})
+    for _ in range(100):
+        if not web.job["running"]:
+            break
+        time.sleep(0.1)
+    items = {Path(it["path"]).name: it["id"] for it in web._items()}
+    b1, b2, b3 = items["burst_1.jpg"], items["burst_2.jpg"], items["burst_3.jpg"]
+
+    row = client.post(f"/separate/{b3}").text  # one shot out; the other two stay a scene
+    assert f'hx-post="/best/{b1}"' in row and f'hx-post="/best/{b2}"' in row and f"/best/{b3}" not in row
+    assert client.post(f"/separate/{b3}").status_code == 400  # alone now
+    assert client.post(f"/separate/{b1}?all=true").text == ""  # the whole scene: the row disappears
+    assert not any(it["duplicate_of"] for it in web._items())
+
+
 def test_heic_original_is_sent_as_jpeg(tmp_path, monkeypatch):
     monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     folder = tmp_path / "photos"

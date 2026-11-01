@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS media (
     flags TEXT DEFAULT '[]',         -- JSON list
     duplicate_of INTEGER,            -- id of the best image of the same scene
     ai TEXT,                         -- JSON from ai.analyse_image(), NULL until described
-    chosen INTEGER DEFAULT 0         -- best shot of its scene by choice: 1 the user, 2 the AI (side by side)
+    chosen INTEGER DEFAULT 0         -- best shot of its scene by choice: 1 the user, 2 the AI (side by side); 3 kept separately
 );
 """
 

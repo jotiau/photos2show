@@ -83,6 +83,8 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
 - The user can override it (`chosen` column, kept across regrouping): *Make this the best shot* in the
   detail panel describes the new best right away; with *Review duplicates before AI* on (default), Analyse pauses
   after the scan and shows every group without a description so the best can be picked before the AI pass.
+- Wrong groups: in the review, *Keep separately* (per shot) or *Keep all* (per group) sets `chosen = 3`;
+  such shots are left out of grouping for good, so each is described and can be picked on its own.
 
 ### 4. AI analysis (GLM-5.3 Flash, per image)
 - Send the 1024px image (base64 `image_url`) with a fixed prompt; request JSON:

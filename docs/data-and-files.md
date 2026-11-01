@@ -69,7 +69,7 @@ a cache folder.
 | `flags` | JSON list of quality flags and `duplicate` |
 | `duplicate_of` | id of the best shot of the same scene, NULL for the best shot itself |
 | `ai` | JSON of the AI description, NULL until described |
-| `chosen` | best shot by choice: 0 no, 1 by you, 2 by the AI |
+| `chosen` | best shot by choice: 0 no, 1 by you, 2 by the AI; 3 kept separately (not similar, never grouped) |
 
 ### `selection.json`
 

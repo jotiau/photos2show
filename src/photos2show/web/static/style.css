@@ -266,7 +266,9 @@ dialog.review .buttons { display: flex; gap: 6px; justify-content: flex-end; pos
 .review-scene img { display: block; width: 160px; height: 120px; object-fit: contain; }
 .review-scene .shot span { position: absolute; top: 4px; left: 4px; background: var(--ok); color: #fff;
   font-size: 12px; padding: 0 4px; border-radius: 3px; }
-.review-scene .ai-pick { align-self: center; }
+.review-scene .shot-box { display: flex; flex-direction: column; gap: 2px; }
+.review-scene .keep { font-size: 12px; padding: 1px 4px; }
+.review-scene .scene-actions { display: flex; flex-direction: column; gap: 6px; align-self: center; }
 .review-scene .error { flex-basis: 100%; margin: 0; }
 /* Documentation (opened from Settings): page list on the left, the rendered docs/ page on the right */
 main.docs { max-width: 1160px; margin: 0 auto; }

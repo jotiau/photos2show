@@ -6,7 +6,8 @@
     <h2 id="review-title">Pick the best shot of each scene</h2>
     <p>{{ scenes | length }} group{{ 's' if scenes | length != 1 }} of same-scene shots. Only the best shot (green) is
       described by the AI and offered for the slideshow. Click another shot to use it instead, or let the AI compare
-      the shots – you can still overrule its pick.</p>
+      the shots – you can still overrule its pick. Shots that are not similar: <em>Keep separately</em> or
+      <em>Keep all</em>.</p>
     {% for scene in scenes %}{% include "_scene.html" %}{% endfor %}
     <div class="buttons">
       <button hx-post="/analyse/stop" hx-target="#progress" hx-swap="outerHTML">Stop</button>

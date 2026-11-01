@@ -31,6 +31,7 @@ from photos2show.pipeline import (
     analyse_folder,
     choose_best,
     describe_folder,
+    keep_separate,
     skip_ai_reason,
 )
 
@@ -577,6 +578,20 @@ def ai_best_shot(request: Request, scene_id: int):
         error = str(e)
     scene = [it for it in _items() if it["id"] in ids]  # the best, and so the scene id, may have changed
     return templates.TemplateResponse(request, "_scene.html", {"scene": scene, "error": error})
+
+
+@app.post("/separate/{media_id}", response_class=HTMLResponse)
+def separate_shot(media_id: int, all: bool = False):
+    """Duplicate review: the shot (all=true: every shot of its scene) is not similar and is kept on its own."""
+    scene = {it["id"] for it in _items() if _scene(it) == _scene(_item(media_id))}
+    if len(scene) < 2:
+        raise HTTPException(400)
+    keep_separate(db.connect(_root()), list(scene) if all else [media_id])
+    rest = defaultdict(list)  # the shots left may now form several scenes, or none (the row disappears)
+    for it in _items():
+        if it["id"] in scene:
+            rest[_scene(it)].append(it)
+    return "".join(templates.get_template("_scene.html").render(scene=s) for s in rest.values() if len(s) > 1)
 
 
 @app.get("/describing/{media_id}", response_class=HTMLResponse)

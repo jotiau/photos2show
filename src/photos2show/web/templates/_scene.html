@@ -1,13 +1,21 @@
 <div class="review-scene">
   {% for s in scene %}
-  <button class="shot {{ 'best' if not s.duplicate_of }}" hx-post="/best/{{ s.id }}" hx-target="closest .review-scene"
-    hx-swap="outerHTML" title="#{{ s.id }} {{ s.path | basename }}" aria-pressed="{{ 'false' if s.duplicate_of else 'true' }}">
-    <img src="/thumb/{{ s.id }}?p={{ media_key() }}" alt="{{ s.path | basename }}">{% if not s.duplicate_of %}<span>{{ 'AI pick' if s.chosen == AI_PICK else 'best' }}</span>{% endif %}
-  </button>
+  <div class="shot-box">
+    <button class="shot {{ 'best' if not s.duplicate_of }}" hx-post="/best/{{ s.id }}" hx-target="closest .review-scene"
+      hx-swap="outerHTML" title="#{{ s.id }} {{ s.path | basename }}" aria-pressed="{{ 'false' if s.duplicate_of else 'true' }}">
+      <img src="/thumb/{{ s.id }}?p={{ media_key() }}" alt="{{ s.path | basename }}">{% if not s.duplicate_of %}<span>{{ 'AI pick' if s.chosen == AI_PICK else 'best' }}</span>{% endif %}
+    </button>
+    <button class="keep" hx-post="/separate/{{ s.id }}" hx-target="closest .review-scene" hx-swap="outerHTML"
+      title="Not similar: keep this shot as its own picture">Keep separately</button>
+  </div>
   {% endfor %}
-  <!-- one request at a time (queued in the dialog): "compare all" fires every scene's button -->
-  <button class="ai-pick" hx-post="/best/ai/{{ scene[0].duplicate_of or scene[0].id }}" hx-target="closest .review-scene"
-    hx-swap="outerHTML" hx-trigger="click, ai-compare-all from:body" hx-sync="closest dialog:queue all">
-    Let the AI compare<span class="htmx-indicator"> <span class="spinner"></span></span></button>
+  <div class="scene-actions">
+    <!-- one request at a time (queued in the dialog): "compare all" fires every scene's button -->
+    <button class="ai-pick" hx-post="/best/ai/{{ scene[0].duplicate_of or scene[0].id }}" hx-target="closest .review-scene"
+      hx-swap="outerHTML" hx-trigger="click, ai-compare-all from:body" hx-sync="closest dialog:queue all">
+      Let the AI compare<span class="htmx-indicator"> <span class="spinner"></span></span></button>
+    <button hx-post="/separate/{{ scene[0].id }}?all=true" hx-target="closest .review-scene" hx-swap="outerHTML"
+      title="The shots are not similar: keep every one as its own picture">Keep all</button>
+  </div>
   {% if error %}<p class="error">AI comparison failed: {{ error }}</p>{% endif %}
 </div>

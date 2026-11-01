@@ -48,6 +48,9 @@ Analysis runs in the background and shows its progress at the top of the *Librar
    - Click another shot to use it instead.
    - *Let the AI compare* (per group) or *Let the AI compare all* sends up to 6 shots of a group to the
      AI side by side; its pick is marked *AI pick*. You can still click another shot.
+   - Shots that are not similar at all: *Keep separately* under a shot takes it out of the group, *Keep all*
+     (per group) dissolves the whole group. Each such shot is its own picture: described by the AI and
+     offered for the slideshow. The choice is kept on later scans.
    - *Continue with AI* starts the next step; *Stop* ends the run. The run waits for you.
 3. **Describing with AI** – each remaining photo goes to the model (2 at a time by default, see
    *Parallel AI requests*). Captions and tags appear live; while you browse, a *Show N new results*

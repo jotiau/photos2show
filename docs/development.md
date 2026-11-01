@@ -79,6 +79,7 @@ docs/           # this documentation
 | `GET /projects/cover?name=` | cover photo of a project |
 | `POST /analyse`, `/analyse/stop`, `/analyse/continue`; `GET /progress` | start, stop, continue after the duplicate review; progress partial |
 | `POST /best/{id}`, `/best/ai/{scene id}`; `GET /describing/{id}` | make a shot the best; AI compare during the review; poll a description started right away |
+| `POST /separate/{id}`, `/separate/{id}?all=true` | review: keep a shot (or every shot of its scene) as its own picture |
 | `GET /slideshow`, `/slideshow/picks` | slideshow page; picks partial |
 | `POST /slideshow/select`, `/refine`, `/seconds`, `/sort`, `/move`, `/swap`, `/undo` | change the picks |
 | `POST /slideshow/{add\|remove}/{id}`, `/slideshow/bulk` | add or remove one or several |

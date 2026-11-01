@@ -68,8 +68,9 @@ Groups are transitive (A~B and B~C puts all three together). Only exact repeats 
 the same place stay separate. Very blurry photos and videos are never grouped.
 
 The **best shot** of a group is the one chosen by hand or by the AI, else the highest technical score.
-The others get the `duplicate` flag and are not sent to the AI. Choices are kept when groups are
-recomputed on later scans.
+The others get the `duplicate` flag and are not sent to the AI. Shots kept separately in the review
+(*Keep separately*, *Keep all*) are never grouped again. Choices are kept when groups are recomputed on
+later scans.
 
 ### Review and AI compare
 
