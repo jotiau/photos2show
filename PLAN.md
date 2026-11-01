@@ -160,7 +160,7 @@ per page; destructive actions red.
   panel (back, hold, forward, close) on mouse move or tap; keys ← → Space Esc.
 - **Settings**: theme (auto / light / dark / grey), accent colour, parallel AI requests, review duplicates before AI, photo details for choosing
   (each with a help line); delete cached data of folders
-  no project uses.
+  no project uses; *Open documentation* opens `docs/` rendered as pages in a new tab (`/docs/<page>`).
 
 ### 7. Export
 - Copy to a new, empty folder outside the photo folder (default: the last export folder, else
@@ -178,7 +178,7 @@ per page; destructive actions red.
 - Python ≥ 3.12 managed with `uv` (no torch needed, so 3.14 works)
 - `pillow`, `pillow-heif` (HEIC), `rawpy` (camera RAW via LibRaw), `opencv-python-headless`, `numpy`, `imagehash`
 - `openai` (client with custom `base_url`, thread pool for concurrency)
-- `fastapi`, `uvicorn`, `jinja2`, HTMX (vendored static file)
+- `fastapi`, `uvicorn`, `jinja2`, HTMX (vendored static file), `markdown-it-py` (docs viewer)
 - SQLite via stdlib `sqlite3`
 - `pytest` for tests
 - Config via `.env`: `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL` (`prod` on the BLUM server),
@@ -207,7 +207,6 @@ CLAUDE.md       # notes for Claude: update docs/ with every change
 ```
 
 ## Future features ideas
-- Show the documentation (`docs/`) inside the app, in the Settings tab
 - Face detection / clustering ("everyone appears at least once")
 - Local CLIP embeddings for fast semantic search and better duplicate grouping
 - Learned IQA models (pyiqa: MUSIQ/TOPIQ/NIMA) if GLM aesthetic scores prove noisy

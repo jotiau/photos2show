@@ -5,6 +5,8 @@ rejects on your own computer, has an AI model describe the rest, and builds a sl
 sentence such as *"10-minute show for my parents, chronological, mostly landscapes, little food"*.
 The result is a new folder with numbered copies. **Your originals are never moved or changed.**
 
+In the app, *Settings → Open documentation* shows these pages in a new tab.
+
 ## Contents
 
 | Page | What it covers |

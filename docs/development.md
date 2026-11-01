@@ -38,7 +38,7 @@ src/photos2show/
   testdata.py   # photos2show-testdata
   web/
     app.py      # FastAPI routes, background analysis job
-    templates/  # pages (projects, library, slideshow, settings) and _partials for HTMX swaps
+    templates/  # pages (projects, library, slideshow, settings, docs) and _partials for HTMX swaps
     static/     # htmx.min.js (vendored), style.css
 tests/          # test_<module>.py per area, test_web.py for the routes; conftest.py has the fixtures
 docs/           # this documentation
@@ -60,6 +60,11 @@ docs/           # this documentation
   on Linux, else Tk in a subprocess), because a browser never reveals real paths.
 - **Settings** are declared in `db.SETTINGS` (`key: (label, choices, default, help)`); a new line there
   appears on the Settings page automatically.
+- **Documentation viewer**: `/docs/<page>` renders `docs/<page>.md` with markdown-it-py (CommonMark +
+  tables, raw HTML shown as text). Links like `configuration.md#local-models` become
+  `/docs/configuration#local-models`, and headings get GitHub-style ids so those anchors work. The page
+  list on the left follows the links in the table of `docs/index.md`. `docs/` is read from the source
+  checkout. FastAPI's own Swagger pages (`/docs`, `/redoc`) are turned off.
 
 ### Routes
 
@@ -79,6 +84,7 @@ docs/           # this documentation
 | `POST /slideshow/{add\|remove}/{id}`, `/slideshow/bulk` | add or remove one or several |
 | `POST /slideshow/export`, `/slideshow/open-export` | export; open the export folder |
 | `GET /settings`, `POST /settings`, `POST /settings/cleanup` | settings page; save one setting; delete unused data |
+| `GET /docs`, `/docs/{page}` | the documentation (opened from Settings in a new tab) |
 | `POST /pick-folder` | system folder dialog |
 
 ## Conventions
@@ -98,7 +104,7 @@ docs/           # this documentation
 
 Every change to behaviour, UI labels, settings, file formats, routes or data files must update the
 matching page in `docs/` in the same commit (and the README where it repeats the same information).
-The docs are meant to be shown inside the app's Settings tab later, so they link only to each other
-with relative links like `[Configuration](configuration.md)`.
+The app shows them at `/docs/<page>`, so they link only to each other with relative links like
+`[Configuration](configuration.md)`, and a new page goes into the table in `docs/index.md`.
 
 The design notes and the reasoning behind decisions live in `PLAN.md`.

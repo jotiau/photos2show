@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en" data-theme="{{ settings().theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>photos2show – {{ pages.get(name, name) }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header><h1>photos2show documentation</h1></header>
+<main class="docs">
+  <nav class="doc-pages" aria-label="Documentation pages">
+    {% for page, label in pages.items() %}
+    <a href="/docs/{{ page }}"{% if page == name %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <article class="doc">{{ body | safe }}</article>
+</main>
+</body>
+</html>
