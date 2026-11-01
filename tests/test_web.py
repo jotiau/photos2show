@@ -258,6 +258,7 @@ def test_settings(tmp_path, monkeypatch):
     assert client.post("/settings", data={"key": "theme", "value": "pink"}).status_code == 400
     assert client.post("/settings", data={"key": "theme", "value": "dark"}).headers["HX-Refresh"] == "true"
     assert 'data-theme="dark"' in client.get("/slideshow").text
+    assert client.get("/static/style.css").headers["Cache-Control"] == "no-cache"  # updates show without a hard reload
 
 
 def test_cleanup_unused_data(tmp_path, monkeypatch):

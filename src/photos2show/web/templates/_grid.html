@@ -5,6 +5,7 @@
     {{ f.replace('_', ' ').replace('tag:', '#') }} <span>{{ n }}</span>
   </button>
   {% endfor %}
+  <span class="end">
   <button class="stacks" hx-get="/grid?stacks={{ 'false' if stacked else 'true' }}" hx-target="#grid"
     title="Same-scene shots: only the best one, or every shot">{{ 'Show all shots' if stacked else 'Stack same-scene shots' }}</button>
   <label class="sort">Sort by
@@ -12,6 +13,7 @@
       {% for key, label in sorts.items() %}<option value="{{ key }}" {{ 'selected' if key == sort }}>{{ label }}</option>{% endfor %}
     </select>
   </label>
+  </span>
 </nav>
 {% if tags %}
 <details class="tags" {{ 'open' if flag.startswith('tag:') }}>

@@ -42,7 +42,8 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .card .pick:empty { display: none; }
 .card .stack { position: absolute; top: 6px; left: 6px; background: #000a; color: #fff; padding: 2px 7px;
                border-radius: 10px; font-size: 12px; font-weight: 600; box-shadow: 3px 3px 0 #fff8; }
-.filters .stacks { margin-left: auto; }
+/* stacks + sort stay together at the right end, also when the row wraps */
+.filters .end { margin-left: auto; display: flex; gap: 6px; align-items: center; }
 .filters .sort { display: flex; gap: 6px; align-items: center; color: var(--muted); }
 .flags { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 8px; }
 .flag { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: var(--warn); color: #fff; }
@@ -159,7 +160,7 @@ textarea { font: inherit; padding: 8px; border: 1px solid var(--border); border-
 .picks .num { position: absolute; top: 6px; left: 6px; background: var(--accent); color: #fff; padding: 2px 7px;
               border-radius: 10px; font-size: 12px; font-weight: 600; }
 .picks .video { left: 40px; }
-.picks .meta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.picks .meta { padding-bottom: 0; display: -webkit-box;  /* bottom padding would show a cut third line */ -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .picks .drop { position: absolute; top: 6px; right: 6px; padding: 0 7px; line-height: 20px; border: none; border-radius: 10px;
                background: #000a; color: #fff; }
 .picks .drop:hover { background: var(--bad); }
