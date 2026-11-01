@@ -192,7 +192,7 @@ src/photos2show/
 tests/
 ```
 
-## Future features
+## Future features ideas
 - Face detection / clustering ("everyone appears at least once")
 - Local CLIP embeddings for fast semantic search and better duplicate grouping
 - Learned IQA models (pyiqa: MUSIQ/TOPIQ/NIMA) if GLM aesthetic scores prove noisy
