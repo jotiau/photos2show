@@ -97,7 +97,8 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     slideshow.forget(root, gone)  # before the ids are deleted and handed to new files
     conn.executemany("DELETE FROM media WHERE id = ?", [(i,) for i in gone])
     # Grouping compares every photo with every other (~2 s per 1500); skip it when nothing changed.
-    # shortcut: new flag thresholds in the code apply only once a scan finds a new, changed or deleted file.
+    # shortcut: new flag thresholds in the code apply only once a scan finds a new, changed or deleted file;
+    # when quality.py or dedup.py thresholds change, run UPDATE media SET flags = NULL so the next scan regroups.
     if gone or conn.execute("SELECT 1 FROM media WHERE flags IS NULL LIMIT 1").fetchone():
         update_flags(conn)
     conn.commit()
