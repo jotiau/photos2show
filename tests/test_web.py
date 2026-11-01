@@ -96,7 +96,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     client.get("/grid?flag=all")
     assert "scene_2.jpg" in client.get("/grid?q=").text  # cleared
     assert client.get(f"/thumb/{items['video.mp4']}?frame=2").headers["content-type"] == "image/jpeg"
-    assert client.get(f"/thumb/{items['video.mp4']}").headers["cache-control"] == "no-cache"  # ids repeat across projects
+    assert f"/thumb/{items['scene_1.jpg']}?p={web.media_key()}" in client.get("/grid").text  # ids repeat across projects
     assert client.get(f"/original/{items['video.mp4']}").status_code == 200
     assert client.get("/media/9999").status_code == 404
     resp = client.get(f"/preview/{items['scene_1.jpg']}")

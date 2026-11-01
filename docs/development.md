@@ -73,7 +73,7 @@ docs/           # this documentation
 | `GET /` | Library page; `flag`, `q`, `sort`, `photo` in the URL restore the view |
 | `GET /grid` | grid partial with filters, search, stacks, sort |
 | `GET /media/{id}` | detail panel |
-| `GET /thumb/{id}[?frame=N]`, `/preview/{id}`, `/original/{id}` | thumbnail / video frame, 1024 px preview, original (HEIC/TIFF/RAW as JPEG); sent with `Cache-Control: no-cache`, since ids restart at 1 in every project |
+| `GET /thumb/{id}[?frame=N]`, `/preview/{id}`, `/original/{id}` | thumbnail / video frame, 1024 px preview, original (HEIC/TIFF/RAW as JPEG); ids restart at 1 in every project, so the pages add `?p=<project key>` (ignored by the server) to keep browsers from showing another project's cached image |
 | `GET /projects`, `POST /projects` | projects page; create a project and start analysing |
 | `POST /projects/open`, `/rename`, `/folder`, `/remove` | switch, rename, change folder, remove |
 | `GET /projects/cover?name=` | cover photo of a project |

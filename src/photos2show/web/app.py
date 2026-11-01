@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import webbrowser
+import zlib
 from collections import Counter, defaultdict
 from html import escape
 from pathlib import Path
@@ -87,8 +88,7 @@ async def htmx_only(request: Request, call_next):
         return HTMLResponse("Forbidden", status_code=403)
     response = await call_next(request)
     if request.url.path.startswith(("/static/", "/thumb/", "/preview/", "/original/")):
-        # Without it, browsers may keep an old style.css after an update, or show project A's /thumb/1 in
-        # project B (media ids restart at 1 per library); the ETag keeps the check cheap.
+        # Without it, browsers may keep an old style.css or a re-analysed thumbnail; the ETag keeps the check cheap.
         response.headers["Cache-Control"] = "no-cache"
     return response
 
@@ -223,6 +223,15 @@ def index(request: Request, flag: str | None = None, q: str | None = None, sort:
     if flag:
         job.update(flag=flag, query=(q or "").strip(), sort=sort if sort in SORTS else "date")
     return _page(request, "library.html", page="library", photo=photo)
+
+
+def media_key() -> str:
+    """Added to /thumb, /preview and /original URLs: media ids restart at 1 in every project, and browsers reuse
+    an image they hold in memory for the same URL even after a reload, so project B would show project A's /thumb/1."""
+    return format(zlib.crc32(str(job["folder"]).encode()), "x")
+
+
+templates.env.globals["media_key"] = media_key
 
 
 def library_url(**changes) -> str:

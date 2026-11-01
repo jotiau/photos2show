@@ -32,8 +32,8 @@
 <ol class="picks">
   {% for p in picks %}
   <li class="card" draggable="true" data-id="{{ p.item.id }}" title="Drag to reorder">
-    <img src="/thumb/{{ p.item.id }}" alt="" loading="lazy" draggable="false" title="Click to enlarge"
-         data-full="/original/{{ p.item.id }}"{% if p.item.kind == 'video' %} data-video{% endif %}>
+    <img src="/thumb/{{ p.item.id }}?p={{ media_key() }}" alt="" loading="lazy" draggable="false" title="Click to enlarge"
+         data-full="/original/{{ p.item.id }}?p={{ media_key() }}"{% if p.item.kind == 'video' %} data-video{% endif %}>
     <span class="num">{{ loop.index }}</span>
     {% if p.item.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
     <div class="name">#{{ p.item.id }} {{ p.item.path | basename }}</div>
@@ -48,7 +48,7 @@
       <summary title="Other shots of this scene – click one to use it instead">⇄ {{ p.alts | length }} other shot{{ 's' if p.alts | length != 1 }}</summary>
       <div class="alts">
         {% for a in p.alts %}<button hx-post="/slideshow/swap" hx-vals='{"id": {{ p.item.id }}, "to": {{ a }}}' hx-target="#picks"
-          title="Use this shot instead" aria-label="Use shot #{{ a }} instead"><img src="/thumb/{{ a }}" alt="" loading="lazy" draggable="false"></button>{% endfor %}
+          title="Use this shot instead" aria-label="Use shot #{{ a }} instead"><img src="/thumb/{{ a }}?p={{ media_key() }}" alt="" loading="lazy" draggable="false"></button>{% endfor %}
       </div>
     </details>
     {% endif %}

@@ -3,12 +3,12 @@
 <details class="keys"><summary title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</summary>
   ← → previous / next · A add to / remove from slideshow · Esc close</details>
 {% if it.kind == 'video' %}
-<video src="/original/{{ it.id }}" controls preload="metadata"></video>
+<video src="/original/{{ it.id }}?p={{ media_key() }}" controls preload="metadata"></video>
 <div class="frames">
-  {% for i in range(it.frames) %}<img src="/thumb/{{ it.id }}?frame={{ i }}" alt="frame {{ i }}">{% endfor %}
+  {% for i in range(it.frames) %}<img src="/thumb/{{ it.id }}?frame={{ i }}&p={{ media_key() }}" alt="frame {{ i }}">{% endfor %}
 </div>
 {% else %}
-<a href="/original/{{ it.id }}" target="_blank" title="Open the original"><img src="/preview/{{ it.id }}" alt=""></a>
+<a href="/original/{{ it.id }}?p={{ media_key() }}" target="_blank" title="Open the original"><img src="/preview/{{ it.id }}?p={{ media_key() }}" alt=""></a>
 {% endif %}
 {% with id = it.id, picks = {it.id: it.pick} if it.pick else {} %}{% include "_toggle.html" %}{% endwith %}
 <p class="path">{{ it.path }}</p>
@@ -41,7 +41,7 @@
 {% elif it.chosen == AI_PICK %}<p>The AI picked this as the best shot of the scene. Open another shot to use it instead.</p>{% endif %}
 <div class="frames">
   {% for s in scene %}
-  <img src="/thumb/{{ s.id }}" title="#{{ s.id }}" hx-get="/media/{{ s.id }}" hx-target="#detail" class="{{ 'best' if not s.duplicate_of }}">
+  <img src="/thumb/{{ s.id }}?p={{ media_key() }}" title="#{{ s.id }}" hx-get="/media/{{ s.id }}" hx-target="#detail" class="{{ 'best' if not s.duplicate_of }}">
   {% endfor %}
 </div>
 {% endif %}

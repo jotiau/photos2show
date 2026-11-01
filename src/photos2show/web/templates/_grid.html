@@ -33,7 +33,7 @@
   <article class="card {{ 'dim' if it.skip_ai }}" data-id="{{ it.id }}" tabindex="0" role="button"
     aria-label="Open #{{ it.id }} {{ it.path | basename }}" hx-get="/media/{{ it.id }}" hx-target="#detail"
     hx-trigger="click[!ctrlKey && !metaKey && !shiftKey]" hx-push-url="{{ library_url(photo=it.id) }}">
-    <img src="/thumb/{{ it.id }}" loading="lazy" alt="">
+    <img src="/thumb/{{ it.id }}?p={{ media_key() }}" loading="lazy" alt="">
     {% if it.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
     {% if more[it.id] %}<span class="stack" title="{{ more[it.id] }} more shot{{ 's' if more[it.id] != 1 }} of this scene – open to see them">+{{ more[it.id] }}</span>{% endif %}
     <span id="pick-{{ it.id }}" class="pick" title="Position in the slideshow">{{ '✓ %d' % it.pick if it.pick }}</span>

@@ -2,7 +2,7 @@
   {% for s in scene %}
   <button class="shot {{ 'best' if not s.duplicate_of }}" hx-post="/best/{{ s.id }}" hx-target="closest .review-scene"
     hx-swap="outerHTML" title="#{{ s.id }} {{ s.path | basename }}" aria-pressed="{{ 'false' if s.duplicate_of else 'true' }}">
-    <img src="/thumb/{{ s.id }}" alt="{{ s.path | basename }}">{% if not s.duplicate_of %}<span>{{ 'AI pick' if s.chosen == AI_PICK else 'best' }}</span>{% endif %}
+    <img src="/thumb/{{ s.id }}?p={{ media_key() }}" alt="{{ s.path | basename }}">{% if not s.duplicate_of %}<span>{{ 'AI pick' if s.chosen == AI_PICK else 'best' }}</span>{% endif %}
   </button>
   {% endfor %}
   <!-- one request at a time (queued in the dialog): "compare all" fires every scene's button -->
