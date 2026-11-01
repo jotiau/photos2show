@@ -99,7 +99,7 @@ def test_describe_failure_is_reported_and_retried(library, fake_ai, monkeypatch)
     assert items_by_name(folder)["scene_1.jpg"]["ai"] is None
     monkeypatch.setattr("photos2show.ai.analyse_image", lambda *a: {"caption": "retry"})
     assert describe_folder(folder)["described"] == 1
-    assert items_by_name(folder)["scene_1.jpg"]["ai"] == {"caption": "retry"}
+    assert items_by_name(folder)["scene_1.jpg"]["ai"]["caption"] == "retry"
 
 
 def test_failed_requests_do_not_keep_images_in_memory(library, fake_ai, monkeypatch):

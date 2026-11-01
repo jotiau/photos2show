@@ -141,7 +141,7 @@ def _matches(it: dict, flag: str) -> bool:
 def _found(it: dict, query: str) -> bool:
     """Every word of the search occurs in the caption, tags, scene, issues or file name (any case)."""
     a = it["ai"] or {}
-    text = " ".join([str(a.get("caption") or ""), str(a.get("scene") or ""), *map(str, a.get("tags") or []),
+    text = " ".join([str(a.get("caption") or ""), str(a.get("scene") or ""), *a.get("tags", []),
                      *map(str, a.get("issues") or []), Path(it["path"]).name]).lower()
     return all(word in text for word in query.lower().split())
 
@@ -327,7 +327,7 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
     _, key, desc = slideshow.SORTS[by]
     known = [it for it in shown if key(it) is not None]  # without a value (no date, no AI score): at the end
     shown = sorted(known, key=key, reverse=desc) + [it for it in shown if key(it) is None]
-    tags = Counter(t for it in visible for t in {str(t) for t in (it["ai"] or {}).get("tags") or []})
+    tags = Counter(t for it in visible for t in set((it["ai"] or {}).get("tags", [])))
     resp = templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
                                                               "query": query, "stacked": stacked, "more": more,
                                                               "tags": tags.most_common(TOP_TAGS)})

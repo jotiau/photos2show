@@ -76,11 +76,14 @@ def select(conn, description: str, current: list[dict] | None = None, instructio
     valid, old_reason, picks = {it["id"] for it in items}, {p["id"]: p["reason"] for p in current}, []
     for p in answer.get("picks") or []:  # LLM output: drop unknown, repeated or malformed ids
         try:
-            pid = int(p["id"])
+            pid = int(p["id"] if isinstance(p, dict) else p)  # small models often answer [12, 15]
         except (KeyError, TypeError, ValueError):
             continue
         if pid in valid and pid not in {q["id"] for q in picks}:
-            picks.append({"id": pid, "reason": str(p.get("reason") or old_reason.get(pid, ""))})
+            reason = p.get("reason") if isinstance(p, dict) else None
+            picks.append({"id": pid, "reason": str(reason or old_reason.get(pid, ""))})
+    if not picks:  # an unusable answer must not replace the current slideshow with an empty one
+        raise ValueError("The AI answer contained no usable picks – try again or rephrase.")
     return picks
 
 
@@ -221,11 +224,12 @@ def export(root: Path, target: Path, replace: bool = False) -> int:
         for f in old:
             f.unlink()
     target.mkdir(parents=True, exist_ok=True)
+    # First: a copy that fails halfway (full stick) still leaves a folder "replace" may empty.
+    db.write_json(target / "selection.json", {k: v for k, v in selection.items() if k != "exported_to"})
     for n, it in enumerate(items, 1):
         src = Path(it["path"])
         slug = re.sub(r"[^a-z0-9]+", "-", " ".join(((it["ai"] or {}).get("tags") or [])[:2]).lower()).strip("-")
         shutil.copy2(src, target / f"{n:03d}_{(it['taken_at'] or '')[:10]}_{slug or 'photo'}{src.suffix.lower()}")
-    db.write_json(target / "selection.json", {k: v for k, v in selection.items() if k != "exported_to"})
     with lock:  # re-read: picks may have been edited while copying
         save(root, {**load(root), "exported_to": str(target)})  # suggested again for the next export
     return len(items)

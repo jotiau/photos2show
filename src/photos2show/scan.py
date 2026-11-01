@@ -17,7 +17,9 @@ LOAD_EDGE = 2048  # decode JPEGs at reduced size; analysis and thumbnails need l
 def find_media(root: Path) -> list[Path]:
     return sorted(
         p for p in root.rglob("*")
-        if p.is_file() and p.suffix.lower() in IMAGE_EXT | VIDEO_EXT and not p.name.startswith(".")
+        if p.is_file() and p.suffix.lower() in IMAGE_EXT | VIDEO_EXT
+        # hidden folders too: .Trash-1000 on a USB stick holds deleted photos
+        and not any(part.startswith(".") for part in p.relative_to(root).parts)
     )
 
 

@@ -2,7 +2,7 @@ import os
 import struct
 from datetime import datetime, timezone
 
-from photos2show.scan import file_time, mp4_created
+from photos2show.scan import file_time, find_media, mp4_created
 
 
 def test_file_time_prefers_name_over_mtime(tmp_path):
@@ -53,3 +53,10 @@ def test_mp4_creation_time_from_movie_header(tmp_path):
     clip = tmp_path / "clip.mp4"
     clip.write_bytes(cases["end.mp4"])
     assert file_time(clip) == local(datetime(2026, 7, 15, 11, 13, 5))  # header beats mtime
+
+
+def test_hidden_files_and_folders_are_skipped(tmp_path):
+    for name in ("a.jpg", ".b.jpg", ".Trash-1000/files/c.jpg", "sub/d.JPG"):
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_bytes(b"")
+    assert [p.relative_to(tmp_path).as_posix() for p in find_media(tmp_path)] == ["a.jpg", "sub/d.JPG"]

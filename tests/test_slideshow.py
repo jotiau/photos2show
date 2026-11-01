@@ -26,6 +26,11 @@ def test_select_keeps_only_valid_picks(described, monkeypatch):
     assert picks == [{"id": ids["scene_2.jpg"], "reason": "nice"}, {"id": ids["scene_1.jpg"], "reason": ""}]
     prompt = prompts[0][0]["content"]
     assert "short show" in prompt and "fake caption" in prompt and f"\n{ids['burst_2.jpg']} |" not in prompt
+    answer = {"picks": [ids["scene_1.jpg"], ids["scene_2.jpg"]]}  # bare ids, as small models answer
+    assert [p["id"] for p in slideshow.select(db.connect(folder), "x")] == [ids["scene_1.jpg"], ids["scene_2.jpg"]]
+    answer = {"photos": [1, 2]}  # nothing usable: an error, not an empty slideshow
+    with pytest.raises(ValueError, match="no usable picks"):
+        slideshow.select(db.connect(folder), "x")
 
 
 def test_rescan_forgets_picks_of_deleted_files(described):
@@ -157,6 +162,27 @@ def test_export_again_replaces_only_an_earlier_export(described, tmp_path):
     with pytest.raises(ValueError, match="not from an export"):
         slideshow.export(folder, other, replace=True)
     assert (show / "my notes.txt").exists() and (other / "001_mine.jpg").exists()
+
+
+def test_export_that_failed_halfway_can_be_replaced(described, tmp_path, monkeypatch):
+    folder, ids = described
+    show = tmp_path / "show"
+    slideshow.save(folder, {"description": "d", "picks": [{"id": ids["scene_1.jpg"], "reason": ""},
+                                                           {"id": ids["scene_2.jpg"], "reason": ""}]})
+    copy = slideshow.shutil.copy2
+    calls = []
+
+    def full_stick(src, dst):
+        calls.append(dst)
+        if len(calls) == 2:
+            raise OSError("No space left on device")
+        return copy(src, dst)
+
+    monkeypatch.setattr(slideshow.shutil, "copy2", full_stick)
+    with pytest.raises(OSError):
+        slideshow.export(folder, show)
+    monkeypatch.setattr(slideshow.shutil, "copy2", copy)
+    assert slideshow.export(folder, show, replace=True) == 2
 
 
 def test_videos_count_with_their_length(described):
