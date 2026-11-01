@@ -1,7 +1,9 @@
 """Find media files, read capture dates, extract video frames."""
 import functools
+import os
 import re
 import struct
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -136,8 +138,9 @@ def mp4_created(path: Path) -> str | None:
 
 def file_time(path: Path) -> str:
     """Capture time of a video or an image without EXIF date: from the file name if it has one,
-    else the MP4 header (videos), else file mtime.
+    else the MP4 header (videos), else the earlier of file creation and modification time.
 
+    Copying sets the creation time to the copy date but usually keeps mtime; editing does the reverse.
     mtime can be off by hours after copying (seen: exactly 1 h, time zone).
     """
     if m := NAME_DATE.search(path.stem):
@@ -145,4 +148,19 @@ def file_time(path: Path) -> str:
             return datetime.strptime(m[1] + m[2], "%Y%m%d%H%M%S").isoformat()
         except ValueError:
             pass
-    return (path.suffix.lower() in MP4_EXT and mp4_created(path)) or datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()
+    if path.suffix.lower() in MP4_EXT and (header := mp4_created(path)):
+        return header
+    st = path.stat()
+    t = min(filter(None, (birth_time(path, st), st.st_mtime)))
+    return datetime.fromtimestamp(t).replace(microsecond=0).isoformat()
+
+
+def birth_time(path: Path, st: os.stat_result) -> float | None:
+    """File creation time, None if the system or file system doesn't keep it."""
+    if hasattr(st, "st_birthtime"):  # macOS, Windows
+        return st.st_birthtime or None
+    try:  # Linux: Python < 3.15 can't read it, GNU stat can (0 or "-" when unknown)
+        out = subprocess.run(["stat", "-c", "%W", str(path)], capture_output=True, text=True, check=True).stdout
+        return float(out) or None
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return None

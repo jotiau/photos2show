@@ -2,6 +2,8 @@ import os
 import struct
 from datetime import datetime, timezone
 
+import pytest
+
 from photos2show.scan import file_time, find_media, mp4_created
 
 
@@ -89,3 +91,13 @@ def test_heic_is_found_and_read_with_date_and_rotation(tmp_path):
     assert find_media(tmp_path) == [tmp_path / "IMG_0001.HEIC"]
     img, taken, size = read_image(tmp_path / "IMG_0001.HEIC")
     assert taken == "2026-07-14T09:30:00" and img.size == size == (40, 60)
+
+
+def test_file_time_takes_the_creation_time_when_it_is_earlier(tmp_path):
+    from photos2show.scan import birth_time
+    edited = tmp_path / "edited.png"  # created now, modified "later" (an edit)
+    edited.write_bytes(b"")
+    os.utime(edited, (0, datetime(2030, 1, 1).timestamp()))
+    if birth_time(edited, edited.stat()) is None:
+        pytest.skip("file system keeps no creation time")
+    assert file_time(edited)[:4] == str(datetime.now().year)
