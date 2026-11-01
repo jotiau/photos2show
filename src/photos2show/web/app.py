@@ -117,7 +117,7 @@ def _run(root: Path) -> None:
             job.update(phase="Describing with AI", done=0, total=0, started=time.monotonic())
             described = describe_folder(root, progress, int(db.load_settings()["parallel"]), stop)
         job["summary"] = {**summary, **described, "errors": summary["errors"] + described["errors"],
-                          "stopped": stop.is_set()}
+                          "stopped": stop.is_set(), "described_total": db.project_stats(root)["described"]}
     except (Exception, SystemExit) as e:  # SystemExit: AI endpoint not configured
         job["error"] = str(e)
     finally:

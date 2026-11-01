@@ -59,7 +59,8 @@ Analysis runs in the background and shows its progress at the top of the *Librar
 *Stop* lets the requests already sent finish and skips the rest. A stopped or interrupted run continues
 where it ended when you press *Analyse again*. Re-runs only process new or changed files.
 
-When it is done, a summary shows the number of files, newly scanned files, AI descriptions and any
+When it is done, a summary shows the number of files and how many of them have an AI description in
+total, then in brackets what this run added (newly scanned, newly described), and any
 errors (expand *N errors* to see them). A folder without supported files says
 "No photos or videos found".
 

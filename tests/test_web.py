@@ -48,7 +48,11 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     monkeypatch.setattr(web, "describe_folder", lambda *a: used.append(a[2:3]) or describe(*a))
     client.post("/settings", data={"key": "parallel", "value": "1"})
     client.post("/analyse")
-    assert "0 described by AI" in wait().text and used == [(1,)]  # all cached; the setting is used
+    assert "9 described by AI\n  (0 newly scanned, 0 newly described)" in wait().text and used == [(1,)]  # cached
+    calls = len(fake_ai)
+    client.post("/projects/remove", data={"name": "Norway 2026"})  # results are kept, so adding it again
+    client.post("/projects", data={"name": "Norway 2026", "folder": str(folder)})  # finds every description
+    assert "9 described by AI" in wait().text and len(fake_ai) == calls
     assert client.post("/settings", data={"key": "parallel", "value": "99"}).status_code == 400
 
     grid = client.get("/grid").text
