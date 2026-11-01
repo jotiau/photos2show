@@ -21,7 +21,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from photos2show import db, scan, slideshow
 from photos2show.config import env
-from photos2show.pipeline import analyse_folder, describe_folder, skip_ai_reason
+from photos2show.pipeline import analyse_folder, choose_best, describe_folder, skip_ai_reason
 
 HERE = Path(__file__).parent
 app = FastAPI(title="photos2show")
@@ -36,6 +36,7 @@ REFRESH = {"HX-Refresh": "true"}
 UNSTACKED = ("duplicate", "skips_ai")  # these filters are about the shots a stack hides
 SORTS = {k: v[0] for k, v in slideshow.SORTS.items() if k != "reverse"}  # Library: name -> label
 TOP_TAGS = 30
+REVIEW = "Review duplicates"
 
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
@@ -43,6 +44,7 @@ job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "t
        "grid_phase": "", "grid_done": 0}
 lock = threading.Lock()
 stop = threading.Event()
+reviewed = threading.Event()  # "Continue with AI" clicked in the duplicate review
 
 
 def time_left() -> str:
@@ -92,6 +94,10 @@ def _run(root: Path) -> None:
     try:
         job.update(phase="Scanning", started=time.monotonic())
         summary = analyse_folder(root, progress, stop)
+        if db.load_settings()["review_duplicates"] == "on" and not stop.is_set() and _review_scenes():
+            job.update(phase=REVIEW)
+            while not (reviewed.wait(0.5) or stop.is_set()):
+                pass
         described = {"described": 0, "errors": []}
         if not stop.is_set():
             job.update(phase="Describing with AI", done=0, total=0, started=time.monotonic())
@@ -108,8 +114,27 @@ def _start() -> None:
     with lock:
         if job["folder"] and not job["running"]:
             stop.clear()
+            reviewed.clear()
             job.update(running=True, stopping=False, done=0, total=0, summary=None, error=None)
             threading.Thread(target=_run, args=(Path(job["folder"]),), daemon=True).start()
+
+
+def _review_scenes() -> list[list[dict]]:
+    """Scenes of several shots none of which is described yet: their best shot is still to be sent to the AI."""
+    scenes = defaultdict(list)
+    for it in _items():
+        scenes[_scene(it)].append(it)
+    return [s for s in scenes.values() if len(s) > 1 and not any(it["ai"] for it in s)]
+
+
+templates.env.globals["review_scenes"] = _review_scenes
+
+
+def _describe_now(root: Path, media_id: int) -> None:
+    try:
+        describe_folder(root, concurrency=1, only={media_id})
+    except (Exception, SystemExit):  # e.g. AI not configured: it shows "Waiting for AI description", Analyse retries
+        pass
 
 
 def _items() -> list[dict]:
@@ -300,6 +325,14 @@ def stop_analysis(request: Request):
     return templates.TemplateResponse(request, "_progress.html", {"job": job})
 
 
+@app.post("/analyse/continue", response_class=HTMLResponse)
+def continue_analysis(request: Request):
+    if job["phase"] == REVIEW:
+        job["phase"] = "Starting AI"  # right away: the reply must not show the review again
+        reviewed.set()
+    return templates.TemplateResponse(request, "_progress.html", {"job": job})
+
+
 @app.get("/progress", response_class=HTMLResponse)
 def progress(request: Request):
     resp = templates.TemplateResponse(request, "_progress.html", {"job": job})
@@ -445,6 +478,23 @@ def original(media_id: int):
 def _scene(it: dict) -> int:
     """Shots of the same scene share this id: the best shot's."""
     return it["duplicate_of"] or it["id"]
+
+
+@app.post("/best/{media_id}", response_class=HTMLResponse)
+def best_shot(request: Request, media_id: int):
+    """Make a shot the best of its scene: only the best is sent to the AI and offered for the slideshow."""
+    item = _item(media_id)
+    if item["kind"] != "image" or "very_blurry" in item["flags"]:  # never part of a scene
+        raise HTTPException(400)
+    choose_best(db.connect(_root()), media_id)
+    if request.headers.get("hx-target") == "detail":  # Library detail panel
+        if not item["ai"]:  # skipped so far as a duplicate
+            threading.Thread(target=_describe_now, args=(_root(), media_id), daemon=True).start()
+        resp = detail(request, media_id)
+        resp.headers["HX-Trigger"] = "analysed"  # the stacks in the grid changed
+        return resp
+    scene = [it for it in _items() if _scene(it) == media_id]  # duplicate review during Analyse
+    return templates.TemplateResponse(request, "_scene.html", {"scene": scene})
 
 
 @app.post("/slideshow/swap", response_class=HTMLResponse)

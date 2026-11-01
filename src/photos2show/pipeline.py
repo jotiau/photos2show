@@ -125,6 +125,14 @@ def update_flags(conn) -> None:
         conn.execute("UPDATE media SET flags = ?, duplicate_of = ? WHERE id = ?", (json.dumps(flags), dup, it["id"]))
 
 
+def choose_best(conn, media_id: int) -> None:
+    """Make media_id the best shot of its scene: it is kept when the scene is regrouped (later scans too)."""
+    scene = conn.execute("SELECT COALESCE(duplicate_of, id) FROM media WHERE id = ?", (media_id,)).fetchone()[0]
+    conn.execute("UPDATE media SET chosen = (id = ?) WHERE id = ? OR duplicate_of = ?", (media_id, scene, scene))
+    update_flags(conn)
+    conn.commit()
+
+
 def skip_ai_reason(item: dict) -> str | None:
     """Why an item is not sent to the LLM (saves tokens), or None if it should be analysed."""
     if "very_blurry" in item["flags"]:
@@ -139,15 +147,18 @@ class Stopped(Exception):
 
 
 def describe_folder(root: Path, progress: Callable[[int, int], None] | None = None,
-                    concurrency: int | None = None, stop: threading.Event | None = None) -> dict:
+                    concurrency: int | None = None, stop: threading.Event | None = None,
+                    only: set[int] | None = None) -> dict:
     """Pass 2: send each image still worth describing to the LLM; every result is saved right away.
 
     stop: set it to end early; requests already sent finish and are saved, queued ones are skipped.
+    only: describe just these ids (if they still need it).
     """
     settings = load_settings()
     client = ai.make_client(settings)
     conn = db.connect(root)
-    todo = [it for it in db.all_media(conn) if it["ai"] is None and skip_ai_reason(it) is None]
+    todo = [it for it in db.all_media(conn) if it["ai"] is None and skip_ai_reason(it) is None
+            and (only is None or it["id"] in only)]
 
     def describe(it: dict) -> dict:
         if stop and stop.is_set():

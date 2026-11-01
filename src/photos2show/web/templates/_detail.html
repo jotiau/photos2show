@@ -33,6 +33,8 @@
 </details>
 {% if scene %}
 <h3>Same scene</h3>
+{% if it.duplicate_of %}<p>Not the best shot of this scene (green).
+  <button hx-post="/best/{{ it.id }}" hx-target="#detail">Make this the best shot</button></p>{% endif %}
 <div class="frames">
   {% for s in scene %}
   <img src="/thumb/{{ s.id }}" title="#{{ s.id }}" hx-get="/media/{{ s.id }}" hx-target="#detail" class="{{ 'best' if not s.duplicate_of }}">

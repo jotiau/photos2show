@@ -341,3 +341,38 @@ def test_projects_page(tmp_path, monkeypatch):
     assert web.db.library_path(b).exists()  # still used by Two
     client.post("/projects/remove", data={"name": "Two", "delete_results": "true"})
     assert not web.db.library_path(b).exists() and b.exists()  # results gone, photos untouched
+
+
+def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = testdata.generate(tmp_path / "photos")
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    client.post("/settings", data={"key": "review_duplicates", "value": "on"})
+    client.post("/projects", data={"name": "Review", "folder": str(folder)})
+    for _ in range(100):  # the scan pauses before the AI
+        if "Pick the best shot" in (resp := client.get("/progress")).text:
+            break
+        time.sleep(0.1)
+    assert 'hx-get="/progress"' not in resp.text and not fake_ai  # no polling, no AI call yet
+    items = {Path(it["path"]).name: it["id"] for it in web._items()}
+    scene = client.post(f"/best/{items['burst_2.jpg']}").text  # the review row comes back
+    assert f'class="shot best" hx-post="/best/{items["burst_2.jpg"]}"' in scene
+    assert client.post(f"/best/{items['video.mp4']}").status_code == 400
+    client.post("/analyse/continue")
+    for _ in range(100):
+        if not web.job["running"]:
+            break
+        time.sleep(0.1)
+    described = {Path(it["path"]).name for it in web._items() if it["ai"]}
+    assert "burst_2.jpg" in described and "burst_1.jpg" not in described
+
+    # Later, in the detail panel: burst_1 becomes the best again and is described right away.
+    detail = client.post(f"/best/{items['burst_1.jpg']}", headers={"HX-Target": "detail"})
+    assert detail.headers["HX-Trigger"] == "analysed" and "Make this the best shot" not in detail.text
+    for _ in range(100):
+        if web.db.get_media(web.db.connect(folder), items["burst_1.jpg"])["ai"]:
+            break
+        time.sleep(0.1)
+    else:
+        raise AssertionError("burst_1 was not described")
+    assert "Make this the best shot" in client.get(f"/media/{items['burst_2.jpg']}").text

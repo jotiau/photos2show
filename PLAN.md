@@ -63,6 +63,9 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
   within 60 s or ≤18 within 10 s (or ≤2 at any time) form a cluster. Only exact repeats count;
   reframed shots of the same place stay separate (user spot-check in M4).
 - Best of cluster = highest technical score (sharpness, exposure); others flagged `duplicate_of`.
+- The user can override it (`chosen` column, kept across regrouping): *Make this the best shot* in the
+  detail panel describes the new best right away; with *Review duplicates before AI* on, Analyse pauses
+  after the scan and shows every group without a description so the best can be picked before the AI pass.
 
 ### 4. AI analysis (GLM-5.3 Flash, per image)
 - Send the 1024px image (base64 `image_url`) with a fixed prompt; request JSON:

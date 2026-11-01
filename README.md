@@ -23,7 +23,8 @@ LM Studio if you'd rather keep your photos on your own computer.
 **Quality checks, offline and fast**
 - Finds blurry, too dark, too bright, low-contrast and monotone shots (plain sky, a wall) with
   classic image analysis; no AI, no upload. Sharp subjects in front of a blurred background count as sharp.
-- Groups same-scene shots (bursts, "one more just in case") and keeps the best of each group.
+- Groups same-scene shots (bursts, "one more just in case") and keeps the best of each group. Not the one you
+  like? *Make this the best shot* in the detail panel, or review every group before the AI runs (see *Settings*).
 - Very blurry photos and the weaker shots of a scene are never sent to the AI, which saves time and money.
 
 **AI descriptions**
@@ -151,6 +152,8 @@ Tips for local models:
    included), then press *Create & analyse*.
 2. **Let it analyse** (progress in the *Library* tab):
    - *Scanning*: local checks for blur, exposure, contrast, monotony and same-scene shots. Fast.
+   - *Review duplicates* (only with that setting on): a dialog shows each new group of same-scene shots with
+     the automatic pick in green; click another shot to use it, then *Continue with AI*. The run waits for you.
    - *Describing with AI*: each remaining photo goes to the model, 2 at a time by default
      (choose 1–8 under *Parallel AI requests* in *Settings*). Captions and tags appear live; skipped photos are marked
      *no AI*. The progress bar shows the time left; *Stop* ends the run after the requests already
@@ -182,7 +185,8 @@ data folder, so creating a project for the same folder again picks them up, unle
 AI results* (kept anyway while another project uses the same folder).
 
 The *Settings* tab has the colour theme (auto follows your system, or light / dark), the number of
-parallel AI requests (1 = strictly one by one; local models usually want 1), and *Delete unused data*: it removes saved AI
+parallel AI requests (1 = strictly one by one; local models usually want 1), *Review duplicates before AI*
+(off by default: the technically best shot is used without asking), and *Delete unused data*: it removes saved AI
 results and thumbnails of folders no project uses any more (also folders only analysed with `photos2show-scan`).
 
 ### How long does it take?

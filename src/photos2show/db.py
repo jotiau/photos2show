@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS media (
     phash TEXT,
     flags TEXT DEFAULT '[]',         -- JSON list
     duplicate_of INTEGER,            -- id of the best image of the same scene
-    ai TEXT                          -- JSON from ai.analyse_image(), NULL until described
+    ai TEXT,                         -- JSON from ai.analyse_image(), NULL until described
+    chosen INTEGER DEFAULT 0         -- 1: the user made this the best shot of its scene
 );
 """
 
@@ -47,6 +48,8 @@ def connect(root: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)
+    if "chosen" not in {r[1] for r in conn.execute("PRAGMA table_info(media)")}:  # libraries from before the column
+        conn.execute("ALTER TABLE media ADD COLUMN chosen INTEGER DEFAULT 0")
     return conn
 
 
@@ -94,6 +97,9 @@ SETTINGS = {
     "parallel": ("Parallel AI requests", tuple(sorted({"1", "2", "4", "8", _PARALLEL}, key=int)), _PARALLEL,
                  "How many photos are sent to the AI at once. More is faster if the server keeps up; "
                  "a local model on your own computer often works best with 1."),
+    "review_duplicates": ("Review duplicates before AI", ("off", "on"), "off",
+                          "On: after scanning, Analyse pauses and shows each new group of same-scene shots, so you can "
+                          "pick the best one before it is sent to the AI. Off: the technically best shot is used."),
 }
 
 

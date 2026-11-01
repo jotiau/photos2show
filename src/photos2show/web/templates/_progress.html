@@ -1,4 +1,20 @@
-{% if job.running %}
+{% if job.running and job.phase == 'Review duplicates' and not job.stopping %}
+{% set scenes = review_scenes() %}
+<div id="progress">
+  Review duplicates – waiting for you
+  <dialog class="review" oncancel="event.preventDefault()" aria-labelledby="review-title">
+    <h2 id="review-title">Pick the best shot of each scene</h2>
+    <p>{{ scenes | length }} group{{ 's' if scenes | length != 1 }} of same-scene shots. Only the best shot (green) is
+      described by the AI and offered for the slideshow. Click another shot to use it instead.</p>
+    {% for scene in scenes %}{% include "_scene.html" %}{% endfor %}
+    <div class="buttons">
+      <button hx-post="/analyse/stop" hx-target="#progress" hx-swap="outerHTML">Stop</button>
+      <button hx-post="/analyse/continue" hx-target="#progress" hx-swap="outerHTML">Continue with AI</button>
+    </div>
+  </dialog>
+  <script>document.querySelector("dialog.review").showModal()</script>
+</div>
+{% elif job.running %}
 <div id="progress" hx-get="/progress" hx-trigger="every {{ '500ms' if job.phase == 'Scanning' else '2s' }}" hx-swap="outerHTML">
   {% if job.stopping %}Stopping – waiting for the requests already sent…
   {% else %}{{ job.phase }} <progress value="{{ job.done }}" max="{{ job.total or 1 }}"></progress> {{ job.done }} / {{ job.total }}
