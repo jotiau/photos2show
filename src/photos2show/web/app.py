@@ -10,6 +10,7 @@ import webbrowser
 from collections import Counter, defaultdict
 from html import escape
 from pathlib import Path
+from urllib.parse import urlencode
 
 import uvicorn
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -163,13 +164,25 @@ def _page(request: Request, template: str, **ctx) -> HTMLResponse:
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, flag: str | None = None, photo: int | None = None):
-    """flag and photo come from the URL the filter buttons and cards push: reload, back and bookmarks keep the view."""
+def index(request: Request, flag: str | None = None, q: str | None = None, sort: str | None = None,
+          photo: int | None = None):
+    """The view comes from the URL (library_url): reload, back/forward and bookmarks keep it.
+    A bare / (typed, or a bookmark of the start page) keeps the last view."""
     if not job["project"] and (projects := db.load_projects()):
         _open(list(projects)[-1])
     if flag:
-        job["flag"] = flag
+        job.update(flag=flag, query=(q or "").strip(), sort=sort if sort in SORTS else "date")
     return _page(request, "library.html", page="library", sorts=SORTS, photo=photo)
+
+
+def library_url(**changes) -> str:
+    """The Library URL of the current view (flag, search, sort), with changes; always has flag, so a bare /
+    means "keep the last view"."""
+    state = {"flag": job["flag"], "q": job["query"], "sort": job["sort"], **changes}
+    return "/?" + urlencode({k: v for k, v in state.items() if k == "flag" or v not in (None, "", "date")})
+
+
+templates.env.globals["library_url"] = library_url
 
 
 @app.post("/projects", response_class=HTMLResponse)
@@ -315,9 +328,12 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
     known = [it for it in shown if key(it) is not None]  # without a value (no date, no AI score): at the end
     shown = sorted(known, key=key, reverse=desc) + [it for it in shown if key(it) is None]
     tags = Counter(t for it in visible for t in {str(t) for t in (it["ai"] or {}).get("tags") or []})
-    return templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
+    resp = templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
                                                               "query": query, "stacked": stacked, "more": more,
                                                               "tags": tags.most_common(TOP_TAGS)})
+    if q is not None or sort is not None:  # typing or sorting replaces the URL; filters push their own
+        resp.headers["HX-Replace-Url"] = library_url()
+    return resp
 
 
 @app.get("/media/{media_id}", response_class=HTMLResponse)

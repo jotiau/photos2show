@@ -121,8 +121,9 @@ per page; destructive actions red.
   Grid cards: date, 1–5 stars from aesthetic + interest, caption, flags, "✓ 3" pick number, video
   icon. Same-scene shots are stacked (best shot with "+N"; *Show all shots* toggle). Filters by
   flag, "in slideshow", tag list (30 most common) and search (every word in caption, tags, scene,
-  issues or file name); sort by date, scores, quality or name. Filter and open photo are in the
-  URL (reload, back/forward, bookmarks). Detail panel: 1024 px preview (click → original), caption,
+  issues or file name); sort by date, scores, quality or name. Filter, search, sort and open photo
+  are in the URL (reload, back/forward, bookmarks; typing replaces the URL instead of adding history,
+  a bare `/` reopens the last view). Detail panel: 1024 px preview (click → original), caption,
   metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: Tab to a card, Enter/Space opens it, ← → step
   through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a
   bulk add/remove bar.
@@ -184,12 +185,10 @@ tests/
 - **M5 – Usability and UI review** *(done 2026-11-01)*: stop/time left, export again, refine/undo,
   search, Play preview, keyboard, picks shown in the Library, calm grid during analysis, stacks,
   sort and tag list, readable cards, preview images, bulk select, state in the URL, lightbox
-  navigation, seconds per photo, AI wait feedback, button hierarchy, settings with help;
-  plus the fixes of a code audit (selection lock, 404s, duplicate project names).
-
-## Open
-Small UI items (from the 2026-11-01 review, not yet built):
-- **URL**: search and sort are kept server-side, not in the URL.
+  navigation, seconds per photo, AI wait feedback, button hierarchy, settings with help, calmer
+  Projects page with covers, swapping a pick for another shot of its scene, the reason in the
+  player, Tab/Enter in the Library; plus the fixes of a code audit (selection lock, 404s,
+  duplicate project names).
 
 ## Future features
 - Face detection / clustering ("everyone appears at least once")

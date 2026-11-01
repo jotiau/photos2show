@@ -69,7 +69,14 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     page = client.get(f"/?flag=video&photo={items['video.mp4']}").text  # a pushed URL, reloaded
     assert f'hx-get="/media/{items["video.mp4"]}" hx-trigger="load"' in page and web.job["flag"] == "video"
     assert f'hx-push-url="/?flag=video&amp;photo={items["video.mp4"]}"' in client.get("/grid").text
-    client.get("/grid?flag=all")
+    resp = client.get("/grid?q=fake")  # typing replaces the URL, filters push one with the search in it
+    assert resp.headers["HX-Replace-Url"] == "/?flag=video&q=fake" and 'hx-push-url="/?flag=all&amp;q=fake"' in resp.text
+    assert client.get("/grid?sort=name").headers["HX-Replace-Url"] == "/?flag=video&q=fake&sort=name"
+    assert "HX-Replace-Url" not in client.get("/grid").headers  # live reloads leave the URL alone
+    client.get("/?flag=all&q=beach")  # back/forward or a bookmark: the URL is the view
+    assert (web.job["flag"], web.job["query"], web.job["sort"]) == ("all", "beach", "date")
+    assert 'href="/?flag=all&amp;q=beach"' in client.get("/").text and web.job["query"] == "beach"  # bare /: kept
+    client.get("/?flag=all")
     client.get("/grid?sort=date")
     skipped = client.get("/grid?flag=skips_ai").text
     assert "very_blurry.jpg" in skipped and "burst_2.jpg" in skipped and "scene_1.jpg" not in skipped
