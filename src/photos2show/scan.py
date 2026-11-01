@@ -12,7 +12,7 @@ from pillow_heif import register_heif_opener
 register_heif_opener()  # Image.open() reads iPhone HEIC photos like JPEGs, EXIF included
 
 HEIF_EXT = {".heic", ".heif"}
-IMAGE_EXT = {".jpg", ".jpeg"} | HEIF_EXT
+IMAGE_EXT = {".jpg", ".jpeg", ".png"} | HEIF_EXT
 VIDEO_EXT = {".mp4"}
 VIDEO_POSITIONS = (0.1, 0.5, 0.9)  # sampled frames, as fraction of the duration
 LOAD_EDGE = 2048  # decode JPEGs at reduced size; analysis and thumbnails need less

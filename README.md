@@ -210,7 +210,7 @@ AI descriptions are made once per file; later runs take seconds.
 
 ## Supported files
 
-JPEG and HEIC photos (`.jpg`, `.jpeg`, `.heic`, `.heif`) and MP4 videos, in the chosen folder and its subfolders (hidden folders
+JPEG, PNG and HEIC photos (`.jpg`, `.jpeg`, `.png`, `.heic`, `.heif`) and MP4 videos, in the chosen folder and its subfolders (hidden folders
 such as `.Trash-1000` are skipped). Dates come from the photo's EXIF data; for videos
 from phone-style file names (`20260725_130945.mp4`), else the recording time stored in the video,
 else the file date. HEIC photos are exported as they are (`.heic`); RAW is on the roadmap.

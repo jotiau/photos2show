@@ -56,10 +56,10 @@ def test_mp4_creation_time_from_movie_header(tmp_path):
 
 
 def test_hidden_files_and_folders_are_skipped(tmp_path):
-    for name in ("a.jpg", ".b.jpg", ".Trash-1000/files/c.jpg", "sub/d.JPG"):
+    for name in ("a.jpg", ".b.jpg", ".Trash-1000/files/c.jpg", "sub/d.JPG", "e.png", "f.txt"):
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_bytes(b"")
-    assert [p.relative_to(tmp_path).as_posix() for p in find_media(tmp_path)] == ["a.jpg", "sub/d.JPG"]
+    assert [p.relative_to(tmp_path).as_posix() for p in find_media(tmp_path)] == ["a.jpg", "e.png", "sub/d.JPG"]
 
 
 def test_heic_is_found_and_read_with_date_and_rotation(tmp_path):
