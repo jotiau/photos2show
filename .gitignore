@@ -224,3 +224,7 @@ __marimo__/
 
 # PyCharm
 .idea/
+
+# Notes for Claude Code (kept locally in .claude/CLAUDE.md)
+CLAUDE.md
+CLAUDE.local.md

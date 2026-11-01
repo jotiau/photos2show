@@ -203,7 +203,6 @@ src/photos2show/
     static/     # htmx.min.js, style.css
 tests/
 docs/           # documentation (user guide, configuration, internals); kept in sync with every change
-CLAUDE.md       # notes for Claude: update docs/ with every change
 ```
 
 ## Future features ideas
