@@ -77,12 +77,17 @@
   document.body.addEventListener("htmx:afterSwap", mark);  // after a click, a step or a live grid reload
   document.addEventListener("keydown", e => {
     if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea, select, video")) return;
-    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches(".cards .card")) {
+      e.preventDefault();  // Space would scroll the page
+      e.target.click();
+    } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
       const cards = [...document.querySelectorAll(".cards .card")];
       if (!cards.length) return;
-      const i = cards.findIndex(c => c.dataset.id === openId());
+      const open = cards.findIndex(c => c.dataset.id === openId());
+      const i = open >= 0 ? open : cards.indexOf(document.activeElement);  // nothing open: from the focused card
       const next = cards[i < 0 ? 0 : Math.max(0, Math.min(cards.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)))];
       e.preventDefault();
+      next.focus({preventScroll: true});  // Tab goes on from here
       next.scrollIntoView({block: "nearest"});
       htmx.ajax("GET", `/media/${next.dataset.id}`, {target: "#detail"});
     } else if (e.key === "a" || e.key === "A") {

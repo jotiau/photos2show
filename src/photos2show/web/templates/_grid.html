@@ -21,7 +21,8 @@
 {% endif %}
 <div class="cards">
   {% for it in items %}
-  <article class="card {{ 'dim' if it.skip_ai }}" data-id="{{ it.id }}" hx-get="/media/{{ it.id }}" hx-target="#detail"
+  <article class="card {{ 'dim' if it.skip_ai }}" data-id="{{ it.id }}" tabindex="0" role="button"
+    aria-label="Open #{{ it.id }} {{ it.path | basename }}" hx-get="/media/{{ it.id }}" hx-target="#detail"
     hx-trigger="click[!ctrlKey && !metaKey && !shiftKey]" hx-push-url="/?flag={{ flag | urlencode }}&amp;photo={{ it.id }}">
     <img src="/thumb/{{ it.id }}" loading="lazy" alt="">
     {% if it.kind == 'video' %}<span class="video">▶ video</span>{% endif %}

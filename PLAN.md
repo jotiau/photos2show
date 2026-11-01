@@ -123,7 +123,7 @@ per page; destructive actions red.
   flag, "in slideshow", tag list (30 most common) and search (every word in caption, tags, scene,
   issues or file name); sort by date, scores, quality or name. Filter and open photo are in the
   URL (reload, back/forward, bookmarks). Detail panel: 1024 px preview (click → original), caption,
-  metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: ← → step
+  metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: Tab to a card, Enter/Space opens it, ← → step
   through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a
   bulk add/remove bar.
 - **Slideshow**: description → *Select photos* (spinner, elapsed time, picks locked meanwhile) →
@@ -189,7 +189,6 @@ tests/
 
 ## Open
 Small UI items (from the 2026-11-01 review, not yet built):
-- **Library keyboard access**: cards are not Tab-focusable (Enter/Space to open).
 - **URL**: search and sort are kept server-side, not in the URL.
 
 ## Future features

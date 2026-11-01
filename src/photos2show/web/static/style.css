@@ -90,6 +90,7 @@ select { font: inherit; padding: 6px; border: 1px solid var(--border); border-ra
 .tags .tag span { color: var(--muted); }
 .tags .tag.active { border-color: var(--accent); }
 .card.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .card.checked { outline: 3px solid var(--ok); outline-offset: 2px; }
 .card.checked::after { content: "✔"; position: absolute; inset: 6px auto auto 50%; translate: -50%; background: var(--ok);
                        color: #fff; border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; }
