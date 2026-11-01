@@ -71,7 +71,11 @@ async def htmx_only(request: Request, call_next):
     # Other websites can post forms to localhost (CSRF) but cannot add this header.
     if request.method != "GET" and "hx-request" not in request.headers:
         return HTMLResponse("Forbidden", status_code=403)
-    return await call_next(request)
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        # Without it, browsers may keep an old style.css after an update; the ETag keeps the check cheap.
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 # DNS rebinding: a website can point its own domain at 127.0.0.1 and then pass the check above.

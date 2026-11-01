@@ -17,7 +17,7 @@
     <h2>① Describe</h2>
     <!-- collapsed to one line once there are picks; the summary is hidden while open -->
     <details class="describe" {{ 'open' if not (selection.picks and selection.description) }}>
-      <summary><span class="quote">“{{ selection.description }}”</span> <span class="edit">Edit</span></summary>
+      <summary><span class="quote">“{{ selection.description | trim }}”</span> <span class="edit">Edit</span></summary>
       <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button"
         hx-on::after-request="collapseDescribe(this, event)">
         <label for="description">Describe the slideshow</label>
@@ -69,7 +69,7 @@
   const collapseDescribe = (form, e) => {
     if (!e.detail.successful || e.detail.xhr.responseText.includes('class="error"')) return;
     const details = form.closest("details");
-    details.querySelector(".quote").textContent = `“${form.description.value}”`;
+    details.querySelector(".quote").textContent = `“${form.description.value.trim()}”`;
     details.open = false;
   };
 </script>
