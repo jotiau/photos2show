@@ -1,26 +1,28 @@
 <nav class="filters">
+  <div class="chips">
   {% for f, n in counts.items() if n or f in ('all', flag) %}{# empty categories hidden, unless selected #}
   <button class="{{ 'active' if f == flag }}" hx-get="/grid?flag={{ f | urlencode }}" hx-target="#grid"
     hx-push-url="{{ library_url(flag=f) }}">
     {{ f.replace('_', ' ').replace('tag:', '#') }} <span>{{ n }}</span>
   </button>
   {% endfor %}
-  <span class="end">
-  <button class="stacks" hx-get="/grid?stacks={{ 'false' if stacked else 'true' }}" hx-target="#grid"
-    title="Same-scene shots: only the best one, or every shot">{{ 'Show all shots' if stacked else 'Stack same-scene shots' }}</button>
+  </div>
   <label class="sort">Sort by
     <select name="sort" hx-get="/grid" hx-target="#grid" hx-trigger="change">
       {% for key, label in sorts.items() %}<option value="{{ key }}" {{ 'selected' if key == sort }}>{{ label }}</option>{% endfor %}
     </select>
   </label>
-  </span>
 </nav>
-{% if tags %}
-<details class="tags" {{ 'open' if flag.startswith('tag:') }}>
-  <summary>Tags</summary>
-  {% for t, n in tags %}<button class="tag {{ 'active' if flag == 'tag:' ~ t }}" hx-get="/grid?flag={{ ('tag:' ~ t) | urlencode }}" hx-target="#grid" hx-push-url="{{ library_url(flag='tag:' ~ t) }}">#{{ t }} <span>{{ n }}</span></button>{% endfor %}
-</details>
-{% endif %}
+<div class="subbar">
+  {% if tags %}
+  <details class="tags" {{ 'open' if flag.startswith('tag:') }}>
+    <summary>Tags</summary>
+    {% for t, n in tags %}<button class="tag {{ 'active' if flag == 'tag:' ~ t }}" hx-get="/grid?flag={{ ('tag:' ~ t) | urlencode }}" hx-target="#grid" hx-push-url="{{ library_url(flag='tag:' ~ t) }}">#{{ t }} <span>{{ n }}</span></button>{% endfor %}
+  </details>
+  {% endif %}
+  <button class="stacks" hx-get="/grid?stacks={{ 'false' if stacked else 'true' }}" hx-target="#grid"
+    title="Same-scene shots: only the best one, or every shot">{{ 'Show all shots' if stacked else 'Stack same-scene shots' }}</button>
+</div>
 {% if not items %}
 <p class="empty">{% if query %}No photos match “{{ query }}”{% if flag != 'all' %} with this filter{% endif %}.
 {% elif counts.all %}No photos match this filter.
