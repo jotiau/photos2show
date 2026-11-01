@@ -1,11 +1,12 @@
 import base64
 import io
-from types import SimpleNamespace
+import json
 
 import pytest
 from PIL import Image
 
-from photos2show.ai import analyse_image, encode_image, parse_json
+from photos2show import db
+from photos2show.ai import encode_image, parse_json
 
 
 def test_parse_json_plain_and_fenced():
@@ -15,10 +16,11 @@ def test_parse_json_plain_and_fenced():
         parse_json('[{"a": 1}]')
 
 
-def test_text_tags_become_a_list(monkeypatch):
-    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: {"tags": "beach, Sunset ,"})
-    client = SimpleNamespace(with_options=lambda **kw: None)
-    assert analyse_image(client, None, Image.new("RGB", (8, 8)))["tags"] == ["beach", "Sunset"]
+@pytest.mark.parametrize("raw, tags", [("beach, Sunset ,", ["beach", "Sunset"]), ([1, None, " sea "], ["1", "sea"]),
+                                       (None, []), ({"a": 1}, [])])
+def test_ai_tags_are_read_back_as_strings(raw, tags):
+    row = {"metrics": None, "flags": None, "ai": json.dumps({"tags": raw})}
+    assert db.row_to_dict(row)["ai"]["tags"] == tags
 
 
 def test_encode_image_downscales():

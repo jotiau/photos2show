@@ -141,7 +141,7 @@ def _matches(it: dict, flag: str) -> bool:
 def _found(it: dict, query: str) -> bool:
     """Every word of the search occurs in the caption, tags, scene, issues or file name (any case)."""
     a = it["ai"] or {}
-    text = " ".join([str(a.get("caption") or ""), str(a.get("scene") or ""), *map(str, a.get("tags") or []),
+    text = " ".join([str(a.get("caption") or ""), str(a.get("scene") or ""), *a.get("tags", []),
                      *map(str, a.get("issues") or []), Path(it["path"]).name]).lower()
     return all(word in text for word in query.lower().split())
 
@@ -317,9 +317,9 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
     items = [it for it in _items() if _found(it, query)]
     # Stacks: only the best shot of a scene is shown, with "+N" for its other shots (unless the search hides it).
     ids = {it["id"] for it in items}
-    stacked_away = [it for it in items if stacked and it["duplicate_of"] in ids]
-    more = Counter(it["duplicate_of"] for it in stacked_away)
-    visible = [it for it in items if it not in stacked_away]
+    stacked_away = {it["id"] for it in items if stacked and it["duplicate_of"] in ids}
+    more = Counter(it["duplicate_of"] for it in items if it["id"] in stacked_away)
+    visible = [it for it in items if it["id"] not in stacked_away]
     counts = {f: sum(_matches(it, f) for it in (items if f in UNSTACKED else visible)) for f in FILTERS}
     if flag.startswith("tag:"):
         counts[flag] = sum(_matches(it, flag) for it in visible)
@@ -327,7 +327,7 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
     _, key, desc = slideshow.SORTS[by]
     known = [it for it in shown if key(it) is not None]  # without a value (no date, no AI score): at the end
     shown = sorted(known, key=key, reverse=desc) + [it for it in shown if key(it) is None]
-    tags = Counter(t for it in visible for t in {str(t) for t in (it["ai"] or {}).get("tags") or []})
+    tags = Counter(t for it in visible for t in set((it["ai"] or {}).get("tags", [])))
     resp = templates.TemplateResponse(request, "_grid.html", {"items": shown, "counts": counts, "flag": flag,
                                                               "query": query, "stacked": stacked, "more": more,
                                                               "tags": tags.most_common(TOP_TAGS)})

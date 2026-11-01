@@ -55,6 +55,10 @@ def row_to_dict(row: sqlite3.Row) -> dict:
     d["metrics"] = json.loads(d["metrics"] or "{}")
     d["flags"] = json.loads(d["flags"] or "[]")
     d["ai"] = json.loads(d["ai"]) if d["ai"] else None
+    if d["ai"]:  # raw LLM output: tags may be "beach, sunset", hold numbers or null; every reader expects strings
+        tags = d["ai"].get("tags") or []
+        tags = tags.split(",") if isinstance(tags, str) else tags if isinstance(tags, list) else []
+        d["ai"]["tags"] = [s for t in tags if t is not None and (s := str(t).strip())]
     return d
 
 
