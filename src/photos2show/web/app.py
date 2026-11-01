@@ -86,8 +86,9 @@ async def htmx_only(request: Request, call_next):
     if request.method != "GET" and "hx-request" not in request.headers:
         return HTMLResponse("Forbidden", status_code=403)
     response = await call_next(request)
-    if request.url.path.startswith("/static/"):
-        # Without it, browsers may keep an old style.css after an update; the ETag keeps the check cheap.
+    if request.url.path.startswith(("/static/", "/thumb/", "/preview/", "/original/")):
+        # Without it, browsers may keep an old style.css after an update, or show project A's /thumb/1 in
+        # project B (media ids restart at 1 per library); the ETag keeps the check cheap.
         response.headers["Cache-Control"] = "no-cache"
     return response
 
