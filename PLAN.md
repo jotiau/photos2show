@@ -211,6 +211,40 @@ tests/
 docs/           # documentation (user guide, configuration, internals); kept in sync with every change
 ```
 
+## Planned next
+Added 2026-11-01, not started. Open questions are marked (?) and get asked before building.
+
+1. **Pick the model in Settings** – a dropdown filled from the server's `/models` list (the same call
+   `photos2show-smoke` and *auto* already make), saved in `settings.json`; `MODEL` stays the default.
+   Server unreachable → show the saved value as free text, no error page.
+2. **Separate models for analysis and slideshow** – two settings: *Analysis model* (per photo, needs
+   vision, runs hundreds of times → small/fast) and *Slideshow model* (one text-only prompt over all
+   captions → larger context and better reasoning, no vision needed). Both default to `MODEL`; new
+   `.env` keys `ANALYSIS_MODEL` / `SLIDESHOW_MODEL` (?). Refine and *auto* photo details use the
+   slideshow model's context size. Same server for both at first (?separate base URLs later).
+3. **Re-analyse a single photo in the library** – a button in the photo detail/tile that clears
+   that file's AI result and sends it to the AI again with the current analysis model (also for
+   shots normally skipped: very blurry or not the best of their group (?)). Result replaces the old
+   one in the grid.
+4. **Header title links to the library** – clicking *photos2show* in the header opens the library
+   view of the current project (same target as the *Library* tab).
+5. **Bug: removing a project loses the descriptions of its folder** – reproduce first. The remove
+   route only deletes the cache when *also delete its saved AI results* is ticked and no other project
+   uses the folder, so suspects are: *Settings → Unused data → Delete unused data*
+   (`unused_libraries()`) counting a removed project's kept results as unused, the cache key being the resolved folder path (folder
+   moved/renamed, symlink, trailing slash), and re-adding the folder under a different path spelling.
+   Fix + a test that removes and re-adds a project and still finds its descriptions.
+6. **Out-of-the-box local setup** – one script per OS (`setup.sh` for Linux/macOS, `setup.ps1` for
+   Windows) that installs `uv` and the app, installs Ollama if missing, checks the system (GPU vendor,
+   VRAM, RAM, CPU-only), picks and pulls matching default models from the *Local models* table
+   (analysis + slideshow model, see 2.), writes `.env` (incl. `AI_THINKING` for thinking models) and
+   starts the UI. Re-running it is safe (skips what is installed). Detection shown before downloading
+   so the user can override (?).
+7. **Docs: longer model list** – extend *Local models* in `docs/configuration.md` with a column for
+   the role (analysis, slideshow, both), recommended pairs per hardware tier (CPU-only, 8 / 12 / 16 /
+   24 GB GPU, Apple Silicon RAM) and text-only models suited for the slideshow step. This table is
+   also the source for the setup script's choice in 6.
+
 ## Future features ideas
 - Face detection / clustering ("everyone appears at least once")
 - Local CLIP embeddings for fast semantic search and better duplicate grouping
