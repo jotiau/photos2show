@@ -45,6 +45,7 @@ def read_image(path: Path) -> tuple[Image.Image, str | None, tuple[int, int]]:
             pass
     img.draft("RGB", (LOAD_EDGE, LOAD_EDGE))
     img = ImageOps.exif_transpose(img).convert("RGB")
+    img.thumbnail((LOAD_EDGE, LOAD_EDGE))  # draft() only shrinks JPEGs: a 24 MP HEIC would stay ~70 MB
     if exif.get(274, 1) in (5, 6, 7, 8):  # rotated by 90°
         size = size[::-1]
     return img, taken, size

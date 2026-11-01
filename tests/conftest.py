@@ -13,5 +13,4 @@ def fake_ai(monkeypatch):
                 "people_count": 0, "aesthetic": 7, "interest": 6, "issues": []}
 
     monkeypatch.setattr("photos2show.ai.analyse_image", analyse_image)
-    monkeypatch.setattr("photos2show.ai.pick_best", lambda client, settings, imgs: 0)  # keeps the technical best
     return calls

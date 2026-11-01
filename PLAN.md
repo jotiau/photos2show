@@ -64,9 +64,11 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
   within 60 s or ≤18 within 10 s (or ≤2 at any time) form a cluster. Only exact repeats count;
   reframed shots of the same place stay separate (user spot-check in M4).
 - Best of cluster = highest technical score (sharpness, exposure); others flagged `duplicate_of`.
-- Then, at the start of the AI pass, each new cluster (none described or chosen) has its top 6 shots by
-  technical score sent to GLM in one request (768 px each, "which is best?"). The winner gets `chosen`, as if
-  the user had picked it, so it is judged only once. If the request fails, the technical best stays.
+- AI compare, only when the user asks for it in the duplicate review (*Let the AI compare* per group, or
+  *… all*, run one at a time): the top 6 shots by technical score go to GLM in one request (768 px each,
+  "which is best?"). The winner gets `chosen = 2` (user picks are 1) and is labelled *AI pick* in the review
+  and the detail panel; clicking another shot overrules it, and a later run never compares again on its own.
+  If the request fails, the error shows under the group and the best stays as it was.
 - The user can override it (`chosen` column, kept across regrouping): *Make this the best shot* in the
   detail panel describes the new best right away; with *Review duplicates before AI* on, Analyse pauses
   after the scan and shows every group without a description so the best can be picked before the AI pass.
@@ -101,7 +103,8 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
    `video 12s`), ~70 tokens each (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k). *Photo details* (Settings
    and next to *Select photos*): full; short = caption cut to 8 words and 5 tags (~35); minimal = no caption,
    3 tags (~20); auto = the most detailed list that fills at most half the model's context
-   (from `/models`: vLLM `max_model_len`, llama.cpp `meta.n_ctx`…; unknown → full).
+   (from `/models`: vLLM `max_model_len`, `context_length`; unknown → full. Not llama.cpp's
+   `meta.n_ctx_train`: the training size, often far above what the server runs with).
 4. GLM returns JSON: ordered list of ids with a short reason per pick (count from the description,
    at the chosen seconds per photo, 2–15 s, default 5; videos run their full length).
 5. Validate: unknown, repeated or malformed ids are dropped; only described, non-duplicate items.

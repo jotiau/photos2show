@@ -358,10 +358,21 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
         time.sleep(0.1)
     assert 'hx-get="/progress"' not in resp.text and not fake_ai  # no polling, no AI call yet
     items = {Path(it["path"]).name: it["id"] for it in web._items()}
-    scene = client.post(f"/best/{items['burst_2.jpg']}").text  # the review row comes back
-    assert f'class="shot best" hx-post="/best/{items["burst_2.jpg"]}"' in scene
+    bursts = sorted((it for it in web._items() if Path(it["path"]).name.startswith("burst_")), key=lambda it: -it["score"])
+
+    # Only when asked: the AI compares the shots side by side; its pick is marked and can be overruled.
+    monkeypatch.setattr("photos2show.ai.pick_best", lambda c, s, imgs: 1 / 0)
+    failed = client.post(f"/best/ai/{bursts[0]['id']}").text
+    assert "AI comparison failed: division by zero" in failed and "AI pick" not in failed
+    monkeypatch.setattr("photos2show.ai.pick_best", lambda c, s, imgs: len(imgs) - 1)  # the technically weakest
+    scene = client.post(f"/best/ai/{bursts[0]['id']}").text
+    assert f'class="shot best" hx-post="/best/{bursts[-1]["id"]}"' in scene and "<span>AI pick</span>" in scene
+    assert client.post(f"/best/ai/{items['video.mp4']}").status_code == 400  # not a scene of several shots
+    scene = client.post(f"/best/{items['burst_2.jpg']}").text  # the user overrules; the review row comes back
+    assert f'class="shot best" hx-post="/best/{items["burst_2.jpg"]}"' in scene and "AI pick" not in scene
     assert client.post(f"/best/{items['video.mp4']}").status_code == 400
     client.post("/analyse/continue")
+    assert client.post(f"/best/ai/{items['burst_2.jpg']}").status_code == 400  # outside the review: never
     for _ in range(100):
         if not web.job["running"]:
             break

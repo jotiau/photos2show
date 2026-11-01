@@ -23,9 +23,9 @@ LM Studio if you'd rather keep your photos on your own computer.
 **Quality checks, offline and fast**
 - Finds blurry, too dark, too bright, low-contrast and monotone shots (plain sky, a wall) with
   classic image analysis; no AI, no upload. Sharp subjects in front of a blurred background count as sharp.
-- Groups same-scene shots (bursts, "one more just in case"); the AI compares them side by side (up to 6) and
-  keeps the best of each group (if that fails, the technically best one). Not the one you
-  like? *Make this the best shot* in the detail panel, or review every group before the AI runs (see *Settings*).
+- Groups same-scene shots (bursts, "one more just in case") and keeps the best of each group. Not the one you
+  like? *Make this the best shot* in the detail panel, or review every group before the AI runs (see *Settings*);
+  there *Let the AI compare* shows up to 6 shots side by side to the AI, marks its pick, and you can still click another.
 - Very blurry photos and the weaker shots of a scene are never sent to the AI, which saves time and money.
 
 **AI descriptions**
@@ -141,7 +141,7 @@ Tips for local models:
   model, which is roughly 20–40k tokens for a trip of 1000 files. With the small default context of
   Ollama or LM Studio, the start of the list is cut off silently. Set 32k or more, or send less per
   photo: *Photo details* (Settings, or next to *Select photos*) = short (~half) or minimal (~a third, no
-  captions); *auto* picks the most that fits if the server reports its context size (vLLM, llama.cpp).
+  captions); *auto* picks the most that fits if the server reports its context size (e.g. vLLM; not llama.cpp, Ollama or LM Studio – Auto then uses full).
 - **Start with `AI_CONCURRENCY=1`** (or *Parallel AI requests* = 1 in *Settings*). A single local GPU
   rarely gets faster with parallel requests;
   raise it only if your server is set up for parallel slots (`OLLAMA_NUM_PARALLEL` in Ollama).
@@ -189,7 +189,7 @@ AI results* (kept anyway while another project uses the same folder).
 
 The *Settings* tab has the colour theme (auto follows your system, or light / dark), the number of
 parallel AI requests (1 = strictly one by one; local models usually want 1), *Review duplicates before AI*
-(off by default: the AI picks the best shot without asking), *Photo details for choosing* (how much the
+(off by default: the technically best shot is used without asking; on: you can also let the AI compare), *Photo details for choosing* (how much the
 slideshow AI reads per photo: full, short, minimal or auto), and *Delete unused data*: it removes saved AI
 results and thumbnails of folders no project uses any more (also folders only analysed with `photos2show-scan`).
 

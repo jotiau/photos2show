@@ -91,7 +91,10 @@ def pick_best(client: OpenAI, settings: Settings, imgs: list[Image.Image]) -> in
 
 
 def context_length(client: OpenAI, settings: Settings) -> int | None:
-    """The model's context size in tokens if the server lists it under /models (vLLM, llama.cpp), else None."""
+    """The model's context size in tokens if the server lists it under /models (e.g. vLLM), else None.
+
+    Not llama.cpp's meta.n_ctx_train: that is the training size, often far above the size the server runs with.
+    """
     try:
         models = client.models.list().data
     except Exception:  # not offered by every server; unknown is fine
@@ -99,9 +102,7 @@ def context_length(client: OpenAI, settings: Settings) -> int | None:
     for m in models:
         if m.id == settings.model:
             d = m.model_dump()
-            meta = d.get("meta") or {}
-            for v in (d.get("max_model_len"), d.get("context_length"), d.get("max_context_length"),
-                      meta.get("n_ctx"), meta.get("n_ctx_train")):
+            for v in (d.get("max_model_len"), d.get("context_length"), d.get("max_context_length")):
                 if isinstance(v, int) and v > 0:
                     return v
     return None

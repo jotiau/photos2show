@@ -23,6 +23,8 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from photos2show import db, scan, slideshow
 from photos2show.config import env
 from photos2show.pipeline import (
+    AI_PICK,
+    ai_choose_best,
     analyse_folder,
     choose_best,
     describe_folder,
@@ -36,6 +38,7 @@ templates = Jinja2Templates(directory=HERE / "templates")
 templates.env.filters["basename"] = lambda p: Path(p).name
 templates.env.globals["settings"] = db.load_settings
 templates.env.globals["setting_fields"] = db.SETTINGS
+templates.env.globals["AI_PICK"] = AI_PICK
 
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
            "low_contrast", "monotone", "duplicate", "video", "in_slideshow")
@@ -515,6 +518,21 @@ def best_shot(request: Request, media_id: int):
         return resp
     scene = [it for it in _items() if _scene(it) == media_id]  # duplicate review during Analyse
     return templates.TemplateResponse(request, "_scene.html", {"scene": scene})
+
+
+@app.post("/best/ai/{scene_id}", response_class=HTMLResponse)
+def ai_best_shot(request: Request, scene_id: int):
+    """Duplicate review: the AI compares the shots of a scene and picks the best; the user can still click another."""
+    ids = {it["id"] for it in _items() if _scene(it) == scene_id}
+    if job["phase"] != REVIEW or len(ids) < 2:  # the AI compares only when asked during the review
+        raise HTTPException(400)
+    error = None
+    try:
+        ai_choose_best(db.connect(_root()), [it for it in _items() if it["id"] in ids])
+    except (Exception, SystemExit) as e:  # SystemExit: AI endpoint not configured
+        error = str(e)
+    scene = [it for it in _items() if it["id"] in ids]  # the best, and so the scene id, may have changed
+    return templates.TemplateResponse(request, "_scene.html", {"scene": scene, "error": error})
 
 
 @app.get("/describing/{media_id}", response_class=HTMLResponse)

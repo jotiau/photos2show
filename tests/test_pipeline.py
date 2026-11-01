@@ -210,27 +210,6 @@ def test_grouping_runs_only_when_something_changed(library, monkeypatch):
     assert calls == [1] and items_by_name(folder)["burst_2.jpg"]["flags"] == ["duplicate"]
 
 
-def test_ai_picks_best_shot_of_new_scenes_once(tmp_path, monkeypatch, fake_ai):
-    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
-    folder = testdata.generate(tmp_path / "photos")
-    analyse_folder(folder)
-    monkeypatch.setattr("photos2show.ai.pick_best", lambda c, s, imgs: 1 / 0)
-    result = describe_folder(folder, stop=threading.Event())
-    assert result["errors"] == ["best shot of burst_1.jpg: division by zero"]  # technical best still described
-    assert items_by_name(folder)["burst_1.jpg"]["ai"]
-
-    folder = testdata.generate(tmp_path / "photos2")
-    analyse_folder(folder)
-    sent = []
-    monkeypatch.setattr("photos2show.ai.pick_best", lambda c, s, imgs: sent.append(len(imgs)) or 2)
-    assert describe_folder(folder)["errors"] == []
-    items = items_by_name(folder)
-    best = items["burst_1.jpg"]["duplicate_of"]  # the third shot by technical score won
-    assert sent == [3] and best and items[Path(db.get_media(db.connect(folder), best)["path"]).name]["ai"]
-    describe_folder(folder)
-    assert sent == [3]  # judged scenes are not sent again
-
-
 def test_chosen_best_shot_survives_regrouping(tmp_path, monkeypatch):
     monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     folder = testdata.generate(tmp_path / "photos")

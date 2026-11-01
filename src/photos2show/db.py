@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS media (
     flags TEXT DEFAULT '[]',         -- JSON list
     duplicate_of INTEGER,            -- id of the best image of the same scene
     ai TEXT,                         -- JSON from ai.analyse_image(), NULL until described
-    chosen INTEGER DEFAULT 0         -- 1: the user or the AI (side by side) made this the best shot of its scene
+    chosen INTEGER DEFAULT 0         -- best shot of its scene by choice: 1 the user, 2 the AI (side by side)
 );
 """
 
@@ -99,7 +99,8 @@ SETTINGS = {
                  "a local model on your own computer often works best with 1."),
     "review_duplicates": ("Review duplicates before AI", ("off", "on"), "off",
                           "On: after scanning, Analyse pauses and shows each new group of same-scene shots, so you can "
-                          "pick the best one before it is sent to the AI. Off: the AI compares the shots and picks one."),
+                          "pick the best one before it is sent to the AI – or let the AI compare them and overrule it if "
+                          "you like. Off: the technically best shot is used."),
     "desc_size": ("Photo details for choosing", ("full", "short", "minimal", "auto"), "full",
                   "How much the AI reads about each photo when choosing a slideshow. Full: caption, tags, scores "
                   "(~70 tokens per photo). Short: caption cut to 8 words, 5 tags (~35). Minimal: scene, "
