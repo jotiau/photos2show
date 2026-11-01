@@ -162,7 +162,7 @@ Each project keeps one slideshow; to make a second show from the same trip, expo
 then select again.
 
 The *Projects* tab lists all projects with their state (files, AI-described, picks, when last analysed, missing folder).
-Rename a project, point it to another photo folder (e.g. after moving the photos; press *Analyse again*
+Behind *Edit* you can rename a project, point it to another photo folder (e.g. after moving the photos; press *Analyse again*
 afterwards) or remove it. Removing never deletes photos. The saved AI results and thumbnails stay in the
 data folder, so creating a project for the same folder again picks them up, unless you tick *also delete saved
 AI results* (kept anyway while another project uses the same folder).

@@ -52,20 +52,20 @@
             <button type="button" class="browse" data-browse="folder-{{ i }}">Browse…</button>
             <button>Change folder</button>
           </form>
+          <button type="button" class="remove" onclick="this.nextElementSibling.showModal()">Remove project…</button>
+          <dialog class="confirm">
+            <form hx-post="/projects/remove" hx-target="#msg-{{ i }}" hx-on::after-request="this.closest('dialog').close()">
+              <p>Remove the project <strong>{{ name }}</strong>? Your photos stay untouched.</p>
+              <input type="hidden" name="name" value="{{ name }}">
+              <label><input type="checkbox" name="delete_results" value="true"> also delete its saved AI results and
+                thumbnails (analysing the folder again takes time)</label>
+              <div class="buttons">
+                <button type="button" onclick="this.closest('dialog').close()">Cancel</button>
+                <button class="remove">Remove project</button>
+              </div>
+            </form>
+          </dialog>
         </details>
-        <button type="button" class="remove" onclick="this.nextElementSibling.showModal()">Remove…</button>
-        <dialog class="confirm">
-          <form hx-post="/projects/remove" hx-target="#msg-{{ i }}" hx-on::after-request="this.closest('dialog').close()">
-            <p>Remove the project <strong>{{ name }}</strong>? Your photos stay untouched.</p>
-            <input type="hidden" name="name" value="{{ name }}">
-            <label><input type="checkbox" name="delete_results" value="true"> also delete its saved AI results and
-              thumbnails (analysing the folder again takes time)</label>
-            <div class="buttons">
-              <button type="button" onclick="this.closest('dialog').close()">Cancel</button>
-              <button class="remove">Remove project</button>
-            </div>
-          </form>
-        </dialog>
         <span id="msg-{{ i }}"></span>
       </div>
     </div>

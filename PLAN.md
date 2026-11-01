@@ -113,7 +113,7 @@ per page; destructive actions red.
   dropdown in the header to switch; the *Projects* page has "New project" to create and analyse
   (names must be unique) and shows each as a card: cover (the photo the AI liked best), name,
   state (files, described, picks, last analysed, folder missing) and *Open*; rename and change
-  folder behind *Edit*. *Remove…* asks in a dialog; it keeps the cached AI results (they are keyed
+  folder and *Remove project…* behind *Edit*. Remove asks in a dialog; it keeps the cached AI results (they are keyed
   by folder, not by project name) unless "also delete saved AI results" is ticked there and no
   other project uses that folder.
 - **Library**: progress bar with *Stop* and time left; during the AI pass the grid stays still and
@@ -189,6 +189,39 @@ tests/
   Projects page with covers, swapping a pick for another shot of its scene, the reason in the
   player, Tab/Enter in the Library; plus the fixes of a code audit (selection lock, 404s,
   duplicate project names).
+
+## Next: Slideshow page layout (draft, to review with the user before building)
+
+**What is wrong today** (screenshot with 6 picks, 1400 px wide):
+- One long column of unrelated controls: textarea, Select, Refine, Play, a sentence with the
+  seconds input inside it, Sort, tiles, then Export – no visual grouping, no clear order of steps.
+- *Export* sits below all tiles: with 100+ picks it is several screens down.
+- *▶ Play* is a small grey button, though previewing is the main thing to do once picks exist.
+- Stats, the seconds input and the help text are one sentence; Sort has its own row with "choose…".
+- The description textarea stays big after the AI has picked, pushing the picks down.
+- Page capped at 1100 px: the right third of a wide screen stays empty while tiles wrap.
+- Tiles: reasons cut after one line; ← → × buttons take a full row on every tile.
+
+**Proposal**
+1. **Three step cards** in the Settings card style: ① *Describe* → ② *Review picks* → ③ *Export*,
+   each with a small heading, so the page reads top to bottom as a workflow.
+2. **Describe collapses** once picks exist: one line "“10-minute show for my parents…” · Edit"
+   that reopens the textarea and *Select photos*.
+3. **One toolbar for the picks** (sticky under the header while scrolling the tiles):
+   `6 photos · ~0.5 min` · `[5] s per photo` · `Sort by [▾]` · *Undo* · **▶ Play** (primary, right);
+   the refine input + *Refine picks* on the row below. Help text ("drag tiles to reorder…") as a
+   small grey hint under it.
+4. **Export reachable without scrolling**: either (a) the export card above the tiles, or
+   (b) a compact *Export…* button in the toolbar that opens the folder + replace options in a
+   dialog. Recommendation: (b), it keeps the tiles close to the toolbar.
+5. **Full width** like the Library (drop the 1100 px cap); tiles the Library size (180 px).
+6. **Calmer tiles**: reason up to two lines; × as a small overlay at the top-right corner;
+   ← → stay but smaller (keyboard and touch need them; drag is mouse-only).
+
+**Questions for the review**
+- Export: in the toolbar dialog (b) or as a card above the picks (a)?
+- Should Describe really collapse, or stay open but smaller (2 rows)?
+- Keep ← → buttons on every tile, or only show them on hover/focus?
 
 ## Future features
 - Face detection / clustering ("everyone appears at least once")

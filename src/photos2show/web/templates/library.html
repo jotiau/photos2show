@@ -13,20 +13,13 @@
 {% include "_header.html" %}
 {% if job.folder %}
 <div class="bar">
+  <input class="search" type="search" name="q" value="{{ job.query }}" placeholder="Search captions, tags, file names… (e.g. boat sunset)"
+    aria-label="Search" hx-get="/grid" hx-target="#grid" hx-trigger="input changed delay:300ms, search">
   <span class="path">{{ job.folder }}</span>
   <form hx-post="/analyse" hx-target="#progress" hx-swap="outerHTML">
     <button class="primary" title="{{ settings().parallel }} parallel AI requests (see Settings)">Analyse again</button>
   </form>
   {% include "_progress.html" %}
-</div>
-<div class="search">
-  <input type="search" name="q" value="{{ job.query }}" placeholder="Search captions, tags, file names… (e.g. boat sunset)"
-    aria-label="Search" hx-get="/grid" hx-target="#grid" hx-trigger="input changed delay:300ms, search">
-  <label>Sort by
-    <select name="sort" hx-get="/grid" hx-target="#grid" hx-trigger="change">
-      {% for key, label in sorts.items() %}<option value="{{ key }}" {{ 'selected' if key == job.sort }}>{{ label }}</option>{% endfor %}
-    </select>
-  </label>
 </div>
 <main>
   <section id="grid" hx-get="/grid" hx-trigger="load, analysed from:body"></section>
