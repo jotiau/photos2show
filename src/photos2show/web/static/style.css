@@ -8,16 +8,25 @@
 :root[data-theme="dark"] { --bg: #161615; --panel: #222220; --text: #ececea; --muted: #9a9a94; --border: #3a3a37; }
 /* neutral (untinted) mid-grey like photo editors use, so the surroundings don't shift how colours look */
 :root[data-theme="grey"] { --bg: #3c3c3c; --panel: #4a4a4a; --text: #f0f0f0; --muted: #b4b4b4; --border: #5e5e5e; }
-/* accents: dark enough for white text on primary buttons */
-:root[data-accent="teal"] { --accent: #0f8282; }
-:root[data-accent="green"] { --accent: #3a8a2a; }
-:root[data-accent="purple"] { --accent: #7a4fd0; }
-:root[data-accent="pink"] { --accent: #c8327a; }
-:root[data-accent="orange"] { --accent: #c75f0a; }
+/* accents: dark enough for white text. Not tied to :root, so a swatch with data-accent shows its own colour */
+[data-accent="blue"] { --accent: #2f6fdb; }
+[data-accent="indigo"] { --accent: #4f52c4; }
+[data-accent="purple"] { --accent: #7a4fd0; }
+[data-accent="magenta"] { --accent: #a8329e; }
+[data-accent="pink"] { --accent: #c8327a; }
+[data-accent="red"] { --accent: #c4303a; }
+[data-accent="orange"] { --accent: #c75f0a; }
+[data-accent="amber"] { --accent: #9e6a00; }
+[data-accent="olive"] { --accent: #687a12; }
+[data-accent="green"] { --accent: #3a8a2a; }
+[data-accent="teal"] { --accent: #0f8282; }
+[data-accent="cyan"] { --accent: #0b76a6; }
+[data-accent="slate"] { --accent: #5a6878; }
+:root { accent-color: var(--accent); }  /* checkboxes, radios, number inputs */
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--text); }
 header { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px;
-         background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; }
+         background: var(--accent); color: #fff; position: sticky; top: 0; z-index: 2; }
 h1 { font-size: 18px; margin: 0; }
 input, button { font: inherit; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
                 background: var(--panel); color: var(--text); }
@@ -96,8 +105,9 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; }
 .caption { font-style: italic; }
 .tabs { display: flex; gap: 4px; }
-.tabs a { padding: 6px 10px; border-radius: 6px; color: var(--text); text-decoration: none; }
-.tabs a.active { background: var(--bg); box-shadow: inset 0 0 0 1px var(--border); }
+.tabs a { padding: 6px 10px; border-radius: 6px; color: #fff; text-decoration: none; }
+.tabs a:hover { background: rgb(255 255 255 / .12); }
+.tabs a.active { background: rgb(255 255 255 / .22); font-weight: 600; }
 select { font: inherit; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
 .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 16px 0; }
 .bar .path { color: var(--muted); word-break: break-all; }
@@ -265,6 +275,7 @@ main.docs { max-width: 1160px; margin: 0 auto; }
 .doc h2 { margin-top: 28px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
 .doc [id] { scroll-margin-top: 64px; }  /* anchors land below the sticky header */
 .doc a { color: var(--accent); }
+.doc h1, .doc h2 { color: var(--accent); }
 .doc code { font-size: 13px; background: var(--bg); padding: 1px 4px; border-radius: 4px; }
 .doc pre { background: var(--bg); padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
 .doc pre code { padding: 0; }
@@ -276,3 +287,13 @@ main.docs { max-width: 1160px; margin: 0 auto; }
   .doc-pages { position: static; width: auto; flex-direction: row; flex-wrap: wrap; }
   .doc { padding: 2px 14px 16px; }
 }
+/* accent colour picker on the settings page: one round swatch per colour */
+fieldset.swatches-field { border: 0; padding: 0; margin: 0; min-width: 0; }
+.swatches-field legend { padding: 0; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
+.swatches label { display: block; margin: 0; cursor: pointer; }
+.swatches input { position: absolute; opacity: 0; }
+.swatches span { display: block; width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+                 box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--border); }
+.swatches input:checked + span { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--text); }
+.swatches input:focus-visible + span { outline: 2px solid var(--text); outline-offset: 5px; }

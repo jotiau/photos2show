@@ -12,6 +12,15 @@
 <main class="settings">
   {% for key, (label, choices, _, help) in fields.items() %}
   <section class="setting">
+    {% if key == "accent" %}
+    <fieldset class="swatches-field" aria-describedby="h-{{ key }}">
+      <legend class="label">{{ label }}</legend>
+      <form class="swatches" hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change">
+        {% for c in choices %}<label title="{{ c }}" data-accent="{{ c }}"><input type="radio" name="value" value="{{ c }}"
+          aria-label="{{ c }}" {{ 'checked' if c == settings()[key] }}><span></span></label>{% endfor %}
+      </form>
+    </fieldset>
+    {% else %}
     <div>
       <label for="s-{{ key }}">{{ label }}</label>
       <select id="s-{{ key }}" name="value" hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change"
@@ -19,6 +28,7 @@
         {% for c in choices %}<option {{ 'selected' if c == settings()[key] }}>{{ c }}</option>{% endfor %}
       </select>
     </div>
+    {% endif %}
     <p class="help" id="h-{{ key }}">{{ help }}</p>
   </section>
   {% endfor %}
