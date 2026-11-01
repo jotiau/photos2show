@@ -21,7 +21,10 @@ button:disabled { opacity: .5; cursor: default; }
 .error { color: var(--bad); }
 main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 #grid { flex: 1; min-width: 0; }
-.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.filters { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; }
+/* categories always one line: they scroll sideways when the window is too narrow */
+.filters .chips { flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding: 2px 0; }
+.filters .chips button { flex-shrink: 0; white-space: nowrap; }
 .filters button span { color: var(--muted); margin-left: 4px; }
 .filters button.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); grid-auto-rows: 1fr; gap: 12px; }
@@ -42,9 +45,11 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .card .pick:empty { display: none; }
 .card .stack { position: absolute; top: 6px; left: 6px; background: #000a; color: #fff; padding: 2px 7px;
                border-radius: 10px; font-size: 12px; font-weight: 600; box-shadow: 3px 3px 0 #fff8; }
-/* stacks + sort stay together at the right end, also when the row wraps */
-.filters .end { margin-left: auto; display: flex; gap: 6px; align-items: center; }
-.filters .sort { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+/* right edge, top to bottom: search, sort, stacks toggle */
+.filters .sort { margin-left: auto; display: flex; gap: 6px; align-items: center; color: var(--muted); white-space: nowrap; }
+.subbar { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; }
+.subbar .tags { flex: 1; margin: 0; }
+.subbar .stacks { margin-left: auto; }
 .flags { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 8px; }
 .flag { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: var(--warn); color: #fff; }
 .flag.very_blurry, .flag.too_dark, .flag.too_bright { background: var(--bad); }
@@ -74,7 +79,8 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .frames img.best { outline: 2px solid var(--ok); }
 @media (max-width: 760px) {
   main { flex-direction: column-reverse; }
-  #detail { width: 100%; position: relative; top: auto; max-height: none; }  /* relative: keeps × and ? inside the panel */
+  #detail { width: 100%; position: relative; top: auto; max-height: none; }
+  #grid { width: 100%; }  /* else the one-line category strip widens it past the window */  /* relative: keeps × and ? inside the panel */
 }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; }
 .caption { font-style: italic; }
