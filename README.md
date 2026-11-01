@@ -149,12 +149,13 @@ Tips for local models:
    for details, click a tag to filter by it. With a photo open, ← → go to the previous / next one and
    A adds it to the slideshow.
 4. **Build the slideshow** in the *Slideshow* tab: describe the show and press *Select photos*.
-   The picks are shown as tiles: drag them to reorder (or use ← →), remove with ×, sort the whole
+   The picks are shown as tiles: drag them to reorder (or use ‹ ›), remove with ×, sort the whole
    set, or add photos via *Add to slideshow* in the Library detail panel. To change the set in words,
    type an instruction next to *Refine picks* (e.g. "add 10 more sunsets, fewer people"); the model
    keeps the rest, including your hand edits. *Undo* goes back one change. *▶ Play* previews the show
-   full screen (← → step, Space pause, Esc end).
-5. **Export**: choose a new folder outside the photo folder and press *Export*, then *Open folder*.
+   full screen, scaled to the window; move the mouse or tap for the controls (back, hold, forward,
+   close), or use ← → Space Esc.
+5. **Export**: press *Export…*, choose a new folder outside the photo folder and press *Export*, then *Open folder*.
    Changed the show? Export again into the same folder with *replace previous export* ticked; this only
    deletes files of an earlier export, never a folder with other files in it.
 

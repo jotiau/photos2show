@@ -127,11 +127,13 @@ per page; destructive actions red.
   metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: Tab to a card, Enter/Space opens it, ← → step
   through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a
   bulk add/remove bar.
-- **Slideshow**: description → *Select photos* (spinner, elapsed time, picks locked meanwhile) →
-  ordered tiles with reasons; *Refine picks*, *Undo*, sort, drag & drop or ← → to reorder, × to
+- **Slideshow**: two step cards. ① description → *Select photos* (spinner, elapsed time, picks
+  locked meanwhile); collapses to one line with *Edit* once there are picks. ② ordered tiles with
+  reasons under a sticky toolbar (count and length, seconds per photo, sort, *Undo*, *Export…*
+  dialog with *Open folder*, *▶ Play*) and *Refine picks*; drag & drop or ‹ › to reorder, × to
   remove, "⇄ N other shots" to swap a pick for another shot of its scene (same place and reason);
-  seconds per photo with the length estimate (videos at their length); lightbox with
-  ← → through the picks; *▶ Play* full screen (← → Space Esc; the reason shows on mouse move or tap); *Export*, *Open folder*.
+  lightbox with ← → through the picks; *▶ Play* fills the window, with the reason and a control
+  panel (back, hold, forward, close) on mouse move or tap; keys ← → Space Esc.
 - **Settings**: theme, parallel AI requests (each with a help line); delete cached data of folders
   no project uses.
 
@@ -189,39 +191,11 @@ tests/
   Projects page with covers, swapping a pick for another shot of its scene, the reason in the
   player, Tab/Enter in the Library; plus the fixes of a code audit (selection lock, 404s,
   duplicate project names).
-
-## Next: Slideshow page layout (agreed with the user, 2026-11-01)
-
-**What is wrong today** (screenshot with 6 picks, 1400 px wide):
-- One long column of unrelated controls: textarea, Select, Refine, Play, a sentence with the
-  seconds input inside it, Sort, tiles, then Export – no visual grouping, no clear order of steps.
-- *Export* sits below all tiles: with 100+ picks it is several screens down.
-- *▶ Play* is a small grey button, though previewing is the main thing to do once picks exist.
-- Stats, the seconds input and the help text are one sentence; Sort has its own row with "choose…".
-- The description textarea stays big after the AI has picked, pushing the picks down.
-- Page capped at 1100 px: the right third of a wide screen stays empty while tiles wrap.
-- Tiles: reasons cut after one line; ← → × buttons take a full row on every tile.
-
-**Decided layout**
-1. **Two step cards** in the Settings card style: ① *Describe* and ② *Review picks*, each with a
-   small heading, so the page reads top to bottom as a workflow.
-2. **Describe collapses** once picks exist: one line "“10-minute show for my parents…” · Edit"
-   that reopens the textarea and *Select photos*.
-3. **One toolbar for the picks** (sticky under the header while scrolling the tiles):
-   `6 photos · ~0.5 min` · `[5] s per photo` · `Sort by [▾]` · *Undo* · *Export…* · **▶ Play**
-   (primary, right); the refine input + *Refine picks* on the row below. Help text ("drag tiles to
-   reorder…") as a small grey hint under it.
-4. **Export as a dialog**: *Export…* in the toolbar opens the folder field, *Browse…*, "replace
-   previous export" and *Export*; the result message shows in the dialog.
-5. **Full width** like the Library (drop the 1100 px cap); tiles the Library size (180 px).
-6. **Calmer tiles**: reason up to two lines; × as a small overlay at the top-right corner;
-   ← → stay always visible but smaller (keyboard and touch need them; drag is mouse-only).
-7. **▶ Play fills the window**: every photo and video scales to the window size, smaller ones
-   enlarged too (today only `max-width/max-height: 100%`, so small files stay small), aspect ratio
-   kept, black bars where it does not fit; follows window resizes.
-8. **Player control panel** on screen, not only keys: ⏮ previous · ⏯ hold/continue · ⏭ next ·
-   ✕ close, plus "3 / 42". Shows with the reason on mouse move or tap, fades out after a few
-   seconds; keys ← → Space Esc keep working.
+- **M6 – Layout polish** *(done 2026-11-01)*: smaller project covers with Remove behind *Edit*;
+  Library search with icon top-left, sort at the filter row, *Tags* button, portrait previews
+  padded to landscape height; Settings as cards; Slideshow page in two steps (Describe collapses,
+  sticky toolbar with *Export…* dialog and *▶ Play*, full width, calmer tiles); the player fills
+  the window and has an on-screen control panel.
 
 ## Next: smaller visual improvements (agreed with the user, 2026-11-01)
 1. **Library path**: the toolbar shows only the folder name; the full path on hover.

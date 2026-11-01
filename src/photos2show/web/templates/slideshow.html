@@ -13,27 +13,66 @@
 {% if selection is none %}
   <p class="empty"><a href="/projects">Create a project</a> first.</p>
 {% else %}
-  <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button">
-    <label for="description">Describe the slideshow</label>
-    <textarea id="description" name="description" rows="4" required
-      placeholder="10-minute show for my parents, chronological, mostly landscapes and the two of us, little food">{{ selection.description }}</textarea>
-    <button class="primary">Select photos</button>
+  <section class="step">
+    <h2>① Describe</h2>
+    <!-- collapsed to one line once there are picks; the summary is hidden while open -->
+    <details class="describe" {{ 'open' if not (selection.picks and selection.description) }}>
+      <summary><span class="quote">“{{ selection.description }}”</span> <span class="edit">Edit</span></summary>
+      <form hx-post="/slideshow/select" hx-target="#picks" hx-indicator="#thinking, #picks" hx-disabled-elt="find button"
+        hx-on::after-request="collapseDescribe(this, event)">
+        <label for="description">Describe the slideshow</label>
+        <textarea id="description" name="description" rows="4" required
+          placeholder="10-minute show for my parents, chronological, mostly landscapes and the two of us, little food">{{ selection.description }}</textarea>
+        <button class="primary">Select photos</button>
+      </form>
+    </details>
     <span id="thinking" class="htmx-indicator"><span class="spinner"></span> The AI is choosing… this can take a minute
       <span class="elapsed"></span></span>
-  </form>
-  <div id="picks" hx-get="/slideshow/picks" hx-trigger="load"></div>
-  <form class="export" hx-post="/slideshow/export" hx-target="#export-msg">
-    <label for="target">Export to (new folder, outside the photo folder)</label>
-    <input id="target" name="target" value="{{ default_target }}" required data-keep-name>
-    <button type="button" class="browse" data-browse="target">Browse…</button>
-    <label><input type="checkbox" name="replace" value="true"> replace previous export in this folder</label>
-    <button class="primary">Export</button>
-    <span id="export-msg"></span>
-  </form>
+  </section>
+  <section class="step">
+    <h2>② Review picks</h2>
+    <div id="picks" hx-get="/slideshow/picks" hx-trigger="load"></div>
+  </section>
+  <dialog id="export" class="confirm">
+    <form class="export" hx-post="/slideshow/export" hx-target="#export-msg">
+      <h2>Export</h2>
+      <label for="target">New folder, outside the photo folder</label>
+      <div class="row">
+        <input id="target" name="target" value="{{ default_target }}" required data-keep-name>
+        <button type="button" class="browse" data-browse="target">Browse…</button>
+      </div>
+      <label><input type="checkbox" name="replace" value="true"> replace previous export in this folder</label>
+      <p id="export-msg"></p>
+      <div class="buttons">
+        <button type="button" onclick="this.closest('dialog').close()">Close</button>
+        <button class="primary">Export</button>
+      </div>
+    </form>
+  </dialog>
 {% endif %}
 </main>
 <dialog id="lightbox"></dialog>
-<dialog id="player"><div class="stage"></div><p class="reason"></p><p class="status"></p></dialog>
+<dialog id="player">
+  <div class="stage" tabindex="-1" autofocus></div>
+  <p class="reason"></p>
+  <div class="controls">
+    <button type="button" data-step="-1" aria-label="Previous" title="Previous (←)">⏮</button>
+    <button type="button" class="hold" aria-label="Hold" title="Hold / continue (Space)">⏸</button>
+    <button type="button" data-step="1" aria-label="Next" title="Next (→)">⏭</button>
+    <span class="status"></span>
+    <button type="button" class="end" aria-label="Close" title="Close (Esc)">✕</button>
+  </div>
+</dialog>
+<script>
+  // After Select photos: show the new description as the one-line summary and fold the form away.
+  // A failed AI call still answers 200 with the error in the picks: then the form stays open.
+  const collapseDescribe = (form, e) => {
+    if (!e.detail.successful || e.detail.xhr.responseText.includes('class="error"')) return;
+    const details = form.closest("details");
+    details.querySelector(".quote").textContent = `“${form.description.value}”`;
+    details.open = false;
+  };
+</script>
 <script>
   // Elapsed time while the AI selects or refines (both forms indicate on #thinking and #picks).
   let ticker = null;
@@ -52,9 +91,20 @@
   document.body.addEventListener("htmx:afterRequest", e => isAiForm(e) && clearInterval(ticker));
 
   // Preview: the picks full screen in their order; photos for data-seconds, videos to their end.
-  // ← → step, Space pauses, Esc (or leaving full screen) ends.
+  // ← → step, Space holds, Esc (or leaving full screen) ends; the control panel does the same.
   const player = document.getElementById("player"), stage = player.querySelector(".stage");
   let slides = [], at = 0, paused = false, timer = null;
+  const status = () => {
+    player.querySelector(".status").textContent = `${at + 1} / ${slides.length}${paused ? " · on hold" : ""}`;
+    player.querySelector(".hold").textContent = paused ? "▶" : "⏸";
+  };
+  const hold = () => {
+    paused = !paused;
+    const video = stage.querySelector("video");
+    if (!video) return show(at);  // restarts the photo's timer, or stops it while on hold
+    paused ? video.pause() : video.play();
+    status();
+  };
   const show = i => {
     clearTimeout(timer);
     if (i >= slides.length) return player.close();
@@ -64,7 +114,7 @@
     if (s.video) stage.firstChild.onended = () => !paused && show(at + 1);
     else if (!paused) timer = setTimeout(() => show(at + 1), player.dataset.seconds * 1000);
     if (slides[at + 1] && !slides[at + 1].video) new Image().src = slides[at + 1].src;  // preload
-    player.querySelector(".status").textContent = `${at + 1} / ${slides.length}${paused ? " · paused (Space)" : ""}`;
+    status();
     player.querySelector(".reason").textContent = s.reason;  // LLM text: never HTML
   };
   // The reason shows while the mouse moves or after a tap, then fades out.
@@ -75,7 +125,16 @@
     infoTimer = setTimeout(() => player.classList.remove("info"), 2500);
   };
   player.addEventListener("mousemove", showInfo);
-  player.addEventListener("click", showInfo);
+  player.addEventListener("click", e => {
+    showInfo();
+    const button = e.target.closest(".controls button");
+    if (!button) return;
+    if (button.dataset.step) show(at + Number(button.dataset.step));
+    else if (button.matches(".hold")) hold();
+    else player.close();
+  });
+  // Clicks must not move the focus onto a control, or Space would press that button instead of holding.
+  player.querySelector(".controls").addEventListener("mousedown", e => e.preventDefault());
   document.addEventListener("click", e => {
     const play = e.target.closest("button.play");
     if (!play) return;
@@ -90,13 +149,9 @@
   player.addEventListener("keydown", e => {
     if (e.key === "ArrowRight") show(at + 1);
     else if (e.key === "ArrowLeft") show(at - 1);
-    else if (e.key === " ") {
+    else if (e.key === " " && !e.target.closest("button")) {  // a control reached by Tab: Space presses it
       e.preventDefault();
-      paused = !paused;
-      const video = stage.querySelector("video");
-      if (!video) return show(at);  // restarts the photo's timer, or stops it while paused
-      paused ? video.pause() : video.play();
-      player.querySelector(".status").textContent = `${at + 1} / ${slides.length}${paused ? " · paused (Space)" : ""}`;
+      hold();
     }
   });
   player.addEventListener("close", () => {
