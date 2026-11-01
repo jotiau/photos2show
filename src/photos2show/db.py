@@ -97,7 +97,7 @@ SETTINGS = {
     "parallel": ("Parallel AI requests", tuple(sorted({"1", "2", "4", "8", _PARALLEL}, key=int)), _PARALLEL,
                  "How many photos are sent to the AI at once. More is faster if the server keeps up; "
                  "a local model on your own computer often works best with 1."),
-    "review_duplicates": ("Review duplicates before AI", ("off", "on"), "off",
+    "review_duplicates": ("Review duplicates before AI", ("off", "on"), "on",
                           "On: after scanning, Analyse pauses and shows each new group of same-scene shots, so you can "
                           "pick the best one before it is sent to the AI – or let the AI compare them and overrule it if "
                           "you like. Off: the technically best shot is used."),

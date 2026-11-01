@@ -189,7 +189,8 @@ AI results* (kept anyway while another project uses the same folder).
 
 The *Settings* tab has the colour theme (auto follows your system, or light / dark), the number of
 parallel AI requests (1 = strictly one by one; local models usually want 1), *Review duplicates before AI*
-(off by default: the technically best shot is used without asking; on: you can also let the AI compare), *Photo details for choosing* (how much the
+(on by default: Analyse pauses so you can pick the best shot of each new group or let the AI compare them;
+off: the technically best shot is used without asking), *Photo details for choosing* (how much the
 slideshow AI reads per photo: full, short, minimal or auto), and *Delete unused data*: it removes saved AI
 results and thumbnails of folders no project uses any more (also folders only analysed with `photos2show-scan`).
 

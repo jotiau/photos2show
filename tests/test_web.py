@@ -18,6 +18,8 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
     assert TestClient(web.app, base_url=LOCAL).post("/analyse").status_code == 403  # CSRF guard
     assert TestClient(web.app, base_url="http://rebound.example").get("/").status_code == 400  # DNS rebinding
+    assert web.db.load_settings()["review_duplicates"] == "on"  # default: Analyse pauses for the duplicate review
+    client.post("/settings", data={"key": "review_duplicates", "value": "off"})  # this test runs straight through
 
     assert "Create a project" in client.get("/").text
     assert client.post("/slideshow/undo").status_code == 404  # no project: never the server's working dir
