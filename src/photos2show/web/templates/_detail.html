@@ -24,6 +24,9 @@
 </div>
 {% if it.ai.issues %}<p>Issues: {{ it.ai.issues | join(', ') }}</p>{% endif %}
 {% elif it.skip_ai %}<p>Not sent to AI: {{ it.skip_ai }}</p>
+{% elif it.id in describing and describing[it.id] %}<p class="error">AI description failed: {{ describing[it.id] }}.
+  <em>Analyse</em> tries again.</p>
+{% elif it.id in describing %}<p hx-get="/describing/{{ it.id }}" hx-trigger="every 2s">Describing with AI…</p>
 {% else %}<p>Waiting for AI description</p>{% endif %}
 <details class="tech"><summary>Technical details</summary>
 <table>

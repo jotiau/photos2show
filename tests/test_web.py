@@ -367,12 +367,24 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
     assert "burst_2.jpg" in described and "burst_1.jpg" not in described
 
     # Later, in the detail panel: burst_1 becomes the best again and is described right away.
+    def poll(media_id):
+        for _ in range(100):
+            if (resp := client.get(f"/describing/{media_id}")).status_code == 200:
+                return resp
+            time.sleep(0.1)
+        raise AssertionError("still describing")
+
     detail = client.post(f"/best/{items['burst_1.jpg']}", headers={"HX-Target": "detail"})
     assert detail.headers["HX-Trigger"] == "analysed" and "Make this the best shot" not in detail.text
-    for _ in range(100):
-        if web.db.get_media(web.db.connect(folder), items["burst_1.jpg"])["ai"]:
-            break
-        time.sleep(0.1)
-    else:
-        raise AssertionError("burst_1 was not described")
+    assert "Describing with AI" in detail.text
+    done = poll(items["burst_1.jpg"])
+    assert done.headers["HX-Retarget"] == "#detail" and "fake caption" in done.text
     assert "Make this the best shot" in client.get(f"/media/{items['burst_2.jpg']}").text
+
+    def broken(*a):
+        raise RuntimeError("model offline")
+
+    monkeypatch.setattr("photos2show.ai.analyse_image", broken)
+    client.post(f"/best/{items['burst_3.jpg']}", headers={"HX-Target": "detail"})
+    failed = poll(items["burst_3.jpg"]).text
+    assert 'class="error">AI description failed: burst_3.jpg: model offline' in failed

@@ -130,11 +130,19 @@ def _review_scenes() -> list[list[dict]]:
 templates.env.globals["review_scenes"] = _review_scenes
 
 
+describing: dict[int, str | None] = {}  # media id -> None while its description runs, else the error
+templates.env.globals["describing"] = describing
+
+
 def _describe_now(root: Path, media_id: int) -> None:
     try:
-        describe_folder(root, concurrency=1, only={media_id})
-    except (Exception, SystemExit):  # e.g. AI not configured: it shows "Waiting for AI description", Analyse retries
-        pass
+        errors = describe_folder(root, concurrency=1, only={media_id})["errors"]
+    except (Exception, SystemExit) as e:  # e.g. AI not configured
+        errors = [str(e)]
+    if errors:  # shown in the detail panel; the next Analyse retries
+        describing[media_id] = errors[0]
+    else:
+        describing.pop(media_id, None)
 
 
 def _items() -> list[dict]:
@@ -489,12 +497,23 @@ def best_shot(request: Request, media_id: int):
     choose_best(db.connect(_root()), media_id)
     if request.headers.get("hx-target") == "detail":  # Library detail panel
         if not item["ai"]:  # skipped so far as a duplicate
+            describing[media_id] = None
             threading.Thread(target=_describe_now, args=(_root(), media_id), daemon=True).start()
         resp = detail(request, media_id)
         resp.headers["HX-Trigger"] = "analysed"  # the stacks in the grid changed
         return resp
     scene = [it for it in _items() if _scene(it) == media_id]  # duplicate review during Analyse
     return templates.TemplateResponse(request, "_scene.html", {"scene": scene})
+
+
+@app.get("/describing/{media_id}", response_class=HTMLResponse)
+def describing_status(request: Request, media_id: int):
+    """Polled by the detail panel while a shot is described right away; when done, the panel reloads."""
+    if media_id in describing and describing[media_id] is None:
+        return HTMLResponse(status_code=204)  # still running: htmx keeps the "Describing" line
+    resp = detail(request, media_id)
+    resp.headers.update({"HX-Retarget": "#detail", "HX-Reswap": "innerHTML"})
+    return resp
 
 
 @app.post("/slideshow/swap", response_class=HTMLResponse)
