@@ -30,25 +30,34 @@ LM Studio if you'd rather keep your photos on your own computer.
 - A caption, content tags, scene type, people count, scores for aesthetic and interest, and visible
   issues (closed eyes, tilted horizon) for every photo worth keeping.
 - Videos are covered too: frames at 10 %, 50 % and 90 % of the clip, the sharpest one represents it.
-- Runs 1–8 requests in parallel, shows results live with the time left, can be stopped any time and
-  resumes where it stopped.
+- Runs 1–8 requests in parallel (set in *Settings*), shows results live with the time left, can be
+  stopped any time and resumes where it stopped.
 - Everything is cached: re-runs only process new or changed files.
 
 **Slideshow from a description**
 - Describe length, audience, order and content in your own words; the model picks and orders the
-  photos and says why it chose each one.
+  photos and says why it chose each one. Choose 2–15 seconds per photo; the length estimate counts
+  videos at their real length.
 - Refine in words ("add more sunsets, fewer people, start with the ferry") without losing your hand edits,
   and undo the last change.
-- Fine-tune by hand: reorder, remove, add photos from the library, or sort by date, aesthetic,
-  interest, technical quality or file name.
+- Fine-tune by hand: reorder, remove, add photos from the library, swap a pick for another shot of the
+  same scene, or sort by date, aesthetic, interest, technical quality or file name.
+- Preview the picks in a lightbox or play the whole show full screen, with the reason for each pick.
 - Export numbered copies plus a `selection.json` with your description and the reason for every pick;
   export again into the same folder after changes.
 
 **Library browser**
-- Thumbnail grid with filters by quality flag and tag, and a search over captions, tags and file names;
-  a detail panel with all metrics, the other shots of the same scene and the AI description.
-- Keyboard: ← → step through the photos, A adds one to the slideshow, Esc closes the panel.
-- One project per trip; switch between them in the header, rename, re-point or remove them in the *Projects* tab (the first tab).
+- Thumbnail grid with date, 1–5 stars from the AI scores, caption, quality flags and the slideshow
+  position of each pick. Same-scene shots are stacked behind the best one (*Show all shots* unstacks them).
+- Filters by quality flag, "in slideshow" and tag (the most common tags with counts), a search over
+  captions, tags and file names, and sorting by date, scores, quality or name.
+- The view lives in the URL: reload, back / forward and bookmarks keep filter, search, sort and the open photo.
+- A detail panel with a larger preview, all metrics, the other shots of the same scene and the AI description.
+- Ctrl/⌘-click or Shift-click cards to add or remove many photos at once.
+- Keyboard: Tab to a card, Enter opens it, ← → step through the photos, A adds one to the slideshow,
+  Esc closes the panel.
+- One project per trip, shown as cards with a cover photo in the *Projects* tab (the first tab);
+  switch between them in the header.
 
 **Your photos stay yours**
 - Runs locally in your browser; projects, AI results and thumbnails live in a data folder, never in your photo folder.
@@ -129,7 +138,8 @@ Tips for local models:
 - **Context length matters for the slideshow.** The selection step sends one line per photo to the
   model, which is roughly 20–40k tokens for a trip of 1000 files. With the small default context of
   Ollama or LM Studio, the start of the list is cut off silently. Set 32k or more.
-- **Start with `AI_CONCURRENCY=1`.** A single local GPU rarely gets faster with parallel requests;
+- **Start with `AI_CONCURRENCY=1`** (or *Parallel AI requests* = 1 in *Settings*). A single local GPU
+  rarely gets faster with parallel requests;
   raise it only if your server is set up for parallel slots (`OLLAMA_NUM_PARALLEL` in Ollama).
 - **Expect it to be slower than the timings below** on a laptop GPU; a 7–8B model on a mid-range
   GPU typically needs a few seconds per photo, CPU-only can take a minute or more.
@@ -142,18 +152,21 @@ Tips for local models:
 2. **Let it analyse** (progress in the *Library* tab):
    - *Scanning*: local checks for blur, exposure, contrast, monotony and same-scene shots. Fast.
    - *Describing with AI*: each remaining photo goes to the model, 2 at a time by default
-     (choose 1–8 next to *Analyse again*). Captions and tags appear live; skipped photos are marked
+     (choose 1–8 under *Parallel AI requests* in *Settings*). Captions and tags appear live; skipped photos are marked
      *no AI*. The progress bar shows the time left; *Stop* ends the run after the requests already
      sent. Stopped or interrupted? Press *Analyse again* and it continues where it stopped.
-3. **Browse the Library**: filter by quality flag, search the AI captions (e.g. "boat sunset"), click a card
-   for details, click a tag to filter by it. With a photo open, ← → go to the previous / next one and
-   A adds it to the slideshow.
-4. **Build the slideshow** in the *Slideshow* tab: describe the show and press *Select photos*.
-   The picks are shown as tiles: drag them to reorder (or use ← →), remove with ×, sort the whole
-   set, or add photos via *Add to slideshow* in the Library detail panel. To change the set in words,
+3. **Browse the Library**: filter by quality flag, search the AI captions (e.g. "boat sunset"), click a tag
+   to filter by it, sort the grid, click a card for details. With a photo open, ← → go to the previous /
+   next one and A adds it to the slideshow. Ctrl/⌘-click or Shift-click several cards to add or remove
+   them together.
+4. **Build the slideshow** in the *Slideshow* tab: describe the show and press *Select photos*
+   (a spinner shows the time while the model works). The picks are shown as tiles: drag them to reorder
+   (or use ← →), remove with ×, use *⇄ N other shots* to swap a pick for another shot of the same scene,
+   sort the whole set, or add photos via *Add to slideshow* in the Library detail panel. Click a tile to
+   step through the picks in a lightbox; set the seconds per photo next to the length estimate. To change the set in words,
    type an instruction next to *Refine picks* (e.g. "add 10 more sunsets, fewer people"); the model
    keeps the rest, including your hand edits. *Undo* goes back one change. *▶ Play* previews the show
-   full screen (← → step, Space pause, Esc end).
+   full screen (← → step, Space pause, Esc end; move the mouse or tap to see why a photo was picked).
 5. **Export**: choose a new folder outside the photo folder and press *Export*, then *Open folder*.
    Changed the show? Export again into the same folder with *replace previous export* ticked; this only
    deletes files of an earlier export, never a folder with other files in it.
@@ -162,12 +175,13 @@ Each project keeps one slideshow; to make a second show from the same trip, expo
 then select again.
 
 The *Projects* tab lists all projects with their state (files, AI-described, picks, when last analysed, missing folder).
-Rename a project, point it to another photo folder (e.g. after moving the photos; press *Analyse again*
-afterwards) or remove it. Removing never deletes photos. The saved AI results and thumbnails stay in the
+Under *Edit*, rename a project or point it to another photo folder (e.g. after moving the photos; press
+*Analyse again* afterwards). *Remove…* asks in a dialog and never deletes photos. The saved AI results and thumbnails stay in the
 data folder, so creating a project for the same folder again picks them up, unless you tick *also delete saved
 AI results* (kept anyway while another project uses the same folder).
 
-The *Settings* tab has the colour theme (auto follows your system, or light / dark), and *Delete unused data*: it removes saved AI
+The *Settings* tab has the colour theme (auto follows your system, or light / dark), the number of
+parallel AI requests (1 = strictly one by one; local models usually want 1), and *Delete unused data*: it removes saved AI
 results and thumbnails of folders no project uses any more (also folders only analysed with `photos2show-scan`).
 
 ### How long does it take?
@@ -186,7 +200,8 @@ AI descriptions are made once per file; later runs take seconds.
 
 ## Supported files
 
-JPEG photos (`.jpg`, `.jpeg`) and MP4 videos. Dates come from the photo's EXIF data; for videos
+JPEG photos (`.jpg`, `.jpeg`) and MP4 videos, in the chosen folder and its subfolders (hidden folders
+such as `.Trash-1000` are skipped). Dates come from the photo's EXIF data; for videos
 from phone-style file names (`20260725_130945.mp4`), else the recording time stored in the video,
 else the file date. HEIC and RAW are on the roadmap.
 
@@ -199,7 +214,7 @@ Set in `.env` or as environment variables:
 | `OPENAI_BASE_URL` | – (required) | OpenAI-compatible endpoint, e.g. `http://localhost:11434/v1` |
 | `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth |
 | `MODEL` | `glm-5.3-flash` | model id as the server lists it |
-| `AI_CONCURRENCY` | `2` | parallel AI requests (1 = strictly one by one); default for the setting in Settings |
+| `AI_CONCURRENCY` | `2` | parallel AI requests (1 = strictly one by one); default for *Parallel AI requests* in Settings |
 | `PHOTOS2SHOW_CACHE` | `~/.local/share/photos2show` | data folder for projects, AI results and thumbnails |
 | `PHOTOS2SHOW_PORT` | `8000` | port of the web UI |
 
