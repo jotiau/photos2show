@@ -96,7 +96,7 @@ select { font: inherit; padding: 6px; border: 1px solid var(--border); border-ra
 #player .controls button { background: none; border: none; color: #fff; font-size: 20px; padding: 4px 10px; }
 #player .controls button:hover { background: #fff3; }
 #player .status { color: #bbb; padding: 0 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bar input.search { flex: 1; min-width: 220px; max-width: 420px; padding-left: 32px;
+.bar input.search { flex: 1; min-width: 220px; max-width: 420px; margin-left: auto; padding-left: 32px;
   background: var(--panel) no-repeat 10px center / 16px
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='7'/%3E%3Cpath d='m15 15 6 6'/%3E%3C/svg%3E"); }
 .tags { margin: -4px 0 12px; }
