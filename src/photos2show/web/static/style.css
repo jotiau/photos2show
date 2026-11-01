@@ -109,6 +109,10 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 .tabs a:hover { background: rgb(255 255 255 / .12); }
 .tabs a.active { background: rgb(255 255 255 / .22); font-weight: 600; }
 select { font: inherit; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
+/* project picker in the top bar: tinted like the tabs; the opened list keeps normal colours */
+header select { background: rgb(255 255 255 / .18); color: #fff; border-color: rgb(255 255 255 / .45); font-weight: 600; cursor: pointer; }
+header select:hover { background: rgb(255 255 255 / .28); }
+header select option { background: var(--panel); color: var(--text); }
 .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 16px 0; }
 .bar .path { color: var(--muted); word-break: break-all; }
 #player { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #000; }
