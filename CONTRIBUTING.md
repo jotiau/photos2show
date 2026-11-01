@@ -18,12 +18,14 @@ uv run photos2show-testdata demo_images    # synthetic photos with known defects
 uv run photos2show-scan demo_images
 ```
 
-[PLAN.md](PLAN.md) describes the pipeline and the reasoning behind thresholds and design decisions.
+[docs/development.md](docs/development.md) describes the code layout, routes and conventions;
+[PLAN.md](PLAN.md) the reasoning behind thresholds and design decisions.
 
 ## Guidelines
 
 - Keep it simple: plain Python, FastAPI + Jinja2 templates + HTMX, no JavaScript build step.
 - Add or update a test in `tests/` for behaviour changes.
+- Update the matching page in [docs/](docs/index.md) in the same pull request, so the documentation stays accurate.
 - Never modify the user's photo folder; everything the tool writes goes into the data folder or the export folder.
 - Don't commit personal photos, `.env` files or API keys.
 
