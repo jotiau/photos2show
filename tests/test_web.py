@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import time
 from pathlib import Path
 
@@ -419,3 +420,21 @@ def test_heic_original_is_sent_as_jpeg(tmp_path, monkeypatch):
     resp = client.get(f"/original/{ids['IMG_0001.heic']}")
     assert resp.headers["content-type"] == "image/jpeg" and Image.open(io.BytesIO(resp.content)).size == (60, 40)
     assert client.get(f"/original/{ids['plain.jpg']}").content == (folder / "plain.jpg").read_bytes()  # untouched
+
+
+def test_docs(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    client = TestClient(web.app, base_url=LOCAL)
+    assert 'href="/docs" target="_blank"' in client.get("/settings").text  # Settings opens the docs in a new tab
+    index = client.get("/docs").text
+    assert "<table>" in index and 'href="/docs/user-guide"' in index  # links between pages point to /docs/<page>
+    for page in web.DOCS.glob("*.md"):  # every page renders, and its links to other pages and headings resolve
+        html = client.get(f"/docs/{page.stem}").text
+        for target, anchor in re.findall(r'href="/docs/([\w-]+)(?:#([^"]+))?"', html):
+            assert (web.DOCS / f"{target}.md").is_file(), (page.name, target)
+            assert not anchor or f'id="{anchor}"' in client.get(f"/docs/{target}").text, (page.name, anchor)
+    guide = client.get("/docs/user-guide").text
+    assert 'aria-current="page">User guide</a>' in guide and '<h2 id="slideshow">' in guide
+    assert client.get("/docs/nope").status_code == 404
+    assert client.get("/docs/..%2FREADME").status_code == 404  # never a file outside docs/
+    assert "&lt;b&gt;" in web._render_doc("<b>x</b>")  # raw HTML in Markdown is shown as text, not run

@@ -2,6 +2,7 @@
 import argparse
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,7 @@ from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from markdown_it import MarkdownIt
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from photos2show import db, scan, slideshow
@@ -32,7 +34,7 @@ from photos2show.pipeline import (
 )
 
 HERE = Path(__file__).parent
-app = FastAPI(title="photos2show")
+app = FastAPI(title="photos2show", docs_url=None, redoc_url=None)  # /docs is the documentation, not Swagger
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
 templates.env.filters["basename"] = lambda p: Path(p).name
@@ -457,6 +459,38 @@ def save_setting(key: str = Form(...), value: str = Form(...)):
         raise HTTPException(400)
     db.save_setting(key, value)
     return HTMLResponse("", headers=REFRESH)
+
+
+# shortcut: docs/ is read from the source checkout (uv sync installs the app editable); a wheel would need it packaged
+DOCS = HERE.parents[2] / "docs"
+markdown = MarkdownIt("commonmark", {"html": False}).enable("table")
+DOC_LINK = re.compile(r'href="([\w-]+)\.md(#[^"]*)?"')  # links between the docs pages, e.g. configuration.md#local-models
+
+
+def _slug(heading: str) -> str:
+    """GitHub's anchor for a heading, which the links in docs/ use (e.g. #settings-page)."""
+    return re.sub(r"[^\w\- ]", "", heading.lower()).strip().replace(" ", "-")
+
+
+def _render_doc(text: str) -> str:
+    tokens = markdown.parse(text)
+    for i, t in enumerate(tokens):
+        if t.type == "heading_open":
+            t.attrSet("id", _slug(tokens[i + 1].content))
+    html = markdown.renderer.render(tokens, markdown.options, {})
+    return DOC_LINK.sub(lambda m: f'href="/docs/{m[1]}{m[2] or ""}"', html)
+
+
+@app.get("/docs", response_class=HTMLResponse)
+@app.get("/docs/{name}", response_class=HTMLResponse)
+def docs(request: Request, name: str = "index"):
+    """The docs/ pages, opened in a new tab from Settings; the side list follows the table in docs/index.md."""
+    if name not in {p.stem for p in DOCS.glob("*.md")}:  # only files in docs/, never a path from the request
+        raise HTTPException(404)
+    pages = {"index": "Overview",
+             **{page: label for label, page in re.findall(r"\[([^\]]+)\]\(([\w-]+)\.md\)", (DOCS / "index.md").read_text(encoding="utf-8"))}}
+    return templates.TemplateResponse(request, "docs.html", {
+        "name": name, "pages": pages, "body": _render_doc((DOCS / f"{name}.md").read_text(encoding="utf-8"))})
 
 
 @app.get("/thumb/{media_id}")

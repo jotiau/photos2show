@@ -161,6 +161,9 @@ See [Configuration – Settings page](configuration.md#settings-page) for every 
 also has **Delete unused data**: it removes saved AI results and thumbnails of folders no project uses
 any more (also folders only analysed with `photos2show-scan`). Photos are never touched.
 
+**Open documentation** (at the bottom of Settings) opens this documentation in a new browser tab, with the
+list of pages on the left.
+
 ## Troubleshooting
 
 | Problem | What to do |
