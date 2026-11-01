@@ -133,7 +133,8 @@ def mp4_created(path: Path) -> str | None:
 
 
 def file_time(path: Path) -> str:
-    """Capture time for videos: from the file name if it has one, else the MP4 header, else file mtime.
+    """Capture time of a video or an image without EXIF date: from the file name if it has one,
+    else the MP4 header (videos), else file mtime.
 
     mtime can be off by hours after copying (seen: exactly 1 h, time zone).
     """
@@ -142,4 +143,4 @@ def file_time(path: Path) -> str:
             return datetime.strptime(m[1] + m[2], "%Y%m%d%H%M%S").isoformat()
         except ValueError:
             pass
-    return mp4_created(path) or datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()
+    return (is_video(path) and mp4_created(path)) or datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()

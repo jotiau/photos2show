@@ -44,6 +44,7 @@ def analyse_file(path: Path, thumbs: Path) -> dict:
         kind, taken = "video", scan.file_time(path)
     else:
         rep, taken, (w, h) = scan.read_image(path)
+        taken = taken or scan.file_time(path)  # screenshots, PNGs, edited copies: no EXIF date
         m, kind, frames = quality.metrics(quality.prepare(rep)), "image", []
     _save_thumb(rep, thumbs / f"{name}.jpg")
     st = path.stat()
@@ -78,8 +79,9 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
             old = known.get(str(path))
             cached = old is not None and (old["size"], old["mtime"]) == (st.st_size, st.st_mtime)
             row = None if cached else analyse_file(path, thumbs)
-            # Video dates got better (MP4 header before mtime): fix cached rows without a full re-scan.
-            if cached and old["kind"] == "video" and (taken := scan.file_time(path)) != old["taken_at"]:
+            # Video dates got better (MP4 header before mtime), undated images now get the file date:
+            # fix cached rows without a full re-scan.
+            if cached and (old["kind"] == "video" or not old["taken_at"]) and (taken := scan.file_time(path)) != old["taken_at"]:
                 conn.execute("UPDATE media SET taken_at = ? WHERE path = ?", (taken, str(path)))
                 conn.commit()
         except Exception as e:  # one broken file must not stop the whole scan
