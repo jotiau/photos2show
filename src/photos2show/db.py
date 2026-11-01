@@ -95,8 +95,9 @@ _PARALLEL = str(default_concurrency())  # AI_CONCURRENCY from .env, kept as a ch
 SETTINGS = {
     "theme": ("Theme", ("auto", "light", "dark", "grey"), "auto",
               "Light or dark colours; auto follows your system. Grey is a neutral mid-grey that doesn't tint how photos look."),
-    "accent": ("Accent colour", ("blue", "teal", "green", "purple", "pink", "orange"), "blue",
-               "Colour of buttons, selections and highlights."),
+    "accent": ("Accent colour", ("blue", "indigo", "purple", "magenta", "pink", "red", "orange",
+                                    "amber", "olive", "green", "teal", "cyan", "slate"), "blue",
+               "Colour of the top bar, buttons, selections and highlights."),
     "parallel": ("Parallel AI requests", tuple(sorted({"1", "2", "4", "8", _PARALLEL}, key=int)), _PARALLEL,
                  "How many photos are sent to the AI at once. More is faster if the server keeps up; "
                  "a local model on your own computer often works best with 1."),
