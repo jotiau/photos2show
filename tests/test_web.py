@@ -263,6 +263,8 @@ def test_settings(tmp_path, monkeypatch):
     assert client.post("/settings", data={"key": "theme", "value": "pink"}).status_code == 400
     assert client.post("/settings", data={"key": "theme", "value": "dark"}).headers["HX-Refresh"] == "true"
     assert 'data-theme="dark"' in client.get("/slideshow").text
+    assert client.post("/settings", data={"key": "accent", "value": "teal"}).headers["HX-Refresh"] == "true"
+    assert 'data-accent="teal"' in client.get("/").text
     assert client.get("/static/style.css").headers["Cache-Control"] == "no-cache"  # updates show without a hard reload
 
 

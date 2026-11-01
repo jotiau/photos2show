@@ -6,6 +6,14 @@
   :root:not([data-theme="light"]) { --bg: #161615; --panel: #222220; --text: #ececea; --muted: #9a9a94; --border: #3a3a37; }
 }
 :root[data-theme="dark"] { --bg: #161615; --panel: #222220; --text: #ececea; --muted: #9a9a94; --border: #3a3a37; }
+/* neutral (untinted) mid-grey like photo editors use, so the surroundings don't shift how colours look */
+:root[data-theme="grey"] { --bg: #3c3c3c; --panel: #4a4a4a; --text: #f0f0f0; --muted: #b4b4b4; --border: #5e5e5e; }
+/* accents: dark enough for white text on primary buttons */
+:root[data-accent="teal"] { --accent: #0f8282; }
+:root[data-accent="green"] { --accent: #3a8a2a; }
+:root[data-accent="purple"] { --accent: #7a4fd0; }
+:root[data-accent="pink"] { --accent: #c8327a; }
+:root[data-accent="orange"] { --accent: #c75f0a; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--text); }
 header { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px;

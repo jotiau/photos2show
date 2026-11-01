@@ -27,7 +27,8 @@ Saved in `settings.json` in the data folder and valid for all projects.
 
 | Setting | Choices | Default | Effect |
 |---|---|---|---|
-| Theme | auto, light, dark | auto | colour theme; auto follows your system |
+| Theme | auto, light, dark, grey | auto | colour theme; auto follows your system. Grey is a neutral mid-grey that does not tint how photos look. |
+| Accent colour | blue, teal, green, purple, pink, orange | blue | colour of buttons, selections and highlights |
 | Parallel AI requests | 1, 2, 4, 8 (plus the `AI_CONCURRENCY` value) | `AI_CONCURRENCY` | how many photos go to the AI at once. More is faster if the server keeps up; a local model usually works best with 1. |
 | Review duplicates before AI | on, off | on | on: Analyse pauses after scanning so you can pick the best shot of each new same-scene group, or let the AI compare them. Off: the technically best shot is used without asking. |
 | Photo details for choosing | full, short, minimal, auto | full | how much the slideshow AI reads per photo (see below). Also offered next to *Select photos*. |
