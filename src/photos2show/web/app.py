@@ -317,9 +317,9 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
     items = [it for it in _items() if _found(it, query)]
     # Stacks: only the best shot of a scene is shown, with "+N" for its other shots (unless the search hides it).
     ids = {it["id"] for it in items}
-    stacked_away = [it for it in items if stacked and it["duplicate_of"] in ids]
-    more = Counter(it["duplicate_of"] for it in stacked_away)
-    visible = [it for it in items if it not in stacked_away]
+    stacked_away = {it["id"] for it in items if stacked and it["duplicate_of"] in ids}
+    more = Counter(it["duplicate_of"] for it in items if it["id"] in stacked_away)
+    visible = [it for it in items if it["id"] not in stacked_away]
     counts = {f: sum(_matches(it, f) for it in (items if f in UNSTACKED else visible)) for f in FILTERS}
     if flag.startswith("tag:"):
         counts[flag] = sum(_matches(it, flag) for it in visible)

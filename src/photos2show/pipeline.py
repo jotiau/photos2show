@@ -14,7 +14,7 @@ from photos2show.config import default_concurrency, load_settings
 
 THUMB_EDGE = 400
 COLUMNS = ("path", "kind", "size", "mtime", "taken_at", "width", "height",
-           "thumb", "frames", "metrics", "score", "phash", "ai")
+           "thumb", "frames", "metrics", "score", "phash", "ai", "flags")
 UPSERT = (
     f"INSERT INTO media ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))}) "
     f"ON CONFLICT(path) DO UPDATE SET {', '.join(f'{c}=excluded.{c}' for c in COLUMNS)}"
@@ -52,6 +52,7 @@ def analyse_file(path: Path, thumbs: Path) -> dict:
         "taken_at": taken, "width": w, "height": h, "thumb": f"{name}.jpg", "frames": len(frames),
         "metrics": json.dumps(m), "score": quality.score(m), "phash": str(imagehash.phash(rep)),
         "ai": None,  # a changed file needs a new description
+        "flags": None,  # not computed yet: update_flags() runs while any row is NULL, even after a crash
     }
 
 
@@ -95,7 +96,10 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     gone = {r["id"] for r in gone_rows}
     slideshow.forget(root, gone)  # before the ids are deleted and handed to new files
     conn.executemany("DELETE FROM media WHERE id = ?", [(i,) for i in gone])
-    update_flags(conn)
+    # Grouping compares every photo with every other (~2 s per 1500); skip it when nothing changed.
+    # shortcut: new flag thresholds in the code apply only once a scan finds a new, changed or deleted file.
+    if gone or conn.execute("SELECT 1 FROM media WHERE flags IS NULL LIMIT 1").fetchone():
+        update_flags(conn)
     conn.commit()
     conn.close()
     if not (stop and stop.is_set()):  # a stopped scan is not "analysed"

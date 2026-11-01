@@ -1,6 +1,6 @@
 import pytest
 
-from photos2show.config import cache_root, load_settings
+from photos2show.config import cache_root, default_concurrency, load_settings
 
 
 def test_env_references_are_expanded_and_bad_urls_refused(monkeypatch):
@@ -30,3 +30,13 @@ def test_data_folder_and_settings_from_before_the_rename_are_kept(tmp_path, monk
     assert cache_root() == tmp_path / "old"
     monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "new"))
     assert cache_root() == tmp_path / "new"
+
+
+@pytest.mark.parametrize("value", ["0", "abc", "-1", ""])
+def test_bad_ai_concurrency_is_refused_clearly(monkeypatch, value):
+    monkeypatch.setattr("photos2show.config.load_dotenv", lambda: None)
+    monkeypatch.setenv("AI_CONCURRENCY", value)
+    with pytest.raises(SystemExit, match="AI_CONCURRENCY"):
+        default_concurrency()
+    monkeypatch.setenv("AI_CONCURRENCY", " 4 ")
+    assert default_concurrency() == 4

@@ -29,7 +29,10 @@ def load_settings() -> Settings:
 def default_concurrency() -> int:
     """Parallel LLM requests unless chosen in the UI/CLI."""
     load_dotenv()
-    return int(os.environ.get("AI_CONCURRENCY", "2"))
+    value = os.environ.get("AI_CONCURRENCY", "2").strip()
+    if not value.isdigit() or int(value) < 1:  # 0 or "abc" would break every AI run or the start
+        raise SystemExit(f"AI_CONCURRENCY must be a whole number of 1 or more, not {value!r} – check .env.")
+    return int(value)
 
 
 def cache_root() -> Path:

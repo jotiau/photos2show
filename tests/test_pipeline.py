@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from photos2show import db, scan, testdata
+from photos2show import db, pipeline, scan, testdata
 from photos2show.pipeline import analyse_folder, describe_folder, skip_ai_reason
 
 
@@ -194,3 +194,17 @@ def test_stop_ends_scan_and_ai_early_and_keeps_what_is_done(tmp_path, monkeypatc
     assert describe_folder(folder, stop=stop) == {"described": 0, "errors": []}  # queued requests skipped
     stop.clear()
     assert describe_folder(folder, stop=stop)["described"] > 0
+
+
+def test_grouping_runs_only_when_something_changed(library, monkeypatch):
+    folder = library[0]
+    calls = []
+    real = pipeline.update_flags
+    monkeypatch.setattr(pipeline, "update_flags", lambda conn: calls.append(1) or real(conn))
+    analyse_folder(folder)
+    assert calls == []  # nothing new: the n² grouping is skipped
+    conn = db.connect(folder)
+    conn.execute("UPDATE media SET flags = NULL WHERE path LIKE '%burst_2.jpg'")  # e.g. killed mid-scan
+    conn.commit()
+    analyse_folder(folder)
+    assert calls == [1] and items_by_name(folder)["burst_2.jpg"]["flags"] == ["duplicate"]
