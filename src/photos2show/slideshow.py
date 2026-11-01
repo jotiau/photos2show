@@ -15,7 +15,7 @@ SELECT_PROMPT = """You are choosing photos for a holiday slideshow. The user des
 ---
 {description}
 ---
-Candidates, one per line: id | date | kind | scene | tags | caption | aesthetic/10 | interest/10 | quality flags
+Candidates, one per line: {columns}
 {lines}
 
 Pick the photos that best fit the description, in the order they should be shown (chronological unless
@@ -37,12 +37,36 @@ Answer with the complete new slideshow, not only the changes.
 ANSWER = """Answer ONLY with JSON: {"picks": [{"id": 12, "reason": "short reason"}]}"""
 
 
-def _line(it: dict) -> str:
+COLUMNS = "id | date | kind | scene | tags | caption | aesthetic/10 | interest/10 | quality flags"
+SIZES = ("full", "short", "minimal")  # how much the LLM reads per candidate: shorter fits smaller models
+CHARS_PER_TOKEN = 3  # rough and on the safe side (English is ~4)
+
+
+def _line(it: dict, size: str = "full") -> str:
     a = it["ai"] or {}  # a photo added by hand may not be described
     kind = f"video {on_screen(it, 0):.0f}s" if it["kind"] == "video" else it["kind"]
+    tags, caption = a.get("tags") or [], a.get("caption")
+    if size == "short":
+        tags, caption = tags[:5], " ".join(str(caption or "").split()[:8])
+    text = f" | {caption}" if size != "minimal" else ""
     return (f"{it['id']} | {(it['taken_at'] or '')[:16]} | {kind} | {a.get('scene')} | "
-            f"{', '.join(a.get('tags') or [])} | {a.get('caption')} | {a.get('aesthetic')} | "
+            f"{', '.join(tags if size != 'minimal' else tags[:3])}{text} | {a.get('aesthetic')} | "
             f"{a.get('interest')} | {','.join(it['flags']) or '-'}")
+
+
+def _candidates(items: list[dict], size: str) -> dict:
+    columns = COLUMNS.replace(" caption |", "") if size == "minimal" else COLUMNS
+    return {"columns": columns, "lines": "\n".join(_line(it, size) for it in items)}
+
+
+def fitting_size(items: list[dict], context: int | None) -> str:
+    """The most detailed size whose candidate list fills at most half the context (the rest: prompt, answer)."""
+    if not context:  # the server does not tell: as before
+        return "full"
+    for size in SIZES:
+        if len(_candidates(items, size)["lines"]) / CHARS_PER_TOKEN <= context / 2:
+            return size
+    return "minimal"  # may still be too long: the server's error is shown
 
 
 def per_photo(selection: dict) -> int:
@@ -67,12 +91,15 @@ def select(conn, description: str, current: list[dict] | None = None, instructio
     if not any(it["ai"] for it in items):
         raise ValueError("No photos described by AI yet – analyse the project first.")
     settings = load_settings()
-    prompt = SELECT_PROMPT.format(description=description, lines="\n".join(map(_line, items)),
-                                  seconds=seconds)
+    client = ai.make_client(settings)
+    size = db.load_settings()["desc_size"]
+    if size == "auto":
+        size = fitting_size(items, ai.context_length(client, settings))
+    prompt = SELECT_PROMPT.format(description=description, seconds=seconds, **_candidates(items, size))
     if instruction:
         lines = "\n".join(f"{p['id']} | {p['reason'] or '-'}" for p in current)
         prompt += REFINE_PROMPT.format(current=lines or "(empty)", instruction=instruction)
-    answer = ai.complete_json(ai.make_client(settings), settings, [{"role": "user", "content": prompt + ANSWER}])
+    answer = ai.complete_json(client, settings,[{"role": "user", "content": prompt + ANSWER}])
     valid, old_reason, picks = {it["id"] for it in items}, {p["id"]: p["reason"] for p in current}, []
     for p in answer.get("picks") or []:  # LLM output: drop unknown, repeated or malformed ids
         try:

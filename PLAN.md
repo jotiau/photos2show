@@ -31,7 +31,8 @@ folder ─► 1 Scan ─► 2 Quality ─► 3 Dedup ─► 4 AI analysis ─►
 ```
 
 ### 1. Scan
-- Walk folder recursively for `.jpg/.jpeg` and `.mp4`.
+- Walk folder recursively for `.jpg/.jpeg`, `.heic/.heif` (via `pillow-heif`) and `.mp4`. Browsers
+  other than Safari can't show HEIC, so `/original` sends HEIC as a JPEG; export copies the `.heic`.
 - Read EXIF `DateTimeOriginal` with Pillow; apply EXIF orientation (camera/GPS not read yet).
 - Thumbnails: ~400 px for the grid, saved in the cache. The ~1024 px image for the LLM is only
   encoded in memory; a ~1024 px preview for the detail panel is made on first view and cached.
@@ -63,6 +64,9 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
   within 60 s or ≤18 within 10 s (or ≤2 at any time) form a cluster. Only exact repeats count;
   reframed shots of the same place stay separate (user spot-check in M4).
 - Best of cluster = highest technical score (sharpness, exposure); others flagged `duplicate_of`.
+- Then, at the start of the AI pass, each new cluster (none described or chosen) has its top 6 shots by
+  technical score sent to GLM in one request (768 px each, "which is best?"). The winner gets `chosen`, as if
+  the user had picked it, so it is judged only once. If the request fails, the technical best stays.
 - The user can override it (`chosen` column, kept across regrouping): *Make this the best shot* in the
   detail panel describes the new best right away; with *Review duplicates before AI* on, Analyse pauses
   after the scan and shows every group without a description so the best can be picked before the AI pass.
@@ -94,7 +98,10 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
    the prompt; GLM is told to avoid them (no separate hard filter).
 3. Send GLM one prompt: the description + a compact line per candidate
    (`id | date | kind | scene | tags | caption | aesthetic | interest | flags`, videos as
-   `video 12s`), ~70 tokens each (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k).
+   `video 12s`), ~70 tokens each (110 candidates ≈ 7.8k tokens, ~850 ≈ 60k). *Photo details* (Settings
+   and next to *Select photos*): full; short = caption cut to 8 words and 5 tags (~35); minimal = no caption,
+   3 tags (~20); auto = the most detailed list that fills at most half the model's context
+   (from `/models`: vLLM `max_model_len`, llama.cpp `meta.n_ctx`…; unknown → full).
 4. GLM returns JSON: ordered list of ids with a short reason per pick (count from the description,
    at the chosen seconds per photo, 2–15 s, default 5; videos run their full length).
 5. Validate: unknown, repeated or malformed ids are dropped; only described, non-duplicate items.
@@ -137,7 +144,8 @@ per page; destructive actions red.
   remove, "⇄ N other shots" to swap a pick for another shot of its scene (same place and reason);
   lightbox with ← → through the picks; *▶ Play* fills the window, with the reason and a control
   panel (back, hold, forward, close) on mouse move or tap; keys ← → Space Esc.
-- **Settings**: theme, parallel AI requests (each with a help line); delete cached data of folders
+- **Settings**: theme, parallel AI requests, review duplicates before AI, photo details for choosing
+  (each with a help line); delete cached data of folders
   no project uses.
 
 ### 7. Export
@@ -185,9 +193,8 @@ tests/
 - Face detection / clustering ("everyone appears at least once")
 - Local CLIP embeddings for fast semantic search and better duplicate grouping
 - Learned IQA models (pyiqa: MUSIQ/TOPIQ/NIMA) if GLM aesthetic scores prove noisy
-- GLM pairwise "which is better" for burst clusters
 - Deeper video handling (scene detection, picking clips)
-- HEIC / RAW support
+- RAW support
 - Map / location grouping from GPS
 - Several saved slideshows per project; projects spanning several folders
 

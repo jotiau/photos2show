@@ -69,3 +69,39 @@ def complete_json(client: OpenAI, settings: Settings, messages: list) -> dict:
         # Server may not support JSON mode; rely on the prompt instead.
         resp = client.chat.completions.create(model=settings.model, messages=messages)
     return parse_json(resp.choices[0].message.content)
+
+
+BEST_PROMPT = """These {n} photos show the same scene (a burst or near-duplicates). Which one is best for a holiday
+slideshow: sharp, well exposed, eyes open, good expression and composition?
+Answer ONLY with JSON: {{"best": <photo number 1-{n}>}}"""
+BEST_EDGE = 768  # several images per request: smaller than LLM_EDGE keeps it fast
+
+
+def pick_best(client: OpenAI, settings: Settings, imgs: list[Image.Image]) -> int:
+    """Index of the best of several shots of one scene, judged side by side."""
+    content = [{"type": "text", "text": BEST_PROMPT.format(n=len(imgs))}]
+    for i, img in enumerate(imgs, 1):
+        content += [{"type": "text", "text": f"Photo {i}:"},
+                    {"type": "image_url", "image_url": {"url": encode_image(img, BEST_EDGE)}}]
+    best = complete_json(client.with_options(timeout=120), settings, [{"role": "user", "content": content}])
+    n = int(best.get("best"))  # raw LLM output: a bad answer raises and the technical best stays
+    if not 1 <= n <= len(imgs):
+        raise ValueError(f"best photo {n} is not one of 1-{len(imgs)}")
+    return n - 1
+
+
+def context_length(client: OpenAI, settings: Settings) -> int | None:
+    """The model's context size in tokens if the server lists it under /models (vLLM, llama.cpp), else None."""
+    try:
+        models = client.models.list().data
+    except Exception:  # not offered by every server; unknown is fine
+        return None
+    for m in models:
+        if m.id == settings.model:
+            d = m.model_dump()
+            meta = d.get("meta") or {}
+            for v in (d.get("max_model_len"), d.get("context_length"), d.get("max_context_length"),
+                      meta.get("n_ctx"), meta.get("n_ctx_train")):
+                if isinstance(v, int) and v > 0:
+                    return v
+    return None

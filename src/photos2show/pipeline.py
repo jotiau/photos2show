@@ -146,6 +146,52 @@ class Stopped(Exception):
     pass
 
 
+BEST_OF = 6  # shots of one scene the AI compares side by side; the rest rank too low on the technical score
+
+
+def scenes_to_judge(items: list[dict]) -> list[list[dict]]:
+    """Scenes of several shots not judged yet (none described or chosen), each best technical score first."""
+    scenes: dict[int, list[dict]] = {}
+    for it in items:
+        scenes.setdefault(it["duplicate_of"] or it["id"], []).append(it)
+    return [sorted(s, key=lambda it: -it["score"])[:BEST_OF] for s in scenes.values()
+            if len(s) > 1 and not any(it["ai"] or it["chosen"] for it in s)]
+
+
+def _judge_scenes(conn, client, settings, workers: int, progress, stop) -> list[str]:
+    """Let the AI pick the best shot of each new scene by comparing them; on a failure the technical best stays."""
+    scenes = scenes_to_judge(db.all_media(conn))
+    if not scenes:
+        return []
+
+    def judge(scene: list[dict]) -> int:
+        if stop and stop.is_set():
+            raise Stopped
+        imgs = [scan.read_image(Path(it["path"]))[0] for it in scene]
+        try:
+            return scene[ai.pick_best(client, settings, imgs)]["id"]
+        except Exception as e:
+            del imgs  # as in describe(): a kept traceback would hold the decoded images
+            raise e.with_traceback(None)
+
+    errors = []
+    with ThreadPoolExecutor(workers) as pool:
+        futures = {pool.submit(judge, s): s for s in scenes}
+        for i, fut in enumerate(as_completed(futures)):
+            scene = futures.pop(fut)
+            try:
+                conn.execute("UPDATE media SET chosen = 1 WHERE id = ?", (fut.result(),))
+            except Stopped:
+                pass
+            except Exception as e:
+                errors.append(f"best shot of {Path(scene[0]['path']).name}: {e}")
+            if progress:
+                progress(i + 1, len(scenes))
+    update_flags(conn)  # once: regrouping compares every photo with every other
+    conn.commit()
+    return errors
+
+
 def describe_folder(root: Path, progress: Callable[[int, int], None] | None = None,
                     concurrency: int | None = None, stop: threading.Event | None = None,
                     only: set[int] | None = None) -> dict:
@@ -157,6 +203,8 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
     settings = load_settings()
     client = ai.make_client(settings)
     conn = db.connect(root)
+    workers = concurrency or default_concurrency()
+    errors = [] if only else _judge_scenes(conn, client, settings, workers, progress, stop)
     todo = [it for it in db.all_media(conn) if it["ai"] is None and skip_ai_reason(it) is None
             and (only is None or it["id"] in only)]
 
@@ -177,8 +225,8 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
             del img
             raise e.with_traceback(None)
 
-    errors, described = [], 0
-    with ThreadPoolExecutor(concurrency or default_concurrency()) as pool:
+    described = 0
+    with ThreadPoolExecutor(workers) as pool:
         futures = {pool.submit(describe, it): it for it in todo}
         for i, fut in enumerate(as_completed(futures)):
             # pop: don't keep every finished future (and its result or error) until the run ends

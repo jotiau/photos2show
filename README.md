@@ -23,7 +23,8 @@ LM Studio if you'd rather keep your photos on your own computer.
 **Quality checks, offline and fast**
 - Finds blurry, too dark, too bright, low-contrast and monotone shots (plain sky, a wall) with
   classic image analysis; no AI, no upload. Sharp subjects in front of a blurred background count as sharp.
-- Groups same-scene shots (bursts, "one more just in case") and keeps the best of each group. Not the one you
+- Groups same-scene shots (bursts, "one more just in case"); the AI compares them side by side (up to 6) and
+  keeps the best of each group (if that fails, the technically best one). Not the one you
   like? *Make this the best shot* in the detail panel, or review every group before the AI runs (see *Settings*).
 - Very blurry photos and the weaker shots of a scene are never sent to the AI, which saves time and money.
 
@@ -138,7 +139,9 @@ AI_CONCURRENCY=1
 Tips for local models:
 - **Context length matters for the slideshow.** The selection step sends one line per photo to the
   model, which is roughly 20–40k tokens for a trip of 1000 files. With the small default context of
-  Ollama or LM Studio, the start of the list is cut off silently. Set 32k or more.
+  Ollama or LM Studio, the start of the list is cut off silently. Set 32k or more, or send less per
+  photo: *Photo details* (Settings, or next to *Select photos*) = short (~half) or minimal (~a third, no
+  captions); *auto* picks the most that fits if the server reports its context size (vLLM, llama.cpp).
 - **Start with `AI_CONCURRENCY=1`** (or *Parallel AI requests* = 1 in *Settings*). A single local GPU
   rarely gets faster with parallel requests;
   raise it only if your server is set up for parallel slots (`OLLAMA_NUM_PARALLEL` in Ollama).
@@ -186,7 +189,8 @@ AI results* (kept anyway while another project uses the same folder).
 
 The *Settings* tab has the colour theme (auto follows your system, or light / dark), the number of
 parallel AI requests (1 = strictly one by one; local models usually want 1), *Review duplicates before AI*
-(off by default: the technically best shot is used without asking), and *Delete unused data*: it removes saved AI
+(off by default: the AI picks the best shot without asking), *Photo details for choosing* (how much the
+slideshow AI reads per photo: full, short, minimal or auto), and *Delete unused data*: it removes saved AI
 results and thumbnails of folders no project uses any more (also folders only analysed with `photos2show-scan`).
 
 ### How long does it take?
@@ -205,10 +209,10 @@ AI descriptions are made once per file; later runs take seconds.
 
 ## Supported files
 
-JPEG photos (`.jpg`, `.jpeg`) and MP4 videos, in the chosen folder and its subfolders (hidden folders
+JPEG and HEIC photos (`.jpg`, `.jpeg`, `.heic`, `.heif`) and MP4 videos, in the chosen folder and its subfolders (hidden folders
 such as `.Trash-1000` are skipped). Dates come from the photo's EXIF data; for videos
 from phone-style file names (`20260725_130945.mp4`), else the recording time stored in the video,
-else the file date. HEIC and RAW are on the roadmap.
+else the file date. HEIC photos are exported as they are (`.heic`); RAW is on the roadmap.
 
 ## Configuration
 
@@ -239,14 +243,12 @@ uv run photos2show-testdata demo_images            # synthetic test photos with 
 
 Planned, roughly in this order of interest:
 
-- HEIC and RAW support
+- RAW support
 - Several saved slideshows per project; projects spanning several folders
 - Face detection and grouping ("everyone appears at least once")
 - Map and location grouping from GPS
 - Local semantic search (CLIP) and smarter duplicate grouping
 - Deeper video handling (scene detection, picking clips)
-- Fit the slideshow step to the model's context size: send less per photo (e.g. shorter captions,
-  fewer tags) for small local models, more detail for large ones
 
 [PLAN.md](PLAN.md) has the design notes and decisions behind the current version.
 

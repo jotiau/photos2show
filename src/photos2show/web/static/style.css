@@ -136,6 +136,9 @@ details.describe > summary::-webkit-details-marker { display: none; }
 details.describe[open] > summary { display: none; }
 details.describe .quote { font-style: italic; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 details.describe .edit { color: var(--accent); flex-shrink: 0; }
+details.describe .options { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+details.describe .options .more { color: var(--muted); font-size: 12px; }
+details.describe .options button { margin-left: auto; }
 #thinking:not(.htmx-request) { display: none; }
 #thinking { display: block; margin-top: 8px; }
 /* sticky under the header (its height) while the tiles scroll */

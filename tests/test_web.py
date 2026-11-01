@@ -111,8 +111,11 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     answer = {"picks": [{"id": items["scene_1.jpg"], "reason": "great view"}, {"id": items["scene_2.jpg"]}]}
     monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: answer)
     assert "Describe the slideshow" in client.get("/slideshow").text
-    picks = client.post("/slideshow/select", data={"description": "short"}).text
+    assert client.post("/slideshow/select", data={"description": "x", "desc_size": "huge"}).status_code == 400
+    picks = client.post("/slideshow/select", data={"description": "short", "desc_size": "short"}).text
     assert "great view" in picks and "2 photos" in picks
+    assert web.db.load_settings()["desc_size"] == "short"  # kept, as on the settings page
+    assert "<option selected>short</option>" in client.get("/slideshow").text
     toggle = client.post(f"/slideshow/add/{items['video.mp4']}").text  # from the Library detail panel
     assert "Remove from slideshow (#3)" in toggle and f'id="pick-{items["scene_1.jpg"]}"' in toggle  # all badges
     assert "✓ 3" in client.get(f"/media/{items['video.mp4']}").text

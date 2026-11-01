@@ -23,6 +23,7 @@ dependencies = [
     "openai>=1.50",
     "opencv-python-headless>=5.0.0.93",
     "pillow>=11",
+    "pillow-heif>=1.8.1",
     "python-dotenv>=1.0",
     "python-multipart>=0.0.32",
     "uvicorn>=0.54.0",
