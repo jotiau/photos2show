@@ -93,6 +93,17 @@ def test_heic_is_found_and_read_with_date_and_rotation(tmp_path):
     assert taken == "2026-07-14T09:30:00" and img.size == size == (40, 60)
 
 
+def test_raw_is_found_and_developed_with_date_and_rotation(tmp_path):
+    from PIL import Image
+
+    from photos2show import testdata
+    from photos2show.scan import read_image
+    testdata.save_dng(Image.new("RGB", (60, 40), "red"), tmp_path / "IMG_0001.DNG", datetime(2026, 7, 14, 9, 30), 6)
+    assert find_media(tmp_path) == [tmp_path / "IMG_0001.DNG"]
+    img, taken, size = read_image(tmp_path / "IMG_0001.DNG")
+    assert taken == "2026-07-14T09:30:00" and img.mode == "RGB" and img.size == size == (40, 60)
+
+
 def test_file_time_takes_the_creation_time_when_it_is_earlier(tmp_path):
     from photos2show.scan import birth_time
     edited = tmp_path / "edited.png"  # created now, modified "later" (an edit)

@@ -45,8 +45,8 @@ LM Studio if you'd rather keep your photos on your own computer.
 - Fine-tune by hand: reorder, remove, add photos from the library, swap a pick for another shot of the
   same scene, or sort by date, aesthetic, interest, technical quality or file name.
 - Preview the picks in a lightbox or play the whole show full screen, with the reason for each pick.
-- Export numbered copies plus a `selection.json` with your description and the reason for every pick;
-  export again into the same folder after changes.
+- Export numbered copies (RAW photos as full-size JPEGs) plus a `selection.json` with your description
+  and the reason for every pick; export again into the same folder after changes.
 
 **Library browser**
 - Thumbnail grid with date, 1–5 stars from the AI scores, caption, quality flags and the slideshow
@@ -210,14 +210,21 @@ AI descriptions are made once per file; later runs take seconds.
 
 ## Supported files
 
-Photos: JPEG, PNG, HEIC/HEIF, WebP, AVIF, TIFF, GIF (first frame) and BMP. Videos: MP4, MOV, M4V, 3GP, AVI, MKV,
-WebM, MTS/M2TS, WMV and MPG. Files in the chosen folder and its subfolders count (hidden folders
-such as `.Trash-1000` are skipped). Dates come from the photo's EXIF data; for videos
-from phone-style file names (`20260725_130945.mp4`), else the recording time stored in the video (MP4, MOV, M4V, 3GP),
-else the file date (the earlier of created and modified: copying resets one, editing the other); photos without an EXIF date (screenshots, most PNGs) use the file name or file date too.
-Files are exported as they are (e.g. `.heic`, `.avi`). The browser plays only the video formats it knows
-(MP4 and WebM everywhere, MOV/MKV in most): others still get analysed and show their sampled frames, and the
-slideshow preview skips them. RAW is on the roadmap.
+Everything in the chosen folder and its subfolders counts (hidden folders such as `.Trash-1000` are skipped).
+
+- **Photos:** JPEG, PNG, HEIC/HEIF, WebP, AVIF, TIFF, GIF (first frame) and BMP.
+- **Camera RAW:** DNG, Canon CR2/CR3, Nikon NEF/NRW, Sony ARW, Olympus ORF, Panasonic RW2, Fujifilm RAF,
+  Pentax PEF and Samsung SRW, developed with LibRaw (camera white balance).
+- **Videos:** MP4, MOV, M4V, 3GP, AVI, MKV, WebM, MTS/M2TS, WMV and MPG. The browser plays only the formats it
+  knows (MP4 and WebM everywhere, MOV/MKV in most); the others are still analysed, the detail panel shows their
+  sampled frames and the slideshow preview skips them.
+
+**Dates** come from the photo's EXIF data. Videos and photos without one (screenshots, most PNGs) use a
+phone-style file name (`20260725_130945.mp4`), else the recording time stored in the video (MP4, MOV, M4V,
+3GP), else the file date: the earlier of created and modified, because copying resets one and editing the other.
+
+**Export** copies files as they are (e.g. `.heic`, `.avi`), except RAW photos: TVs and slideshow apps can't
+show them, so they become full-size JPEGs.
 
 ## Configuration
 
@@ -248,7 +255,6 @@ uv run photos2show-testdata demo_images            # synthetic test photos with 
 
 Planned, roughly in this order of interest:
 
-- RAW support
 - Several saved slideshows per project; projects spanning several folders
 - Face detection and grouping ("everyone appears at least once")
 - Map and location grouping from GPS

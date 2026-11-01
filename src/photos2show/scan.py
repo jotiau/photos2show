@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import cv2
+import rawpy
 from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 
@@ -15,7 +16,8 @@ register_heif_opener()  # Image.open() reads iPhone HEIC photos like JPEGs, EXIF
 
 HEIF_EXT = {".heic", ".heif"}
 BROWSER_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif", ".bmp"}  # others are sent as JPEG
-IMAGE_EXT = BROWSER_IMAGE_EXT | HEIF_EXT | {".tif", ".tiff"}
+RAW_EXT = {".dng", ".cr2", ".cr3", ".nef", ".nrw", ".arw", ".orf", ".rw2", ".raf", ".pef", ".srw"}  # via LibRaw
+IMAGE_EXT = BROWSER_IMAGE_EXT | HEIF_EXT | RAW_EXT | {".tif", ".tiff"}
 MP4_EXT = {".mp4", ".mov", ".m4v", ".3gp"}  # ISO/QuickTime boxes: mp4_created() can read their date
 VIDEO_EXT = MP4_EXT | {".avi", ".mkv", ".webm", ".mts", ".m2ts", ".wmv", ".mpg", ".mpeg"}
 VIDEO_POSITIONS = (0.1, 0.5, 0.9)  # sampled frames, as fraction of the duration
@@ -37,6 +39,10 @@ def is_video(path: Path) -> bool:
 
 def read_image(path: Path) -> tuple[Image.Image, str | None, tuple[int, int]]:
     """Return (oriented RGB image, capture time as ISO string or None, original size)."""
+    if path.suffix.lower() in RAW_EXT:
+        img, taken, size = read_raw(path)
+        img.thumbnail((LOAD_EDGE, LOAD_EDGE))
+        return img, taken, size
     img = Image.open(path)
     size = img.size
     exif = img.getexif()
@@ -53,6 +59,17 @@ def read_image(path: Path) -> tuple[Image.Image, str | None, tuple[int, int]]:
     if exif.get(274, 1) in (5, 6, 7, 8):  # rotated by 90°
         size = size[::-1]
     return img, taken, size
+
+
+def read_raw(path: Path, half_size: bool = True) -> tuple[Image.Image, str | None, tuple[int, int]]:
+    """A camera RAW file developed by LibRaw (rotated, camera white balance), like read_image().
+    half_size: 4x faster, plenty for analysis and previews; the export develops at full size."""
+    with rawpy.imread(str(path)) as raw:
+        s = raw.sizes  # before postprocess(): half_size halves them
+        rgb = raw.postprocess(half_size=half_size, use_camera_wb=True)
+        stamp = raw.other.timestamp  # EXIF capture time, read as local time like read_image()
+    size = (s.height, s.width) if s.flip in (5, 6) else (s.width, s.height)  # 5, 6: rotated by 90°
+    return Image.fromarray(rgb), stamp.isoformat() if stamp and stamp.year > 1970 else None, size
 
 
 def read_video_frames(path: Path) -> tuple[list[Image.Image], tuple[int, int]]:

@@ -133,6 +133,22 @@ def test_export(described, tmp_path):
         slideshow.export(folder, tmp_path / "show")
 
 
+def test_export_develops_raw_to_jpeg(tmp_path, monkeypatch):
+    from datetime import datetime
+
+    from PIL import Image
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = tmp_path / "photos"
+    folder.mkdir()
+    testdata.save_dng(testdata.scene(1), folder / "DSC_0001.NEF", datetime(2026, 7, 14, 9, 30))
+    analyse_folder(folder)
+    [item] = db.all_media(db.connect(folder))
+    slideshow.save(folder, {"description": "d", "picks": [{"id": item["id"], "reason": ""}]})
+    assert slideshow.export(folder, tmp_path / "show") == 1
+    with Image.open(tmp_path / "show" / "001_2026-07-14_photo.jpg") as img:
+        assert img.format == "JPEG" and img.size == testdata.scene(1).size
+
+
 def test_refine_sends_current_picks_and_keeps_hand_added_ones(described, monkeypatch):
     folder, ids = described
     current = [{"id": ids["scene_1.jpg"], "reason": "great view"}, {"id": ids["burst_2.jpg"], "reason": "added by hand"}]

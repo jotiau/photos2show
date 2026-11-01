@@ -257,7 +257,11 @@ def export(root: Path, target: Path, replace: bool = False) -> int:
     for n, it in enumerate(items, 1):
         src = Path(it["path"])
         slug = re.sub(r"[^a-z0-9]+", "-", " ".join(((it["ai"] or {}).get("tags") or [])[:2]).lower()).strip("-")
-        shutil.copy2(src, target / f"{n:03d}_{(it['taken_at'] or '')[:10]}_{slug or 'photo'}{src.suffix.lower()}")
+        name = f"{n:03d}_{(it['taken_at'] or '')[:10]}_{slug or 'photo'}"
+        if src.suffix.lower() in scan.RAW_EXT:  # TVs and slideshow apps can't show RAW: a full-size JPEG
+            scan.read_raw(src, half_size=False)[0].save(target / f"{name}.jpg", quality=92)
+        else:
+            shutil.copy2(src, target / f"{name}{src.suffix.lower()}")
     with lock:  # re-read: picks may have been edited while copying
         save(root, {**load(root), "exported_to": str(target)})  # suggested again for the next export
     return len(items)
