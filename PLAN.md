@@ -190,7 +190,7 @@ tests/
   player, Tab/Enter in the Library; plus the fixes of a code audit (selection lock, 404s,
   duplicate project names).
 
-## Next: Slideshow page layout (draft, to review with the user before building)
+## Next: Slideshow page layout (agreed with the user, 2026-11-01)
 
 **What is wrong today** (screenshot with 6 picks, 1400 px wide):
 - One long column of unrelated controls: textarea, Select, Refine, Play, a sentence with the
@@ -202,26 +202,30 @@ tests/
 - Page capped at 1100 px: the right third of a wide screen stays empty while tiles wrap.
 - Tiles: reasons cut after one line; ← → × buttons take a full row on every tile.
 
-**Proposal**
-1. **Three step cards** in the Settings card style: ① *Describe* → ② *Review picks* → ③ *Export*,
-   each with a small heading, so the page reads top to bottom as a workflow.
+**Decided layout**
+1. **Two step cards** in the Settings card style: ① *Describe* and ② *Review picks*, each with a
+   small heading, so the page reads top to bottom as a workflow.
 2. **Describe collapses** once picks exist: one line "“10-minute show for my parents…” · Edit"
    that reopens the textarea and *Select photos*.
 3. **One toolbar for the picks** (sticky under the header while scrolling the tiles):
-   `6 photos · ~0.5 min` · `[5] s per photo` · `Sort by [▾]` · *Undo* · **▶ Play** (primary, right);
-   the refine input + *Refine picks* on the row below. Help text ("drag tiles to reorder…") as a
-   small grey hint under it.
-4. **Export reachable without scrolling**: either (a) the export card above the tiles, or
-   (b) a compact *Export…* button in the toolbar that opens the folder + replace options in a
-   dialog. Recommendation: (b), it keeps the tiles close to the toolbar.
+   `6 photos · ~0.5 min` · `[5] s per photo` · `Sort by [▾]` · *Undo* · *Export…* · **▶ Play**
+   (primary, right); the refine input + *Refine picks* on the row below. Help text ("drag tiles to
+   reorder…") as a small grey hint under it.
+4. **Export as a dialog**: *Export…* in the toolbar opens the folder field, *Browse…*, "replace
+   previous export" and *Export*; the result message shows in the dialog.
 5. **Full width** like the Library (drop the 1100 px cap); tiles the Library size (180 px).
 6. **Calmer tiles**: reason up to two lines; × as a small overlay at the top-right corner;
-   ← → stay but smaller (keyboard and touch need them; drag is mouse-only).
+   ← → stay always visible but smaller (keyboard and touch need them; drag is mouse-only).
 
-**Questions for the review**
-- Export: in the toolbar dialog (b) or as a card above the picks (a)?
-- Should Describe really collapse, or stay open but smaller (2 rows)?
-- Keep ← → buttons on every tile, or only show them on hover/focus?
+## Next: smaller visual improvements (agreed with the user, 2026-11-01)
+1. **Library path**: the toolbar shows only the folder name; the full path on hover.
+2. **Analysis errors**: collapsed to one line ("10 errors ▾") instead of a tall red list above the grid.
+3. **Filter buttons**: hide categories with 0 photos, or split quality flags (blurry, dark…) from the
+   rest, so the 13 buttons no longer wrap onto two rows.
+4. **Detail panel**: the keyboard hint behind a small "?"; the raw metrics table behind
+   "Technical details ▾".
+5. **Projects page**: once a project exists, "New project" shrinks to a "+ New project" button.
+6. **Grid tiles**: equal height, so rows line up whether or not a tile has a caption and flags.
 
 ## Future features
 - Face detection / clustering ("everyone appears at least once")
