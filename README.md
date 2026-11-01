@@ -20,236 +20,62 @@ LM Studio if you'd rather keep your photos on your own computer.
 
 ## Features
 
-**Quality checks, offline and fast**
-- Finds blurry, too dark, too bright, low-contrast and monotone shots (plain sky, a wall) with
-  classic image analysis; no AI, no upload. Sharp subjects in front of a blurred background count as sharp.
-- Groups same-scene shots (bursts, "one more just in case") and keeps the best of each group. Not the one you
-  like? *Make this the best shot* in the detail panel, or review every group before the AI runs (see *Settings*);
-  there *Let the AI compare* shows up to 6 shots side by side to the AI, marks its pick, and you can still click another.
-- Very blurry photos and the weaker shots of a scene are never sent to the AI, which saves time and money.
+- **Quality checks, offline:** finds blurry, too dark, too bright, low-contrast and monotone shots with
+  classic image analysis – no AI, no upload. Groups same-scene shots (bursts) and keeps the best one,
+  or lets you pick it before the AI runs.
+- **AI descriptions:** a caption, tags, scene type, people count and scores for every photo worth
+  keeping, videos included. Runs in parallel, can be stopped and resumed, and caches everything.
+- **Slideshow from a description:** the model picks and orders the photos and says why. Refine it in
+  words, reorder, swap or add by hand, undo, and play it full screen.
+- **Library browser:** thumbnail grid with filters, tags, search over the captions, sorting, a detail
+  panel and keyboard shortcuts. One project per trip.
+- **Export:** numbered copies plus a `selection.json`; RAW photos become full-size JPEGs.
+- **Your photos stay yours:** runs locally; only a downscaled 1024 px copy goes to the AI endpoint you
+  choose, and nothing is ever written into your photo folder.
 
-**AI descriptions**
-- A caption, content tags, scene type, people count, scores for aesthetic and interest, and visible
-  issues (closed eyes, tilted horizon) for every photo worth keeping.
-- Videos are covered too: frames at 10 %, 50 % and 90 % of the clip, the sharpest one represents it.
-- Runs 1–8 requests in parallel (set in *Settings*), shows results live with the time left, can be
-  stopped any time and resumes where it stopped.
-- Everything is cached: re-runs only process new or changed files.
-
-**Slideshow from a description**
-- Describe length, audience, order and content in your own words; the model picks and orders the
-  photos and says why it chose each one. Choose 2–15 seconds per photo; the length estimate counts
-  videos at their real length.
-- Refine in words ("add more sunsets, fewer people, start with the ferry") without losing your hand edits,
-  and undo the last change.
-- Fine-tune by hand: reorder, remove, add photos from the library, swap a pick for another shot of the
-  same scene, or sort by date, aesthetic, interest, technical quality or file name.
-- Preview the picks in a lightbox or play the whole show full screen, with the reason for each pick.
-- Export numbered copies (RAW photos as full-size JPEGs) plus a `selection.json` with your description
-  and the reason for every pick; export again into the same folder after changes.
-
-**Library browser**
-- Thumbnail grid with date, 1–5 stars from the AI scores, caption, quality flags and the slideshow
-  position of each pick. Same-scene shots are stacked behind the best one (*Show all shots* unstacks them).
-- Filters by quality flag, "in slideshow" and tag (the most common tags with counts), a search over
-  captions, tags and file names, and sorting by date, scores, quality or name.
-- The view lives in the URL: reload, back / forward and bookmarks keep filter, search, sort and the open photo.
-- A detail panel with a larger preview, all metrics, the other shots of the same scene and the AI description.
-- Ctrl/⌘-click or Shift-click cards to add or remove many photos at once.
-- Keyboard: Tab to a card, Enter opens it, ← → step through the photos, A adds one to the slideshow,
-  Esc closes the panel.
-- One project per trip, shown as cards with a cover photo in the *Projects* tab (the first tab);
-  switch between them in the header.
-
-**Your photos stay yours**
-- Runs locally in your browser; projects, AI results and thumbnails live in a data folder, never in your photo folder.
-- Only a downscaled copy (1024 px) of each photo goes to the AI endpoint you configure.
+Supports photos (JPEG, PNG, HEIC, WebP, AVIF, TIFF, GIF, BMP), camera RAW (DNG, CR2/CR3, NEF, ARW, ORF,
+RW2, RAF, …) and videos (MP4, MOV, MKV, WebM, AVI, MTS, …).
 
 ## Quick start
 
 You need [uv](https://docs.astral.sh/uv/getting-started/installation/) (installs Python for you)
-and access to a vision-capable AI model (see [Choosing a model](#choosing-a-model)).
+and access to a vision-capable AI model.
 
 ```bash
 git clone https://github.com/jotiau/photos2show.git
 cd photos2show
 uv sync
-cp .env.example .env      # then enter your endpoint, key and model
+cp .env.example .env          # then enter your endpoint, key and model
 uv run photos2show-smoke      # sends one test picture to check that the model answers
 uv run photos2show-web        # opens http://127.0.0.1:8000 in your browser
 ```
 
-Everything is plain Python, so it should run on Linux, macOS and Windows (on Windows use `copy`
-instead of `cp`). Day-to-day use has been tested on Linux so far; reports from other systems are very welcome.
+Then create a project in the *Projects* tab, let it analyse, and describe your show in the *Slideshow*
+tab. It should run on Linux, macOS and Windows (use `copy` instead of `cp`); day-to-day use has been
+tested on Linux so far, reports from other systems are very welcome.
 
-## Choosing a model
+Any server that speaks the OpenAI chat API and accepts images works:
 
-Any server that speaks the OpenAI chat API and accepts images works. Set three values in `.env`:
-
-| Where the model runs | `OPENAI_BASE_URL` | `OPENAI_API_KEY` | `MODEL` |
-|---|---|---|---|
-| OpenAI | `https://api.openai.com/v1` | your key | a vision model of your choice |
-| [Ollama](https://ollama.com) (local) | `http://localhost:11434/v1` | leave empty | e.g. a Qwen-VL or Gemma 3 model you pulled |
-| [LM Studio](https://lmstudio.ai) (local) | `http://localhost:1234/v1` | leave empty | the model id LM Studio shows |
-| Self-hosted (vLLM, SGLang, …) | your server's `/v1` URL | your key, if any | as the server lists it |
-
-`photos2show-smoke` lists the model ids your server offers, so you can copy the right one.
-Development used a self-hosted GLM-5.3 Flash; other models should work but may describe photos
-differently. If you try one, please share how it went in an issue.
-
-`.env` may reference existing environment variables, e.g. `OPENAI_BASE_URL=${MY_BASE_URL}`.
-
-### Local model examples
-
-These are vision models that run on a single consumer GPU or a recent Mac. They haven't been
-tested with this tool yet, so treat them as starting points:
-
-| Model | Ollama | Rough memory | Notes |
-|---|---|---|---|
-| Qwen2.5-VL 7B | `qwen2.5vl:7b` | ~6 GB | good all-rounder, follows the JSON format well |
-| Qwen3-VL 8B | `qwen3-vl:8b` | ~6 GB | newer Qwen, more detailed captions |
-| Gemma 3 12B | `gemma3:12b` | ~9 GB | good descriptions; `gemma3:4b` for small GPUs |
-| MiniCPM-V 8B | `minicpm-v:8b` | ~6 GB | fast, fine for tagging |
-| Llama 3.2 Vision 11B | `llama3.2-vision:11b` | ~8 GB | solid, slower than the ones above |
-
-**Ollama**
-
-```bash
-ollama pull qwen2.5vl:7b
-OLLAMA_CONTEXT_LENGTH=32768 ollama serve   # larger context for the slideshow step, see below
-```
-
-```ini
-OPENAI_BASE_URL=http://localhost:11434/v1
-OPENAI_API_KEY=
-MODEL=qwen2.5vl:7b
-AI_CONCURRENCY=1
-```
-
-**LM Studio**: download a vision model (e.g. *Qwen2.5-VL-7B-Instruct*, marked with an eye icon),
-load it with a context length of 32k or more, and start the server in the *Developer* tab.
-
-```ini
-OPENAI_BASE_URL=http://localhost:1234/v1
-OPENAI_API_KEY=
-MODEL=qwen2.5-vl-7b-instruct    # the id LM Studio shows; photos2show-smoke lists it too
-AI_CONCURRENCY=1
-```
-
-Tips for local models:
-- **Context length matters for the slideshow.** The selection step sends one line per photo to the
-  model, which is roughly 20–40k tokens for a trip of 1000 files. With the small default context of
-  Ollama or LM Studio, the start of the list is cut off silently. Set 32k or more, or send less per
-  photo: *Photo details* (Settings, or next to *Select photos*) = short (~half) or minimal (~a third, no
-  captions); *auto* picks the most that fits if the server reports its context size (e.g. vLLM; not llama.cpp, Ollama or LM Studio – Auto then uses full).
-- **Start with `AI_CONCURRENCY=1`** (or *Parallel AI requests* = 1 in *Settings*). A single local GPU
-  rarely gets faster with parallel requests;
-  raise it only if your server is set up for parallel slots (`OLLAMA_NUM_PARALLEL` in Ollama).
-- **Expect it to be slower than the timings below** on a laptop GPU; a 7–8B model on a mid-range
-  GPU typically needs a few seconds per photo, CPU-only can take a minute or more.
-
-## How to use
-
-1. **Create a project**: one per trip. In the *Projects* tab, enter a name (e.g. "Norway 2026") and
-   the folder with the photos and videos (type the path or pick it with *Browse…*; subfolders are
-   included), then press *Create & analyse*.
-2. **Let it analyse** (progress in the *Library* tab):
-   - *Scanning*: local checks for blur, exposure, contrast, monotony and same-scene shots. Fast.
-   - *Review duplicates* (only with that setting on): a dialog shows each new group of same-scene shots with
-     the automatic pick in green; click another shot to use it, then *Continue with AI*. The run waits for you.
-   - *Describing with AI*: each remaining photo goes to the model, 2 at a time by default
-     (choose 1–8 under *Parallel AI requests* in *Settings*). Captions and tags appear live; skipped photos are marked
-     *no AI*. The progress bar shows the time left; *Stop* ends the run after the requests already
-     sent. Stopped or interrupted? Press *Analyse again* and it continues where it stopped.
-3. **Browse the Library**: filter by quality flag, search the AI captions (e.g. "boat sunset"), click a tag
-   to filter by it, sort the grid, click a card for details. With a photo open, ← → go to the previous /
-   next one and A adds it to the slideshow. Ctrl/⌘-click or Shift-click several cards to add or remove
-   them together.
-4. **Build the slideshow** in the *Slideshow* tab: describe the show and press *Select photos*
-   (a spinner shows the time while the model works). The picks are shown as tiles: drag them to reorder
-   (or use ‹ ›), remove with ×, use *⇄ N other shots* to swap a pick for another shot of the same scene,
-   sort the whole set, or add photos via *Add to slideshow* in the Library detail panel. Click a tile to
-   step through the picks in a lightbox; set the seconds per photo next to the length estimate. To change the set in words,
-   type an instruction next to *Refine picks* (e.g. "add 10 more sunsets, fewer people"); the model
-   keeps the rest, including your hand edits. *Undo* goes back one change. *▶ Play* previews the show
-   full screen, scaled to the window; move the mouse or tap to see why a photo was picked and for the
-   controls (back, hold, forward, close), or use ← → Space Esc.
-5. **Export**: press *Export…*, choose a new folder outside the photo folder and press *Export*, then *Open folder*.
-   Changed the show? Export again into the same folder with *replace previous export* ticked; this only
-   deletes files of an earlier export, never a folder with other files in it.
-
-Each project keeps one slideshow; to make a second show from the same trip, export the first one,
-then select again.
-
-The *Projects* tab lists all projects with their state (files, AI-described, picks, when last analysed, missing folder).
-Under *Edit*, rename a project or point it to another photo folder (e.g. after moving the photos; press
-*Analyse again* afterwards). *Remove project…* (also under *Edit*) asks in a dialog and never deletes photos. The saved AI results and thumbnails stay in the
-data folder, so creating a project for the same folder again picks them up, unless you tick *also delete saved
-AI results* (kept anyway while another project uses the same folder).
-
-The *Settings* tab has the colour theme (auto follows your system, or light / dark), the number of
-parallel AI requests (1 = strictly one by one; local models usually want 1), *Review duplicates before AI*
-(on by default: Analyse pauses so you can pick the best shot of each new group or let the AI compare them;
-off: the technically best shot is used without asking), *Photo details for choosing* (how much the
-slideshow AI reads per photo: full, short, minimal or auto), and *Delete unused data*: it removes saved AI
-results and thumbnails of folders no project uses any more (also folders only analysed with `photos2show-scan`).
-
-### How long does it take?
-
-For a trip of ~1000 photos and videos (laptop + self-hosted GLM endpoint):
-
-| Step | Time |
-|---|---|
-| Local scan (blur, exposure, repeats) | ~2–3 min first run, seconds afterwards |
-| AI descriptions, 2 parallel (default) | ~50 min (~3 s per file) |
-| AI descriptions, 4 parallel | ~33 min (~2 s per file) |
-| AI descriptions, 1 at a time | ~80 min (~5 s per file) |
-| Slideshow selection | ~5–6 min |
-
-AI descriptions are made once per file; later runs take seconds.
-
-## Supported files
-
-Everything in the chosen folder and its subfolders counts (hidden folders such as `.Trash-1000` are skipped).
-
-- **Photos:** JPEG, PNG, HEIC/HEIF, WebP, AVIF, TIFF, GIF (first frame) and BMP.
-- **Camera RAW:** DNG, Canon CR2/CR3, Nikon NEF/NRW, Sony ARW, Olympus ORF, Panasonic RW2, Fujifilm RAF,
-  Pentax PEF and Samsung SRW, developed with LibRaw (camera white balance).
-- **Videos:** MP4, MOV, M4V, 3GP, AVI, MKV, WebM, MTS/M2TS, WMV and MPG. The browser plays only the formats it
-  knows (MP4 and WebM everywhere, MOV/MKV in most); the others are still analysed, the detail panel shows their
-  sampled frames and the slideshow preview skips them.
-
-**Dates** come from the photo's EXIF data. Videos and photos without one (screenshots, most PNGs) use a
-phone-style file name (`20260725_130945.mp4`), else the recording time stored in the video (MP4, MOV, M4V,
-3GP), else the file date: the earlier of created and modified, because copying resets one and editing the other.
-
-**Export** copies files as they are (e.g. `.heic`, `.avi`), except RAW photos: TVs and slideshow apps can't
-show them, so they become full-size JPEGs.
-
-## Configuration
-
-Set in `.env` or as environment variables:
-
-| Variable | Default | Meaning |
+| Where the model runs | `OPENAI_BASE_URL` | `MODEL` |
 |---|---|---|
-| `OPENAI_BASE_URL` | – (required) | OpenAI-compatible endpoint, e.g. `http://localhost:11434/v1` |
-| `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth |
-| `MODEL` | `glm-5.3-flash` | model id as the server lists it |
-| `AI_CONCURRENCY` | `2` | parallel AI requests (1 = strictly one by one); default for *Parallel AI requests* in Settings |
-| `PHOTOS2SHOW_CACHE` | `~/.local/share/photos2show` | data folder for projects, AI results and thumbnails |
-| `PHOTOS2SHOW_PORT` | `8000` | port of the web UI |
+| OpenAI | `https://api.openai.com/v1` | a vision model of your choice |
+| [Ollama](https://ollama.com) (local) | `http://localhost:11434/v1` | e.g. `qwen2.5vl:7b` |
+| [LM Studio](https://lmstudio.ai) (local) | `http://localhost:1234/v1` | the model id LM Studio shows |
 
-Used the tool when it was still called imgsort? `IMGSORT_CACHE` and `IMGSORT_PORT` still work, and an
-existing `~/.local/share/imgsort` folder keeps being used, so your projects and AI results stay.
+Local models need a context of 32k or more for the slideshow step and work best with 1 parallel
+request; see [Configuration](docs/configuration.md#local-models).
 
-## Command line
+## Documentation
 
-```bash
-uv run photos2show-web [--no-browser]              # the web UI
-uv run photos2show-scan ~/Pictures/trip [--parallel N]  # both analysis passes, printed as a table
-uv run photos2show-smoke [photo.jpg]               # test the AI endpoint with one image
-uv run photos2show-testdata demo_images            # synthetic test photos with known defects
-```
+| Page | Contents |
+|---|---|
+| [User guide](docs/user-guide.md) | the four tabs, duplicate review, slideshow editing, export, keyboard, troubleshooting |
+| [Configuration](docs/configuration.md) | `.env` variables, the Settings page, model setup, timings |
+| [How it works](docs/how-it-works.md) | quality checks and thresholds, same-scene grouping, AI prompts, selection, export rules |
+| [Data and files](docs/data-and-files.md) | supported formats, dates, the data folder, privacy |
+| [Development](docs/development.md) | code layout, routes, command line tools, tests, conventions |
+
+[PLAN.md](PLAN.md) has the design notes and decisions behind the current version.
 
 ## Roadmap
 
@@ -260,9 +86,6 @@ Planned, roughly in this order of interest:
 - Map and location grouping from GPS
 - Local semantic search (CLIP) and smarter duplicate grouping
 - Deeper video handling (scene detection, picking clips)
-
-The full documentation is in [docs/](docs/index.md): user guide, configuration, how the analysis works,
-the data folder and a developer reference. [PLAN.md](PLAN.md) has the design notes and decisions behind the current version.
 
 ## Contributing
 

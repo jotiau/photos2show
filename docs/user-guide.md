@@ -24,15 +24,15 @@ on is chosen in the dropdown in the header.
 
 One project per trip. Each project is a name plus a photo folder; subfolders are included.
 
-- **Create**: enter a name (must be unique) and the folder, either typed or picked with *Browse…*
+- **New project**: enter a name (must be unique) and the folder, either typed or picked with *Browse…*
   (opens your system's folder dialog). *Create & analyse* saves the project and starts the analysis.
 - **Cards**: every project shows a cover (the photo the AI liked best), the number of files,
   AI-described files and slideshow picks, when it was last analysed, and a warning if the folder is
   missing (e.g. an unplugged drive). *Open* switches to it.
-- **Edit**: rename the project, or point it to another folder (e.g. after moving the photos; press
-  *Analyse again* afterwards).
+- **Edit**: *Rename* the project, or *Change folder* to point it to another folder (e.g. after moving the
+  photos; press *Analyse again* in the Library afterwards).
 - **Remove project…**: asks in a dialog and never deletes photos. Saved AI results and thumbnails stay
-  in the data folder, so a new project for the same folder picks them up again. Tick *also delete saved
+  in the data folder, so a new project for the same folder picks them up again. Tick *also delete its saved
   AI results* to remove them too (they are kept anyway while another project uses the same folder).
 
 Projects cannot be changed while an analysis is running.
@@ -84,19 +84,19 @@ the slideshow.
 
 ### Detail panel
 
-Click a card to open it: a larger preview (click it for the original), path, date, size, flags, the AI
+Click a card to open it: a larger preview (click it for the original), path, date, dimensions, flags, the AI
 caption, scene, people count, scores, tags and issues, and the technical metrics under
 *Technical details*. Videos show a player (if the browser can play the format) and their sampled frames.
 
-- **Add to slideshow / Remove from slideshow** toggles the photo.
+- **Add to slideshow** / **Remove from slideshow (#N)** toggles the photo; N is its position in the show.
 - **Same scene**: the other shots of the group; the best shot is outlined green. *Make this the best
   shot* makes the open shot the best of its group; if it was never described, it is described by the AI
   right away. The choice is kept on later scans.
 
 ### Selecting several cards
 
-Ctrl/⌘-click or Shift-click cards to select several; a bar appears to add or remove them from the
-slideshow together.
+Ctrl/⌘-click toggles a card, Shift-click selects every card from the last clicked one. A bar shows how
+many are selected, with *Add to slideshow*, *Remove from slideshow* and *Clear*.
 
 ### Keyboard
 
@@ -104,7 +104,7 @@ slideshow together.
 |---|---|
 | Tab | move to a card |
 | Enter / Space | open the focused card |
-| ← → | previous / next photo |
+| ← → | previous / next photo in grid order |
 | A | add to / remove from the slideshow |
 | Esc | close the detail panel |
 
@@ -112,7 +112,7 @@ slideshow together.
 
 Each project has one slideshow. To make a second show from the same trip, export the first, then select again.
 
-### ① Describe the show
+### ① Describe
 
 Write what you want: length or number of photos, audience, order, content. Then press *Select photos*;
 a spinner shows the elapsed time while the model works (a few minutes for ~1000 files). Next to the
@@ -123,13 +123,13 @@ with *Edit*.
 If the answer is unusable, an error is shown and the current picks stay as they are; press *Select
 photos* again or rephrase.
 
-### ② Adjust the picks
+### ② Review picks
 
 The picks are tiles in order, each with the AI's reason. The toolbar shows the count and estimated
 length (videos count with their real length).
 
 - **Seconds per photo**: 2–15, default 5.
-- **Reorder**: drag and drop, or ‹ ›. **Sort** the whole set by date, aesthetic, interest, technical
+- **Reorder**: drag and drop, or ‹ › (move earlier / later). **Sort** the whole set by date, aesthetic, interest, technical
   quality, file name, or reverse the current order.
 - **Remove** with ×. **Add** from the Library (detail panel or bulk selection).
 - **⇄ N other shots**: swap a pick for another shot of the same scene, in the same place and with the
@@ -151,7 +151,7 @@ The default is the last export folder, else `<photo folder>_slideshow`.
   full-size JPEGs, because TVs and slideshow apps cannot show RAW.
 - A `selection.json` next to them records your description, refinements, seconds per photo and the
   reason for every pick.
-- The folder must be new or empty. To export again after changes, tick *replace previous export*: this
+- The folder must be new or empty. To export again after changes, tick *replace previous export in this folder*: this
   empties a folder only if it contains an earlier export's `selection.json` and numbered files, never a
   folder with other files in it.
 

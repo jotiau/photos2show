@@ -53,8 +53,9 @@ docs/           # this documentation
   `_picks.html`, `_progress.html`, …). `HX-Refresh`, `HX-Redirect` and `HX-Trigger: analysed` tell the
   browser to reload, navigate or refresh the grid.
 - **Security**: every non-GET request must carry the `HX-Request` header (blocks cross-site form posts),
-  and only the hosts `127.0.0.1` and `localhost` are accepted (blocks DNS rebinding). Paths to open or
-  delete never come from a request (e.g. *Open folder* opens the stored export folder).
+  and only the hosts `127.0.0.1` and `localhost` are accepted (blocks DNS rebinding). *Open folder* opens
+  only the stored export folder, never a path from the request, and *replace previous export* empties a
+  folder only if it holds an earlier export.
 - **Folder picker**: `/pick-folder` opens the system dialog on the server's computer (zenity or kdialog
   on Linux, else Tk in a subprocess), because a browser never reveals real paths.
 - **Settings** are declared in `db.SETTINGS` (`key: (label, choices, default, help)`); a new line there

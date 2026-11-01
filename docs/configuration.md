@@ -56,7 +56,8 @@ Any server that speaks the OpenAI chat API and accepts images works.
 | Self-hosted (vLLM, SGLang, …) | your server's `/v1` URL | your key, if any | as the server lists it |
 
 `uv run photos2show-smoke` prints the model ids the server offers and sends one test picture.
-Development used a self-hosted GLM-5.3 Flash; other models work but may describe photos differently.
+Development used a self-hosted GLM-5.3 Flash; other models should work but may describe photos differently.
+If you try one, please share how it went in an issue (*Model experience* template).
 
 The app asks for JSON answers (`response_format: json_object`); servers that reject JSON mode get the
 same request without it, and the answer is parsed leniently.
@@ -65,19 +66,43 @@ same request without it, and the answer is parsed leniently.
 
 Untested starting points that run on one consumer GPU or a recent Mac:
 
-| Model | Ollama | Rough memory |
-|---|---|---|
-| Qwen2.5-VL 7B | `qwen2.5vl:7b` | ~6 GB |
-| Qwen3-VL 8B | `qwen3-vl:8b` | ~6 GB |
-| Gemma 3 12B | `gemma3:12b` (`gemma3:4b` for small GPUs) | ~9 GB |
-| MiniCPM-V 8B | `minicpm-v:8b` | ~6 GB |
-| Llama 3.2 Vision 11B | `llama3.2-vision:11b` | ~8 GB |
+| Model | Ollama | Rough memory | Notes |
+|---|---|---|---|
+| Qwen2.5-VL 7B | `qwen2.5vl:7b` | ~6 GB | good all-rounder, follows the JSON format well |
+| Qwen3-VL 8B | `qwen3-vl:8b` | ~6 GB | newer Qwen, more detailed captions |
+| Gemma 3 12B | `gemma3:12b` | ~9 GB | good descriptions; `gemma3:4b` for small GPUs |
+| MiniCPM-V 8B | `minicpm-v:8b` | ~6 GB | fast, fine for tagging |
+| Llama 3.2 Vision 11B | `llama3.2-vision:11b` | ~8 GB | solid, slower than the ones above |
+
+**Ollama**
+
+```bash
+ollama pull qwen2.5vl:7b
+OLLAMA_CONTEXT_LENGTH=32768 ollama serve   # larger context for the slideshow step, see below
+```
+
+```ini
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=
+MODEL=qwen2.5vl:7b
+AI_CONCURRENCY=1
+```
+
+**LM Studio**: download a vision model (e.g. *Qwen2.5-VL-7B-Instruct*, marked with an eye icon), load it
+with a context length of 32k or more, and start the server in the *Developer* tab.
+
+```ini
+OPENAI_BASE_URL=http://localhost:1234/v1
+OPENAI_API_KEY=
+MODEL=qwen2.5-vl-7b-instruct    # the id LM Studio shows; photos2show-smoke lists it too
+AI_CONCURRENCY=1
+```
 
 Tips:
 - **Context length matters for the slideshow.** The selection step sends one line per photo: roughly
   20–40k tokens for 1000 files. With the small default context of Ollama or LM Studio the start of the
-  list is cut off silently. Use 32k or more (`OLLAMA_CONTEXT_LENGTH=32768 ollama serve`; in LM Studio
-  set it when loading the model), or choose short or minimal *Photo details*.
+  list is cut off silently. Use 32k or more (as in the examples above), or choose short or minimal
+  *Photo details*.
 - **Start with 1 parallel request.** A single local GPU rarely gets faster with parallel requests
   (raise it only if the server has parallel slots, e.g. `OLLAMA_NUM_PARALLEL`).
 - Expect a few seconds per photo for a 7–8B model on a mid-range GPU; CPU-only can take a minute or more.
@@ -97,5 +122,5 @@ AI descriptions are made once per file.
 ## Timeouts
 
 Each photo description may take up to 90 s, an AI side-by-side comparison 120 s, and the `/models`
-lookup for *auto* 10 s. Failed requests are retried once by the client, then reported; the next
-*Analyse again* retries the photo.
+lookup for *auto* 10 s. A connection or server error is retried once (the `/models` lookup not at
+all); a request that still fails is reported, and the next *Analyse again* retries the photo.

@@ -28,7 +28,7 @@ How capture dates are found: [Data and files – Dates](data-and-files.md#dates)
 
 ## 2. Quality checks
 
-Computed on a 1024 px grayscale copy so values are comparable across cameras. No AI.
+Computed on a 1024 px copy (mostly its grayscale version) so values are comparable across cameras. No AI.
 
 | Metric | Method |
 |---|---|
@@ -126,6 +126,6 @@ export never lose a change. Before every change of the picks the old list is sav
   `NNN_…` files.
 - `selection.json` is written first, then each pick is copied as `NNN_<YYYY-MM-DD>_<first two tags>.<ext>`
   (`photo` when there are no tags). RAW files are developed at full size and saved as JPEG (quality 92);
-  everything else is copied unchanged with its metadata.
+  everything else is copied unchanged with its metadata, with the extension in lower case.
 - The folder is remembered as the default for the next export and for *Open folder*
   (`xdg-open` / `open` / `os.startfile`).
