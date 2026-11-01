@@ -96,7 +96,7 @@ def context_length(client: OpenAI, settings: Settings) -> int | None:
     Not llama.cpp's meta.n_ctx_train: that is the training size, often far above the size the server runs with.
     """
     try:
-        models = client.models.list().data
+        models = client.with_options(timeout=10, max_retries=0).models.list().data  # a hung server must not stall Select
     except Exception:  # not offered by every server; unknown is fine
         return None
     for m in models:

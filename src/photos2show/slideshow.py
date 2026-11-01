@@ -48,10 +48,11 @@ def _line(it: dict, size: str = "full") -> str:
     tags, caption = a.get("tags") or [], a.get("caption")
     if size == "short":
         tags, caption = tags[:5], " ".join(str(caption or "").split()[:8])
-    text = f" | {caption}" if size != "minimal" else ""
-    return (f"{it['id']} | {(it['taken_at'] or '')[:16]} | {kind} | {a.get('scene')} | "
-            f"{', '.join(tags if size != 'minimal' else tags[:3])}{text} | {a.get('aesthetic')} | "
-            f"{a.get('interest')} | {','.join(it['flags']) or '-'}")
+    elif size == "minimal":
+        tags = tags[:3]
+    captions = () if size == "minimal" else (caption,)  # minimal drops the column (see _candidates)
+    return " | ".join(map(str, (it["id"], (it["taken_at"] or "")[:16], kind, a.get("scene"), ", ".join(tags),
+                                *captions, a.get("aesthetic"), a.get("interest"), ",".join(it["flags"]) or "-")))
 
 
 def _candidates(items: list[dict], size: str) -> dict:

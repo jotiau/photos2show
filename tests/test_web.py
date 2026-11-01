@@ -402,3 +402,18 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
     client.post(f"/best/{items['burst_3.jpg']}", headers={"HX-Target": "detail"})
     failed = poll(items["burst_3.jpg"]).text
     assert 'class="error">AI description failed: burst_3.jpg: model offline' in failed
+
+
+def test_heic_original_is_sent_as_jpeg(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = tmp_path / "photos"
+    folder.mkdir()
+    Image.new("RGB", (60, 40), "red").save(folder / "IMG_0001.heic")  # only Safari shows HEIC
+    Image.new("RGB", (60, 40), "blue").save(folder / "plain.jpg")
+    web.analyse_folder(folder)
+    monkeypatch.setitem(web.job, "folder", str(folder))
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    ids = {Path(it["path"]).name: it["id"] for it in web._items()}
+    resp = client.get(f"/original/{ids['IMG_0001.heic']}")
+    assert resp.headers["content-type"] == "image/jpeg" and Image.open(io.BytesIO(resp.content)).size == (60, 40)
+    assert client.get(f"/original/{ids['plain.jpg']}").content == (folder / "plain.jpg").read_bytes()  # untouched
