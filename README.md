@@ -210,10 +210,14 @@ AI descriptions are made once per file; later runs take seconds.
 
 ## Supported files
 
-JPEG, PNG and HEIC photos (`.jpg`, `.jpeg`, `.png`, `.heic`, `.heif`) and MP4 videos, in the chosen folder and its subfolders (hidden folders
+Photos: JPEG, PNG, HEIC/HEIF, WebP, AVIF, TIFF, GIF (first frame) and BMP. Videos: MP4, MOV, M4V, 3GP, AVI, MKV,
+WebM, MTS/M2TS, WMV and MPG. Files in the chosen folder and its subfolders count (hidden folders
 such as `.Trash-1000` are skipped). Dates come from the photo's EXIF data; for videos
-from phone-style file names (`20260725_130945.mp4`), else the recording time stored in the video,
-else the file date; photos without an EXIF date (screenshots, most PNGs) use the file name or file date too. HEIC photos are exported as they are (`.heic`); RAW is on the roadmap.
+from phone-style file names (`20260725_130945.mp4`), else the recording time stored in the video (MP4, MOV, M4V, 3GP),
+else the file date; photos without an EXIF date (screenshots, most PNGs) use the file name or file date too.
+Files are exported as they are (e.g. `.heic`, `.avi`). The browser plays only the video formats it knows
+(MP4 and WebM everywhere, MOV/MKV in most): others still get analysed and show their sampled frames, and the
+slideshow preview skips them. RAW is on the roadmap.
 
 ## Configuration
 

@@ -490,7 +490,7 @@ def original(media_id: int):
     path = _item(media_id)["path"]
     if not Path(path).is_file():  # deleted or drive unplugged since the scan
         raise HTTPException(404)
-    if Path(path).suffix.lower() in scan.HEIF_EXT:  # only Safari shows HEIC: send a JPEG
+    if Path(path).suffix.lower() in scan.IMAGE_EXT - scan.BROWSER_IMAGE_EXT:  # HEIC, TIFF: send a JPEG
         buf = io.BytesIO()
         scan.read_image(Path(path))[0].save(buf, "JPEG", quality=90)
         return Response(buf.getvalue(), media_type="image/jpeg")

@@ -12,8 +12,10 @@ from pillow_heif import register_heif_opener
 register_heif_opener()  # Image.open() reads iPhone HEIC photos like JPEGs, EXIF included
 
 HEIF_EXT = {".heic", ".heif"}
-IMAGE_EXT = {".jpg", ".jpeg", ".png"} | HEIF_EXT
-VIDEO_EXT = {".mp4"}
+BROWSER_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif", ".bmp"}  # others are sent as JPEG
+IMAGE_EXT = BROWSER_IMAGE_EXT | HEIF_EXT | {".tif", ".tiff"}
+MP4_EXT = {".mp4", ".mov", ".m4v", ".3gp"}  # ISO/QuickTime boxes: mp4_created() can read their date
+VIDEO_EXT = MP4_EXT | {".avi", ".mkv", ".webm", ".mts", ".m2ts", ".wmv", ".mpg", ".mpeg"}
 VIDEO_POSITIONS = (0.1, 0.5, 0.9)  # sampled frames, as fraction of the duration
 LOAD_EDGE = 2048  # decode JPEGs at reduced size; analysis and thumbnails need less
 
@@ -143,4 +145,4 @@ def file_time(path: Path) -> str:
             return datetime.strptime(m[1] + m[2], "%Y%m%d%H%M%S").isoformat()
         except ValueError:
             pass
-    return (is_video(path) and mp4_created(path)) or datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()
+    return (path.suffix.lower() in MP4_EXT and mp4_created(path)) or datetime.fromtimestamp(path.stat().st_mtime).replace(microsecond=0).isoformat()

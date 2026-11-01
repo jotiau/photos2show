@@ -56,10 +56,27 @@ def test_mp4_creation_time_from_movie_header(tmp_path):
 
 
 def test_hidden_files_and_folders_are_skipped(tmp_path):
-    for name in ("a.jpg", ".b.jpg", ".Trash-1000/files/c.jpg", "sub/d.JPG", "e.png", "f.txt"):
+    for name in ("a.jpg", ".b.jpg", ".Trash-1000/files/c.jpg", "sub/d.JPG", "e.png", "f.txt", "g.MOV", "h.webp"):
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_bytes(b"")
-    assert [p.relative_to(tmp_path).as_posix() for p in find_media(tmp_path)] == ["a.jpg", "e.png", "sub/d.JPG"]
+    found = [p.relative_to(tmp_path).as_posix() for p in find_media(tmp_path)]
+    assert found == ["a.jpg", "e.png", "g.MOV", "h.webp", "sub/d.JPG"]
+
+
+def test_common_image_formats_are_read(tmp_path):
+    import numpy as np
+    from PIL import Image
+
+    from photos2show.scan import read_image
+    cases = {"a.webp": Image.new("RGBA", (60, 40), (0, 0, 255, 100)), "b.avif": Image.new("RGB", (60, 40)),
+             "c.tiff": Image.fromarray(np.full((40, 60), 40000, np.uint16)), "d.gif": Image.new("P", (60, 40)),
+             "e.bmp": Image.new("RGB", (60, 40))}
+    for name, img in cases.items():
+        img.save(tmp_path / name)
+    assert len(find_media(tmp_path)) == len(cases)
+    for name in cases:
+        img, _, size = read_image(tmp_path / name)
+        assert img.mode == "RGB" and img.size == size == (60, 40), name
 
 
 def test_heic_is_found_and_read_with_date_and_rotation(tmp_path):
