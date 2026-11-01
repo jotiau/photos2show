@@ -176,20 +176,6 @@ src/photos2show/
 tests/
 ```
 
-## Milestones
-- **M0–M3** *(done)*: API smoke test; scan, quality, dedup and Library UI; AI analysis with
-  captions/tags/scores; selection, review, export and holiday projects.
-- **M4 – Calibration** *(done)*: 848 Norway photos reviewed via contact sheets plus user
-  spot-check → `BLURRY` 200, same-scene = same orientation and phash ≤14 within 60 s or ≤18
-  within 10 s; motion blur with one sharp tile is a known gap.
-- **M5 – Usability and UI review** *(done 2026-11-01)*: stop/time left, export again, refine/undo,
-  search, Play preview, keyboard, picks shown in the Library, calm grid during analysis, stacks,
-  sort and tag list, readable cards, preview images, bulk select, state in the URL, lightbox
-  navigation, seconds per photo, AI wait feedback, button hierarchy, settings with help, calmer
-  Projects page with covers, swapping a pick for another shot of its scene, the reason in the
-  player, Tab/Enter in the Library; plus the fixes of a code audit (selection lock, 404s,
-  duplicate project names).
-
 ## Future features
 - Face detection / clustering ("everyone appears at least once")
 - Local CLIP embeddings for fast semantic search and better duplicate grouping
@@ -201,17 +187,11 @@ tests/
 - Several saved slideshows per project; projects spanning several folders
 
 ## Risks / open points
-Reviewed with the user on 2026-10-23.
+Reviewed with the user on 2026-10-23; resolved ones removed 2026-11-01.
 
 | Risk | Status / decision |
 |---|---|
-| Endpoint: vision, JSON mode, image size | Resolved – works; JSON mode supported (1 request per image) |
-| Throughput | Resolved – ~30–70 min per ~900-file holiday once, then cached; parallel requests in Settings |
-| Selection on a full holiday (~850 candidates, ~60k-token prompt) | Resolved – tested on all 857 Norway files: 104 good picks in 294 s, well under the 10-min client timeout |
-| Video dates from mtime off by 1 h | Fixed – date from file name, then MP4 header, mtime last |
 | AI scores compressed (mostly 6–8) | Accepted – selection works via captions/tags; prompt unchanged |
-| AI results lost if a cache cleaner runs | Fixed – data moved from `~/.cache` to `~/.local/share/photos2show` |
-| No backup of the code | Resolved – on GitHub (`jotiau/photos2show`) |
 | Very large folders (5,000+): pairwise dedup is O(n²) | Accepted – minutes at worst, fine for holidays |
 | "Photos of us" without face recognition | Accepted – people count + captions; faces are a future feature |
 | Motion blur with one sharp tile not detected | Accepted – GLM usually lists it under issues |
