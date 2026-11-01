@@ -261,7 +261,8 @@ Planned, roughly in this order of interest:
 - Local semantic search (CLIP) and smarter duplicate grouping
 - Deeper video handling (scene detection, picking clips)
 
-[PLAN.md](PLAN.md) has the design notes and decisions behind the current version.
+The full documentation is in [docs/](docs/index.md): user guide, configuration, how the analysis works,
+the data folder and a developer reference. [PLAN.md](PLAN.md) has the design notes and decisions behind the current version.
 
 ## Contributing
 

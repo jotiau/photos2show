@@ -202,9 +202,12 @@ src/photos2show/
     templates/  # projects, library, slideshow, settings pages + partials
     static/     # htmx.min.js, style.css
 tests/
+docs/           # documentation (user guide, configuration, internals); kept in sync with every change
+CLAUDE.md       # notes for Claude: update docs/ with every change
 ```
 
 ## Future features ideas
+- Show the documentation (`docs/`) inside the app, in the Settings tab
 - Face detection / clustering ("everyone appears at least once")
 - Local CLIP embeddings for fast semantic search and better duplicate grouping
 - Learned IQA models (pyiqa: MUSIQ/TOPIQ/NIMA) if GLM aesthetic scores prove noisy
