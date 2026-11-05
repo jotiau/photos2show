@@ -155,7 +155,8 @@ per page; destructive actions red.
   issues or file name); sort by date, scores, quality or name. Filter, search, sort and open photo
   are in the URL (reload, back/forward, bookmarks; typing replaces the URL instead of adding history,
   a bare `/` reopens the last view). Detail panel: 1024 px preview (click → original), caption,
-  metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*. Keys: Tab to a card, Enter/Space opens it, ← → step
+  metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*, *Describe again*
+  (one file now with the analysis model, also skipped ones; the old result stays until the new one arrives). Keys: Tab to a card, Enter/Space opens it, ← → step
   through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a
   bulk add/remove bar.
 - **Slideshow**: two step cards. ① description → *Select photos* (spinner, elapsed time, picks
@@ -165,7 +166,7 @@ per page; destructive actions red.
   remove, "⇄ N other shots" to swap a pick for another shot of its scene (same place and reason);
   lightbox with ← → through the picks; *▶ Play* fills the window, with the reason and a control
   panel (back, hold, forward, close) on mouse move or tap; keys ← → Space Esc.
-- **Settings**: theme (auto / light / dark / grey), accent colour (13 colours picked from swatches; it also colours the top bar), parallel AI requests, review duplicates before AI, photo details for choosing
+- **Settings**: theme (auto / light / dark / grey), accent colour (13 colours picked from swatches; it also colours the top bar), analysis and slideshow model, parallel AI requests, review duplicates before AI, photo details for choosing
   (each with a help line); delete cached data of folders
   no project uses; *Open documentation* opens `docs/` rendered as pages in a new tab (`/docs/<page>`).
 
@@ -215,20 +216,16 @@ docs/           # documentation (user guide, configuration, internals); kept in 
 ## Planned next
 Added 2026-11-01, not started. Open questions are marked (?) and get asked before building.
 
-1. **Re-analyse a single photo in the library** – a button in the photo detail/tile that clears
-   that file's AI result and sends it to the AI again with the current analysis model (also for
-   shots normally skipped: very blurry or not the best of their group (?)). Result replaces the old
-   one in the grid.
-2. **Out-of-the-box local setup** – one script per OS (`setup.sh` for Linux/macOS, `setup.ps1` for
+1. **Out-of-the-box local setup** – one script per OS (`setup.sh` for Linux/macOS, `setup.ps1` for
    Windows) that installs `uv` and the app, installs Ollama if missing, checks the system (GPU vendor,
    VRAM, RAM, CPU-only), picks and pulls matching default models from the *Local models* table
    (analysis + slideshow model, see *Models per step*), writes `.env` (incl. `AI_THINKING` for thinking models) and
    starts the UI. Re-running it is safe (skips what is installed). Detection shown before downloading
    so the user can override (?).
-3. **Docs: longer model list** – extend *Local models* in `docs/configuration.md` with a column for
+2. **Docs: longer model list** – extend *Local models* in `docs/configuration.md` with a column for
    the role (analysis, slideshow, both), recommended pairs per hardware tier (CPU-only, 8 / 12 / 16 /
    24 GB GPU, Apple Silicon RAM) and text-only models suited for the slideshow step. This table is
-   also the source for the setup script's choice in 2.
+   also the source for the setup script's choice in 1.
 
 ## Future features ideas
 - Face detection / clustering ("everyone appears at least once")

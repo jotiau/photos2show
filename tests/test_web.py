@@ -436,6 +436,19 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
     client.post(f"/best/{items['burst_3.jpg']}", headers={"HX-Target": "detail"})
     failed = poll(items["burst_3.jpg"]).text
     assert 'class="error">AI description failed: burst_3.jpg: model offline' in failed
+    assert "Describe with AI</button>" in failed  # try again by hand
+
+    # Describe again: also a shot that is not the best of its scene; a failure keeps the old description.
+    assert "Make this the best shot" in client.get(f"/media/{items['burst_2.jpg']}").text  # skipped as duplicate
+    assert "Describing with AI" in client.post(f"/describe/{items['burst_2.jpg']}").text
+    failed = poll(items["burst_2.jpg"])
+    assert "model offline" in failed.text and "previous description is kept" in failed.text
+    assert "fake caption" in failed.text and failed.headers["HX-Trigger"] == "analysed"
+    monkeypatch.setattr("photos2show.ai.analyse_image", lambda c, s, img: {"caption": "second look", "tags": []})
+    client.post(f"/describe/{items['burst_2.jpg']}")
+    done = poll(items["burst_2.jpg"]).text
+    assert "second look" in done and "Describe again</button>" in done and "failed" not in done
+    assert client.post("/describe/99999").status_code == 404
 
 
 def test_keep_shots_of_a_scene_separately(tmp_path, monkeypatch, fake_ai):

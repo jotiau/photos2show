@@ -24,10 +24,14 @@
 </div>
 {% if it.ai.issues %}<p>Issues: {{ it.ai.issues | join(', ') }}</p>{% endif %}
 {% elif it.skip_ai %}<p>Not sent to AI: {{ it.skip_ai }}</p>
-{% elif it.id in describing and describing[it.id] %}<p class="error">AI description failed: {{ describing[it.id] }}.
-  <em>Analyse</em> tries again.</p>
-{% elif it.id in describing %}<p hx-get="/describing/{{ it.id }}" hx-trigger="every 2s">Describing with AI…</p>
-{% else %}<p>Waiting for AI description</p>{% endif %}
+{% elif it.id not in describing %}<p>Waiting for AI description</p>{% endif %}
+{% if it.id in describing and describing[it.id] is none %}<p hx-get="/describing/{{ it.id }}" hx-trigger="every 2s">Describing with AI…</p>
+{% else %}
+{% if describing[it.id] %}<p class="error">AI description failed: {{ describing[it.id] }}.
+  {{ 'The previous description is kept.' if it.ai }}</p>{% endif %}
+<p><button hx-post="/describe/{{ it.id }}" hx-target="#detail"
+  title="Send this file to the AI now with the current analysis model">{{ 'Describe again' if it.ai else 'Describe with AI' }}</button></p>
+{% endif %}
 <details class="tech"><summary>Technical details</summary>
 <table>
   {% for k, v in it.metrics.items() %}<tr><th>{{ k.replace('_', ' ') }}</th><td>{{ '%.3f' % v if v < 10 else '%.1f' % v }}</td></tr>{% endfor %}

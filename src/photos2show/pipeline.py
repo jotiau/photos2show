@@ -181,13 +181,14 @@ def describe_folder(root: Path, progress: Callable[[int, int], None] | None = No
     """Pass 2: send each image still worth describing to the LLM; every result is saved right away.
 
     stop: set it to end early; requests already sent finish and are saved, queued ones are skipped.
-    only: describe just these ids (if they still need it).
+    only: describe exactly these ids, also if described already or normally skipped (very blurry, not the best shot).
     """
     settings = load_settings()
     client = ai.make_client(settings)
     conn = db.connect(root)
-    todo = [it for it in db.all_media(conn) if it["ai"] is None and skip_ai_reason(it) is None
-            and (only is None or it["id"] in only)]
+    items = db.all_media(conn)
+    todo = ([it for it in items if it["id"] in only] if only is not None
+            else [it for it in items if it["ai"] is None and skip_ai_reason(it) is None])
 
     def describe(it: dict) -> dict:
         if stop and stop.is_set():

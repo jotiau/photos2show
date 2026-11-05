@@ -96,6 +96,8 @@ activity, interior, document, other. Scores are 1–10.
 - Requests run in parallel (*Parallel AI requests*); each result is saved right away, so a stopped or
   crashed run resumes where it stopped.
 - A failed request or an answer that is not a JSON object counts as failed and is retried next run.
+- *Describe again* / *Describe with AI* in the detail panel sends a single file the same way, also one
+  that is described already or normally skipped; the new answer replaces the old one only on success.
 - Stars on the cards: the mean of aesthetic and interest, halved and rounded to 1–5.
 
 ## 5. Slideshow selection

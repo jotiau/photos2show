@@ -89,5 +89,6 @@ The export folder gets the same file without `exported_to`.
 - Only a downscaled JPEG (1024 px; 768 px for an AI compare) of each photo is sent to the AI endpoint
   you configure, plus the text lines for the slideshow selection. With a local model nothing leaves
   your computer.
-- Photos that are very blurry or weaker shots of a scene are never sent.
+- Photos that are very blurry or weaker shots of a scene are not sent, unless you click *Describe with AI*
+  in the detail panel.
 - Originals are never moved, renamed or changed.

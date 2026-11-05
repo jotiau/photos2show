@@ -605,13 +605,24 @@ def separate_shot(media_id: int, all: bool = False):
     return "".join(templates.get_template("_scene.html").render(scene=s) for s in rest.values() if len(s) > 1)
 
 
+@app.post("/describe/{media_id}", response_class=HTMLResponse)
+def describe_again(request: Request, media_id: int):
+    """Library detail panel: send this one file to the AI now (also if described or skipped); the old result
+    stays until the new one has arrived."""
+    _item(media_id)  # 404 for an unknown id
+    if describing.get(media_id, "") is not None:  # not running already
+        describing[media_id] = None
+        threading.Thread(target=_describe_now, args=(_root(), media_id), daemon=True).start()
+    return detail(request, media_id)
+
+
 @app.get("/describing/{media_id}", response_class=HTMLResponse)
 def describing_status(request: Request, media_id: int):
     """Polled by the detail panel while a shot is described right away; when done, the panel reloads."""
     if media_id in describing and describing[media_id] is None:
         return HTMLResponse(status_code=204)  # still running: htmx keeps the "Describing" line
     resp = detail(request, media_id)
-    resp.headers.update({"HX-Retarget": "#detail", "HX-Reswap": "innerHTML"})
+    resp.headers.update({"HX-Retarget": "#detail", "HX-Reswap": "innerHTML", "HX-Trigger": "analysed"})  # grid too
     return resp
 
 

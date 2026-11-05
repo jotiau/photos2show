@@ -66,7 +66,9 @@ errors (expand *N errors* to see them). A folder without supported files says
 
 Photos that are **not sent to the AI** are marked *no AI*: very blurry photos, and the weaker shots of
 a same-scene group. They cost no time or money and are not offered to the slideshow AI (you can still
-add them by hand).
+add them by hand). *Describe with AI* in the detail panel sends one anyway; a very blurry photo described
+that way is then offered to the slideshow AI (with its flag), a weaker shot only once it is the best of
+its group.
 
 ## Library
 
@@ -93,6 +95,10 @@ caption, scene, people count, scores, tags and issues, and the technical metrics
 *Technical details*. Videos show a player (if the browser can play the format) and their sampled frames.
 
 - **Add to slideshow** / **Remove from slideshow (#N)** toggles the photo; N is its position in the show.
+- **Describe again** sends this one file to the AI now, with the current *Analysis model*, e.g. after
+  switching to a better model or when the caption is wrong. Files without a description (failed, very
+  blurry, weaker shot of a scene) show **Describe with AI** instead. The old description stays until the
+  new one has arrived; if the request fails, it is kept and the error is shown.
 - **Same scene**: the other shots of the group; the best shot is outlined green. *Make this the best
   shot* makes the open shot the best of its group; if it was never described, it is described by the AI
   right away. The choice is kept on later scans.
@@ -173,7 +179,7 @@ list of pages on the left.
 | Problem | What to do |
 |---|---|
 | "OPENAI_BASE_URL is not a URL" | Check `.env`; variables it references (e.g. `${MY_BASE_URL}`) must be set where the app starts (an IDE may not load `~/.bashrc`). |
-| AI requests fail or time out | Run `uv run photos2show-smoke` to test the endpoint and list the model ids. Failed photos are retried on the next *Analyse again*. |
+| AI requests fail or time out | Run `uv run photos2show-smoke` to test the endpoint and list the model ids. Failed photos are retried on the next *Analyse again*, or one by one with *Describe with AI* in the detail panel. |
 | Slideshow ignores the first photos of the trip | The model's context is too small and the list was cut off. Raise the context (32k+) or set *Photo details* to short or minimal. |
 | Local model is slow or stalls | Set *Parallel AI requests* to 1. |
 | A video shows no player | The browser can't play that format (common for AVI, MTS, WMV). It is still analysed and exported. |
