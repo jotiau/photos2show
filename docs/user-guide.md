@@ -87,20 +87,22 @@ its group.
 ## Library
 
 A grid of thumbnail cards. Each card shows the file name, date, 1–5 stars (from the AI's aesthetic and
-interest scores), the caption, quality flags, a video icon, and `✓ N` if the photo is pick number N in
-the slideshow.
+interest scores), the caption, quality flags, a video icon, `✓ N` if the photo is pick number N in
+the slideshow, and *never pick* if you excluded it from the slideshow.
 
 - **Stacks**: same-scene shots are stacked behind the best one, shown with `+N`. *Show all shots*
   unstacks them; *Stack same-scene shots* stacks them again.
 - **Filters** (chips with counts; empty ones are hidden): all, ok (no flag), skips ai, very blurry,
-  blurry, too dark, too bright, low contrast, monotone, duplicate, video, in slideshow.
+  blurry, too dark, too bright, low contrast, monotone, duplicate, video, in slideshow, never pick.
 - **Tags**: the 30 most common AI tags with counts; click one to filter by it (also from the detail panel).
 - **Search**: every word must appear in the caption, tags, scene, issues or file name (any case),
   e.g. `boat sunset`.
+- **From / to**: only photos taken on these days (both included), e.g. the second week of a trip.
+  Either field can stay empty; photos without a date are hidden while a range is set.
 - **Sort by**: date (oldest or newest first), aesthetic, interest, technical quality, file name.
   Photos without a value (no date, not described) go to the end.
-- **The view lives in the URL**: reload, back/forward and bookmarks keep filter, search, sort and the
-  open photo. Opening the bare start page restores the last view.
+- **The view lives in the URL**: reload, back/forward and bookmarks keep filter, search, sort, date
+  range and the open photo. Opening the bare start page restores the last view.
 
 ### Detail panel
 
@@ -109,8 +111,14 @@ caption, scene, people count, scores, tags and issues, and the technical metrics
 *Technical details*. Videos show a player (if the browser can play the format) and their sampled frames.
 
 - **Add to slideshow** / **Remove from slideshow (#N)** toggles the photo; N is its position in the show.
+- **Never pick** keeps the photo out of the AI's choice (*Select photos* and *Refine picks*), e.g. a
+  stranger in the frame or a shot you don't like; it also leaves the current slideshow. *✓ Never pick*
+  turns it off again. You can still add the photo by hand. The choice is kept on later scans.
+- **Caption**: click the caption to correct it, Enter (or leaving the field) saves. The slideshow AI
+  chooses by the captions, so a wrong one ("dog" for a fox) leads to wrong picks. *Describe again*
+  replaces it with a new AI caption.
 - **Describe again** sends this one file to the AI now, with the current *Analysis model*, e.g. after
-  switching to a better model or when the caption is wrong. Files without a description (failed, very
+  switching to a better model. Files without a description (failed, very
   blurry, weaker shot of a scene) show **Describe with AI** instead. The old description stays until the
   new one has arrived; if the request fails, it is kept and the error is shown.
 - **Same scene**: the other shots of the group; the best shot is outlined green. *Make this the best

@@ -27,8 +27,8 @@ LM Studio if you'd rather keep your photos on your own computer.
   keeping, videos included. Runs in parallel, can be stopped and resumed, and caches everything.
 - **Slideshow from a description:** the model picks and orders the photos and says why. Refine it in
   words, reorder, swap or add by hand, undo, and play it full screen.
-- **Library browser:** thumbnail grid with filters, tags, search over the captions, sorting, a detail
-  panel and keyboard shortcuts. One project per trip.
+- **Library browser:** thumbnail grid with filters, tags, search over the captions, a date range,
+  sorting, a detail panel (correct a caption, mark a photo *Never pick*) and keyboard shortcuts. One project per trip.
 - **Export:** numbered copies plus a `selection.json`; RAW photos become full-size JPEGs.
 - **Your photos stay yours:** runs locally; only a downscaled 1024 px copy goes to the AI endpoint you
   choose, and nothing is ever written into your photo folder.

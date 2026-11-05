@@ -115,7 +115,8 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
 ### 5. Slideshow selection
 1. User enters a description, e.g. *"10-minute show for my parents, ~80 photos, chronological,
    mostly landscapes and the two of us, little food"*.
-2. Candidates: every described, non-duplicate item. Flagged ones stay in, with their flags in
+2. Candidates: every described, non-duplicate item not marked *Never pick* (`excluded` column, set in the
+   Library detail panel; it also removes the photo from the picks). Flagged ones stay in, with their flags in
    the prompt; GLM is told to avoid them (no separate hard filter).
 3. Send GLM one prompt: the description + a compact line per candidate
    (`id | date | kind | scene | tags | caption | aesthetic | interest | flags`, videos as
@@ -153,9 +154,10 @@ per page; destructive actions red.
   Grid cards: date, 1–5 stars from aesthetic + interest, caption, flags, "✓ 3" pick number, video
   icon. Same-scene shots are stacked (best shot with "+N"; *Show all shots* toggle). Filters by
   flag, "in slideshow", tag list (30 most common) and search (every word in caption, tags, scene,
-  issues or file name); sort by date, scores, quality or name. Filter, search, sort and open photo
-  are in the URL (reload, back/forward, bookmarks; typing replaces the URL instead of adding history,
-  a bare `/` reopens the last view). Detail panel: 1024 px preview (click → original), caption,
+  issues or file name), *From / to* day range (`taken_at` day, undated hidden while set); sort by date,
+  scores, quality or name. Filter, search, sort, date range and open photo are in the URL (reload, back/forward, bookmarks; typing replaces the URL instead of adding history,
+  a bare `/` reopens the last view). Detail panel: 1024 px preview (click → original), caption
+  (editable, saved into the `ai` JSON, so *Describe again* overwrites it), *Never pick*,
   metrics, frames for videos, "Same scene" strip, *Add* / *Remove from slideshow*, *Describe again*
   (one file now with the analysis model, also skipped ones; the old result stays until the new one arrives). Keys: Tab to a card, Enter/Space opens it, ← → step
   through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a

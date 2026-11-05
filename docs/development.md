@@ -50,7 +50,7 @@ docs/           # this documentation
 ## Web app
 
 - **Single local user.** One analysis runs at a time in a background thread; its state is the `job`
-  dict in `web/app.py` (current project and folder, phase, progress, last filter/search/sort). The
+  dict in `web/app.py` (current project and folder, phase, progress, last filter/search/sort/date range). The
   current project lives in the server, not in the browser.
 - **Pages** are full templates; everything else returns an HTMX partial (`_grid.html`, `_detail.html`,
   `_picks.html`, `_progress.html`, …). `HX-Refresh`, `HX-Redirect` and `HX-Trigger: analysed` tell the
@@ -73,8 +73,8 @@ docs/           # this documentation
 
 | Route | Purpose |
 |---|---|
-| `GET /` | Library page; `flag`, `q`, `sort`, `photo` in the URL restore the view |
-| `GET /grid` | grid partial with filters, search, stacks, sort |
+| `GET /` | Library page; `flag`, `q`, `sort`, `from`, `to`, `photo` in the URL restore the view |
+| `GET /grid` | grid partial with filters, search, date range (`from`, `to`: `YYYY-MM-DD`), stacks, sort |
 | `GET /media/{id}` | detail panel |
 | `GET /thumb/{id}[?frame=N]`, `/preview/{id}`, `/original/{id}` | thumbnail / video frame, 1024 px preview, original (HEIC/TIFF/RAW as JPEG); ids restart at 1 in every project, so the pages add `?p=<project key>` (ignored by the server) to keep browsers from showing another project's cached image |
 | `GET /projects`, `POST /projects` | projects page; create a project and start analysing |
@@ -82,6 +82,7 @@ docs/           # this documentation
 | `GET /projects/cover?name=` | cover photo of a project |
 | `POST /analyse`, `/analyse/stop`, `/analyse/continue`; `GET /progress` | start, stop, continue after the duplicate review; progress partial |
 | `POST /best/{id}`, `/best/ai/{scene id}`, `/describe/{id}`; `GET /describing/{id}` | make a shot the best; AI compare during the review; describe one file again now; poll a description started right away |
+| `POST /never-pick/{id}`, `/caption/{id}` | toggle *Never pick*; save a caption corrected by hand |
 | `POST /separate/{id}`, `/separate/{id}?all=true` | review: keep a shot (or every shot of its scene) as its own picture |
 | `GET /slideshow`, `/slideshow/picks` | slideshow page; picks partial |
 | `POST /slideshow/select`, `/refine`, `/seconds`, `/sort`, `/move`, `/swap`, `/undo` | change the picks |

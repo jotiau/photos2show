@@ -105,6 +105,10 @@ main { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
 }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; }
 .caption { font-style: italic; }
+#detail input.caption { width: 100%; margin: 8px 0 4px; border-color: transparent; background: none; }
+#detail input.caption:hover, #detail input.caption:focus { border-color: var(--border); background: var(--panel); }
+.bar .dates { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+#detail button[aria-pressed="true"] { border-color: var(--bad); color: var(--bad); }
 .tabs { display: flex; gap: 4px; }
 .tabs a { padding: 6px 10px; border-radius: 6px; color: #fff; text-decoration: none; }
 .tabs a:hover { background: rgb(255 255 255 / .12); }

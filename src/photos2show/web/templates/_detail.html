@@ -11,13 +11,19 @@
 <a href="/original/{{ it.id }}?p={{ media_key() }}" target="_blank" title="Open the original"><img src="/preview/{{ it.id }}?p={{ media_key() }}" alt=""></a>
 {% endif %}
 {% with id = it.id, picks = {it.id: it.pick} if it.pick else {} %}{% include "_toggle.html" %}{% endwith %}
+<button hx-post="/never-pick/{{ it.id }}" hx-target="#detail" aria-pressed="{{ 'true' if it.excluded else 'false' }}"
+  title="{{ 'The AI may pick this photo for the slideshow again' if it.excluded else 'The AI never picks this photo for the slideshow (it also leaves the current one)' }}">
+  {{ '✓ Never pick' if it.excluded else 'Never pick' }}</button>
 <p class="path">{{ it.path }}</p>
 <p>{{ (it.taken_at or 'no date').replace('T', ' ') }} · {{ it.width }}×{{ it.height }}</p>
 <div class="flags">
   {% for f in it.flags %}<span class="flag {{ f }}">{{ f.replace('_', ' ') }}</span>{% else %}<span class="flag okay">ok</span>{% endfor %}
 </div>
 {% if it.ai %}
-<p class="caption">{{ it.ai.caption }}</p>
+<form hx-post="/caption/{{ it.id }}" hx-target="#detail" hx-trigger="change, submit">{# submit: Enter, else the browser posts the page #}
+  <input class="caption" name="caption" value="{{ it.ai.caption }}" maxlength="500" required aria-label="Caption"
+    title="Correct the caption if the AI got it wrong – the slideshow AI chooses by it. Enter saves.">
+</form>
 <p>{{ it.ai.scene }} · {{ it.ai.people_count }} people · aesthetic {{ it.ai.aesthetic }}/10 · interest {{ it.ai.interest }}/10</p>
 <div class="flags">
   {% for t in it.ai.tags or [] %}<button class="tag" hx-get="/grid?flag={{ ('tag:' ~ t) | urlencode }}" hx-target="#grid" hx-push-url="{{ library_url(flag='tag:' ~ t) }}">#{{ t }}</button>{% endfor %}

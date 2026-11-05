@@ -97,12 +97,13 @@ activity, interior, document, other. Scores are 1–10.
   crashed run resumes where it stopped.
 - A failed request or an answer that is not a JSON object counts as failed and is retried next run.
 - *Describe again* / *Describe with AI* in the detail panel sends a single file the same way, also one
-  that is described already or normally skipped; the new answer replaces the old one only on success.
+  that is described already or normally skipped; the new answer replaces the old one only on success
+  (also a caption corrected by hand).
 - Stars on the cards: the mean of aesthetic and interest, halved and rounded to 1–5.
 
 ## 5. Slideshow selection
 
-1. **Candidates**: every described photo that is not a duplicate. Flagged photos stay in, with their
+1. **Candidates**: every described photo that is not a duplicate and not marked *Never pick*. Flagged photos stay in, with their
    flags in the list; the AI is told to avoid them.
 2. **Prompt**: your description, the seconds per photo, and one line per candidate
    (`id | date | kind | scene | tags | caption | aesthetic/10 | interest/10 | quality flags`, videos as

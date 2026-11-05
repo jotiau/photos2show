@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS media (
     flags TEXT DEFAULT '[]',         -- JSON list
     duplicate_of INTEGER,            -- id of the best image of the same scene
     ai TEXT,                         -- JSON from ai.analyse_image(), NULL until described
-    chosen INTEGER DEFAULT 0         -- best shot of its scene by choice: 1 the user, 2 the AI (side by side); 3 kept separately
+    chosen INTEGER DEFAULT 0,        -- best shot of its scene by choice: 1 the user, 2 the AI (side by side); 3 kept separately
+    excluded INTEGER DEFAULT 0       -- 1: "Never pick" – never offered to the AI for the slideshow
 );
 """
 
@@ -48,8 +49,9 @@ def connect(root: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)
-    if "chosen" not in {r[1] for r in conn.execute("PRAGMA table_info(media)")}:  # libraries from before the column
-        conn.execute("ALTER TABLE media ADD COLUMN chosen INTEGER DEFAULT 0")
+    have = {r[1] for r in conn.execute("PRAGMA table_info(media)")}
+    for column in {"chosen", "excluded"} - have:  # libraries from before the column
+        conn.execute(f"ALTER TABLE media ADD COLUMN {column} INTEGER DEFAULT 0")
     return conn
 
 

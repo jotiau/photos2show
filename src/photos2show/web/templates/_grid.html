@@ -44,6 +44,7 @@
     <div class="flags">
       {% for f in it.flags %}<span class="flag {{ f }}">{{ f.replace('_', ' ') }}</span>{% endfor %}
       {% if it.skip_ai %}<span class="flag noai" title="{{ it.skip_ai }}">no AI</span>{% endif %}
+      {% if it.excluded %}<span class="flag noai" title="The AI never picks this photo for the slideshow">never pick</span>{% endif %}
     </div>
   </article>
   {% endfor %}

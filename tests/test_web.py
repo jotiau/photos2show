@@ -502,3 +502,48 @@ def test_docs(tmp_path, monkeypatch):
     assert client.get("/docs/nope").status_code == 404
     assert client.get("/docs/..%2FREADME").status_code == 404  # never a file outside docs/
     assert "&lt;b&gt;" in web._render_doc("<b>x</b>")  # raw HTML in Markdown is shown as text, not run
+
+
+def test_never_pick_date_range_and_caption(tmp_path, monkeypatch, fake_ai):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = testdata.generate(tmp_path / "photos")
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    client.post("/settings", data={"key": "review_duplicates", "value": "off"})
+    client.post("/projects", data={"name": "Dates", "folder": str(folder)})
+    for _ in range(100):
+        if 'hx-get="/progress"' not in client.get("/progress").text:
+            break
+        time.sleep(0.1)
+    ids = {Path(it["path"]).name: it["id"] for it in web._items()}
+    scene = ids["scene_1.jpg"]
+
+    # Never pick: toggled in the detail panel, leaves the slideshow, has a filter, and is not offered to the AI.
+    client.post(f"/slideshow/add/{scene}")
+    resp = client.post(f"/never-pick/{scene}")
+    assert "✓ Never pick" in resp.text and resp.headers["HX-Trigger"] == "analysed"
+    assert web._pick_numbers() == {}
+    grid = client.get("/grid?flag=never_pick").text
+    assert "scene_1.jpg" in grid and "scene_2.jpg" not in grid and ">never pick</span>" in grid
+    prompts = []
+    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: prompts.append(m[0]["content"]) or {"picks": []})
+    client.post("/slideshow/select", data={"description": "x"})
+    assert f"\n{ids['scene_2.jpg']} |" in prompts[0] and f"\n{scene} |" not in prompts[0]
+    assert "✓ Never pick" not in client.post(f"/never-pick/{scene}").text  # off again
+    client.get("/grid?flag=all")
+
+    # Date range: both days included, kept in the URL, out-of-range photos hidden; "" clears one end.
+    resp = client.get("/grid?from=2026-08-11&to=2026-08-11")
+    assert "scene_1.jpg" in resp.text and "video.mp4" not in resp.text
+    assert resp.headers["HX-Replace-Url"] == "/?flag=all&from=2026-08-11&to=2026-08-11"
+    assert "scene_1.jpg" not in client.get("/grid?from=2026-08-12").text  # to is remembered: nothing matches
+    assert "video.mp4" in client.get("/grid?to=").text  # from 2026-08-12 on: only the video
+    client.get("/?flag=all&from=junk")
+    assert web.job["from"] == web.job["to"] == "" and "video.mp4" in client.get("/grid").text
+
+    # Caption: corrected by hand, found by the search; empty or undescribed is refused.
+    resp = client.post(f"/caption/{scene}", data={"caption": "  Red fox on the dune "})
+    assert 'value="Red fox on the dune"' in resp.text
+    assert "scene_1.jpg" in client.get("/grid?q=fox").text and "scene_2.jpg" not in client.get("/grid").text
+    assert client.post(f"/caption/{scene}", data={"caption": " "}).status_code == 400
+    assert client.post(f"/caption/{ids['very_blurry.jpg']}", data={"caption": "x"}).status_code == 400
+    assert web._item(scene)["ai"]["tags"] == ["beach", "sunset"]  # the rest of the AI result is untouched

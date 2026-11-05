@@ -20,6 +20,10 @@
   {% include "_progress.html" %}
   <input class="search" type="search" name="q" value="{{ job.query }}" placeholder="Search captions, tags, file names… (e.g. boat sunset)"
     aria-label="Search" hx-get="/grid" hx-target="#grid" hx-trigger="input changed delay:300ms, search">
+  <span class="dates" title="Only photos taken on these days (empty: no limit)">
+    <label>From <input type="date" name="from" value="{{ job['from'] }}" hx-get="/grid" hx-target="#grid" hx-trigger="change"></label>
+    <label>to <input type="date" name="to" value="{{ job['to'] }}" hx-get="/grid" hx-target="#grid" hx-trigger="change"></label>
+  </span>
 </div>
 <main>
   <section id="grid" hx-get="/grid" hx-trigger="load, analysed from:body"></section>

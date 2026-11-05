@@ -81,14 +81,16 @@ def on_screen(it: dict, seconds: float) -> float:
 
 def select(conn, description: str, current: list[dict] | None = None, instruction: str = "",
            seconds: int = SECONDS_PER_PHOTO) -> list[dict]:
-    """Ask the LLM for picks; returns [{"id", "reason"}] restricted to described, non-duplicate items.
+    """Ask the LLM for picks; returns [{"id", "reason"}] restricted to described, non-duplicate items
+    not marked "Never pick".
 
     With an instruction, the current picks are refined instead of chosen anew; they stay valid even if
     added by hand (a duplicate or a photo without AI description).
     """
     current = current or []
     kept = {p["id"] for p in current}
-    items = [it for it in db.all_media(conn) if (it["ai"] and not it["duplicate_of"]) or it["id"] in kept]
+    items = [it for it in db.all_media(conn)
+             if (it["ai"] and not it["duplicate_of"] and not it["excluded"]) or it["id"] in kept]
     if not any(it["ai"] for it in items):
         raise ValueError("No photos described by AI yet – analyse the project first.")
     settings = load_settings("slideshow")

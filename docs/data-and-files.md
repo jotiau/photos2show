@@ -70,6 +70,7 @@ a cache folder.
 | `duplicate_of` | id of the best shot of the same scene, NULL for the best shot itself |
 | `ai` | JSON of the AI description, NULL until described |
 | `chosen` | best shot by choice: 0 no, 1 by you, 2 by the AI; 3 kept separately (not similar, never grouped) |
+| `excluded` | 1: *Never pick* – not offered to the AI for the slideshow; kept on later scans |
 
 ### `selection.json`
 

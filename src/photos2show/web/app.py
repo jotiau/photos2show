@@ -16,7 +16,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import uvicorn
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -45,7 +45,7 @@ templates.env.globals["setting_fields"] = db.SETTINGS
 templates.env.globals["AI_PICK"] = AI_PICK
 
 FILTERS = ("all", "ok", "skips_ai", "very_blurry", "blurry", "too_dark", "too_bright",
-           "low_contrast", "monotone", "duplicate", "video", "in_slideshow")
+           "low_contrast", "monotone", "duplicate", "video", "in_slideshow", "never_pick")
 REFRESH = {"HX-Refresh": "true"}
 UNSTACKED = ("duplicate", "skips_ai")  # these filters are about the shots a stack hides
 SORTS = {k: v[0] for k, v in slideshow.SORTS.items() if k != "reverse"}  # Library: name -> label
@@ -55,6 +55,7 @@ REVIEW = "Review duplicates"
 # Single local user, one analysis at a time.
 job = {"project": "", "folder": "", "running": False, "phase": "", "done": 0, "total": 0, "started": 0.0,
        "stopping": False, "summary": None, "error": None, "flag": "all", "query": "", "stacks": True, "sort": "date",
+       "from": "", "to": "",
        "grid_phase": "", "grid_done": 0}
 lock = threading.Lock()
 stop = threading.Event()
@@ -100,7 +101,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost
 
 def _open(name: str, projects: dict[str, str] | None = None) -> None:
     folder = (projects or db.load_projects())[name]
-    job.update(project=name, folder=folder, flag="all", query="", summary=None, error=None)
+    job.update(project=name, folder=folder, flag="all", query="", summary=None, error=None, **{"from": "", "to": ""})
 
 
 def _run(root: Path) -> None:
@@ -184,6 +185,8 @@ def _matches(it: dict, flag: str) -> bool:
         return it["kind"] == "video"
     if flag == "in_slideshow":
         return it["pick"] is not None
+    if flag == "never_pick":
+        return bool(it["excluded"])
     if flag.startswith("tag:"):
         return flag[4:] in ((it["ai"] or {}).get("tags") or [])
     return flag in it["flags"]
@@ -195,6 +198,19 @@ def _found(it: dict, query: str) -> bool:
     text = " ".join([str(a.get("caption") or ""), str(a.get("scene") or ""), *a.get("tags", []),
                      *map(str, a.get("issues") or []), Path(it["path"]).name]).lower()
     return all(word in text for word in query.lower().split())
+
+
+def _day(value: str | None) -> str:
+    """A YYYY-MM-DD day from the date inputs or the URL; anything else means no limit."""
+    return value if value and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) else ""
+
+
+def _in_range(it: dict) -> bool:
+    """Taken between the From and To days (both included); undated photos only when no range is set."""
+    if not (job["from"] or job["to"]):
+        return True
+    day = (it["taken_at"] or "")[:10]
+    return bool(day) and job["from"] <= day and (not job["to"] or day <= job["to"])
 
 
 def _root() -> Path:
@@ -216,13 +232,15 @@ def _page(request: Request, template: str, **ctx) -> HTMLResponse:
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request, flag: str | None = None, q: str | None = None, sort: str | None = None,
-          photo: int | None = None):
+          photo: int | None = None, start: str | None = Query(None, alias="from"),
+          end: str | None = Query(None, alias="to")):
     """The view comes from the URL (library_url): reload, back/forward and bookmarks keep it.
     A bare / (typed, or a bookmark of the start page) keeps the last view."""
     if not job["project"] and (projects := db.load_projects()):
         _open(list(projects)[-1])
     if flag:
-        job.update(flag=flag, query=(q or "").strip(), sort=sort if sort in SORTS else "date")
+        job.update(flag=flag, query=(q or "").strip(), sort=sort if sort in SORTS else "date",
+                   **{"from": _day(start), "to": _day(end)})
     return _page(request, "library.html", page="library", photo=photo)
 
 
@@ -236,9 +254,9 @@ templates.env.globals["media_key"] = media_key
 
 
 def library_url(**changes) -> str:
-    """The Library URL of the current view (flag, search, sort), with changes; always has flag, so a bare /
+    """The Library URL of the current view (flag, search, sort, date range), with changes; always has flag, so a bare /
     means "keep the last view"."""
-    state = {"flag": job["flag"], "q": job["query"], "sort": job["sort"], **changes}
+    state = {"flag": job["flag"], "q": job["query"], "sort": job["sort"], "from": job["from"], "to": job["to"], **changes}
     return "/?" + urlencode({k: v for k, v in state.items() if k == "flag" or v not in (None, "", "date")})
 
 
@@ -376,13 +394,17 @@ def progress(request: Request):
 
 @app.get("/grid", response_class=HTMLResponse)
 def grid(request: Request, flag: str | None = None, q: str | None = None, stacks: bool | None = None,
-         sort: str | None = None):
+         sort: str | None = None, start: str | None = Query(None, alias="from"),
+         end: str | None = Query(None, alias="to")):
     flag = job["flag"] = flag or job["flag"]  # remembered so live reloads keep the filter
     query = job["query"] = (job["query"] if q is None else q).strip()  # q="" clears the search
+    for key, value in (("from", start), ("to", end)):  # like q: missing keeps the range, "" clears it
+        if value is not None:
+            job[key] = _day(value)
     job.update(grid_phase=job["phase"], grid_done=job["done"])  # what the grid shows: newer = "new results"
     stacked = job["stacks"] = job["stacks"] if stacks is None else stacks
     by = job["sort"] = sort if sort in SORTS else job["sort"]
-    items = [it for it in _items() if _found(it, query)]
+    items = [it for it in _items() if _found(it, query) and _in_range(it)]
     # Stacks: only the best shot of a scene is shown, with "+N" for its other shots (unless the search hides it).
     ids = {it["id"] for it in items}
     stacked_away = {it["id"] for it in items if stacked and it["duplicate_of"] in ids}
@@ -400,7 +422,7 @@ def grid(request: Request, flag: str | None = None, q: str | None = None, stacks
                                                               "query": query, "stacked": stacked, "more": more,
                                                               "tags": tags.most_common(TOP_TAGS),
                                                               "sorts": SORTS, "sort": by})
-    if q is not None or sort is not None:  # typing or sorting replaces the URL; filters push their own
+    if (q, sort, start, end) != (None,) * 4:  # typing, sorting or dates replace the URL; filters push their own
         resp.headers["HX-Replace-Url"] = library_url()
     return resp
 
@@ -614,6 +636,36 @@ def describe_again(request: Request, media_id: int):
         describing[media_id] = None
         threading.Thread(target=_describe_now, args=(_root(), media_id), daemon=True).start()
     return detail(request, media_id)
+
+
+@app.post("/never-pick/{media_id}", response_class=HTMLResponse)
+def never_pick(request: Request, media_id: int):
+    """Library detail panel: toggle "Never pick" – the AI is never offered this photo for the slideshow.
+    Turning it on also removes the photo from the current slideshow."""
+    excluded = not _item(media_id)["excluded"]
+    conn = db.connect(_root())
+    conn.execute("UPDATE media SET excluded = ? WHERE id = ?", (int(excluded), media_id))
+    conn.commit()
+    if excluded:
+        slideshow.update(_root(), lambda s: {**s, "picks": slideshow.edit(s["picks"], "remove", media_id)})
+    resp = detail(request, media_id)
+    resp.headers["HX-Trigger"] = "analysed"  # the card's badge and pick numbers in the grid
+    return resp
+
+
+@app.post("/caption/{media_id}", response_class=HTMLResponse)
+def edit_caption(request: Request, media_id: int, caption: str = Form(...)):
+    """Library detail panel: correct the AI's caption by hand; the slideshow AI chooses by it. Describe again
+    replaces it with a new AI caption."""
+    caption = caption.strip()
+    if not _item(media_id)["ai"] or not caption or len(caption) > 500:
+        raise HTTPException(400)
+    conn = db.connect(_root())
+    conn.execute("UPDATE media SET ai = json_set(ai, '$.caption', ?) WHERE id = ?", (caption, media_id))
+    conn.commit()
+    resp = detail(request, media_id)
+    resp.headers["HX-Trigger"] = "analysed"  # the caption on the card
+    return resp
 
 
 @app.get("/describing/{media_id}", response_class=HTMLResponse)
