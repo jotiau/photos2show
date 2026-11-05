@@ -29,7 +29,9 @@
       <label for="s-{{ key }}">{{ label }}</label>
       <input id="s-{{ key }}" name="value" value="{{ settings()[key] }}" placeholder="default ({{ env_defaults[key] }})"
         {{ 'type=password autocomplete=off' if key == "api_key" else 'type=url' }}
-        hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change" aria-describedby="h-{{ key }}">
+        hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change" hx-target="#msg-{{ key }}"
+        aria-describedby="h-{{ key }}">
+      <span id="msg-{{ key }}" role="alert"></span>
     </div>
     {% elif choices is none %}
     {% set role = key.removesuffix("_model") %}

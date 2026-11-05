@@ -502,6 +502,8 @@ def cleanup():
 def save_setting(key: str = Form(...), value: str = Form("")):  # "" for a model: back to the .env default
     value = value.strip()
     if key not in db.SETTINGS or not db.valid_setting(key, value):
+        if key == "base_url":  # typed by hand, so say why it was not saved
+            return HTMLResponse('<span class="error">Not saved: the address must start with http:// or https://.</span>')
         raise HTTPException(400)
     db.save_setting(key, value)
     return HTMLResponse("", headers=REFRESH)

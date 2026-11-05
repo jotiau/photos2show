@@ -51,7 +51,8 @@ into blocks: **Appearance**, **AI server and models**, **Analysis**, **Slideshow
 *default (…)*, keeps the model from `.env`. If the server does not answer within 3 s, a text field is
 shown instead: type the model id, or leave it empty for the default. Both use the same server
 (*Server address*, else `OPENAI_BASE_URL`); after changing it the page reloads and lists that server's
-models. A server address that does not start with `http://` or `https://` is not saved. A new analysis
+models. A server address that does not start with `http://` or `https://` is not saved; a message under the
+field says so. A new analysis
 model only describes photos that have no description yet; existing descriptions are kept.
 
 *Thinking* and *Parallel AI requests* start with the `.env` value; once chosen in Settings, changing
@@ -147,7 +148,8 @@ ones above. Without a GPU, `gemma4:e2b` or `qwen3-vl:2b-instruct` take about a m
 `setup.sh` / `setup.ps1` (see [Install and start](user-guide.md#install-and-start)) picks the row that
 matches your GPU memory, downloads both models and creates `photos2show-slideshow`: the slideshow model
 with a 32k context (`num_ctx 32768`), so the setting below is not needed. It shares the downloaded
-files. Models chosen in Settings still override `.env`.
+files. Server address, API key, models and *Thinking* chosen in Settings still override `.env`: set
+them back to empty or *default* to use what setup wrote (the scripts remind you after writing `.env`).
 
 The two models do not need to fit at the same time: the analysis runs first, the slideshow afterwards,
 and Ollama swaps them (a few seconds). Each one alone has to fit, the slideshow model together with

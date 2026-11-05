@@ -272,6 +272,8 @@ def test_settings(tmp_path, monkeypatch):
     assert 'data-theme="dark"' in client.get("/slideshow").text
     assert client.post("/settings", data={"key": "accent", "value": "teal"}).headers["HX-Refresh"] == "true"
     assert 'data-accent="teal"' in client.get("/").text
+    assert "must start with http" in client.post("/settings", data={"key": "base_url", "value": "localhost:1234"}).text
+    assert web.db.load_settings()["base_url"] == ""  # shown as an error, not saved
     assert 'value="teal"\n          aria-label="teal" checked' in client.get("/settings").text  # swatch picker marks the choice
     assert client.get("/static/style.css").headers["Cache-Control"] == "no-cache"  # updates show without a hard reload
     assert '<dialog id="player" class=" ">' in client.get("/slideshow").text  # Captions and Zoom are off by default

@@ -106,7 +106,7 @@ SLIDESHOW_MODEL=photos2show-slideshow
 AI_CONCURRENCY=1
 AI_THINKING=on
 "@
-    Write-Host "Wrote .env."
+    Write-Host "Wrote .env. Server, key, models or Thinking chosen in Settings still win over it; set them back to default there."
 }
 
 Write-Host "Starting photos2show (stop with Ctrl+C; next time: uv run photos2show-web) ..."

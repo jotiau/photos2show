@@ -115,7 +115,7 @@ SLIDESHOW_MODEL=photos2show-slideshow
 AI_CONCURRENCY=1
 AI_THINKING=on
 EOF
-  echo "Wrote .env."
+  echo "Wrote .env. Server, key, models or Thinking chosen in Settings still win over it; set them back to default there."
 fi
 
 echo "Starting photos2show (stop with Ctrl+C; next time: uv run photos2show-web) ..."
