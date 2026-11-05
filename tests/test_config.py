@@ -1,5 +1,6 @@
 import pytest
 
+from photos2show import db
 from photos2show.config import cache_root, default_concurrency, load_settings, thinking
 
 
@@ -50,3 +51,17 @@ def test_ai_thinking_is_on_unless_switched_off(monkeypatch):
     monkeypatch.setenv("AI_THINKING", "no")
     with pytest.raises(SystemExit, match="AI_THINKING"):
         thinking()
+
+
+def test_model_per_role_from_settings_then_env(tmp_path, monkeypatch):
+    monkeypatch.setattr("photos2show.config.load_dotenv", lambda: None)
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path))
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://x.invalid/v1")
+    for name in ("ANALYSIS_MODEL", "SLIDESHOW_MODEL"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("MODEL", "base")
+    assert load_settings("analysis").model == load_settings("slideshow").model == "base"
+    monkeypatch.setenv("SLIDESHOW_MODEL", "big")
+    assert (load_settings().model, load_settings("slideshow").model) == ("base", "big")
+    db.save_setting("analysis_model", "small-vl")
+    assert (load_settings().model, load_settings("slideshow").model) == ("small-vl", "big")

@@ -20,6 +20,23 @@
           aria-label="{{ c }}" {{ 'checked' if c == settings()[key] }}><span></span></label>{% endfor %}
       </form>
     </fieldset>
+    {% elif choices is none %}
+    {% set role = key.removesuffix("_model") %}
+    <div>
+      <label for="s-{{ key }}">{{ label }}</label>
+      {% if models %}
+      <select id="s-{{ key }}" name="value" hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change"
+        aria-describedby="h-{{ key }}">
+        <option value="">default ({{ env_model(role) }})</option>
+        {% for m in models %}<option {{ 'selected' if m == settings()[key] }}>{{ m }}</option>{% endfor %}
+        {% if settings()[key] and settings()[key] not in models %}<option selected>{{ settings()[key] }}</option>{% endif %}
+      </select>
+      {% else %}
+      <input id="s-{{ key }}" name="value" value="{{ settings()[key] }}" placeholder="default ({{ env_model(role) }})"
+        hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change" aria-describedby="h-{{ key }}">
+      <p class="help">The server did not list its models – type the name, or leave it empty for the default.</p>
+      {% endif %}
+    </div>
     {% else %}
     <div>
       <label for="s-{{ key }}">{{ label }}</label>

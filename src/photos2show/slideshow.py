@@ -91,7 +91,7 @@ def select(conn, description: str, current: list[dict] | None = None, instructio
     items = [it for it in db.all_media(conn) if (it["ai"] and not it["duplicate_of"]) or it["id"] in kept]
     if not any(it["ai"] for it in items):
         raise ValueError("No photos described by AI yet – analyse the project first.")
-    settings = load_settings()
+    settings = load_settings("slideshow")
     client = ai.make_client(settings)
     size = db.load_settings()["desc_size"]
     if size == "auto":

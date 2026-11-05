@@ -23,7 +23,7 @@ from fastapi.templating import Jinja2Templates
 from markdown_it import MarkdownIt
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from photos2show import db, scan, slideshow
+from photos2show import ai, config, db, scan, slideshow
 from photos2show.config import env
 from photos2show.pipeline import (
     AI_PICK,
@@ -452,7 +452,17 @@ def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
 def settings_page(request: Request):
     unused = db.unused_libraries()
     size = sum(f.stat().st_size for d in unused for f in d.rglob("*") if f.is_file())
-    return _page(request, "settings.html", page="settings", fields=db.SETTINGS, unused=len(unused), unused_mb=size / 1e6)
+    return _page(request, "settings.html", page="settings", fields=db.SETTINGS, unused=len(unused), unused_mb=size / 1e6,
+                 models=_server_models(), env_model=config.env_model)
+
+
+def _server_models() -> list[str] | None:
+    """Model names the server lists, or None (unreachable, bad .env): the page then offers a text field."""
+    try:
+        listed = ai.list_models(ai.make_client(config.load_settings()), timeout=3)
+    except SystemExit:  # OPENAI_BASE_URL is not a URL
+        return None
+    return sorted(m.id for m in listed) if listed else None
 
 
 @app.post("/settings/cleanup", response_class=HTMLResponse)
@@ -465,8 +475,9 @@ def cleanup():
 
 
 @app.post("/settings", response_class=HTMLResponse)
-def save_setting(key: str = Form(...), value: str = Form(...)):
-    if key not in db.SETTINGS or value not in db.SETTINGS[key][1]:
+def save_setting(key: str = Form(...), value: str = Form("")):  # "" for a model: back to the .env default
+    value = value.strip()
+    if key not in db.SETTINGS or not db.valid_setting(key, value):
         raise HTTPException(400)
     db.save_setting(key, value)
     return HTMLResponse("", headers=REFRESH)

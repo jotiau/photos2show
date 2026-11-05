@@ -48,6 +48,16 @@ def test_description_size_shortens_the_candidate_lines(described, monkeypatch):
     assert auto == full  # the server does not report its context size
 
 
+def test_slideshow_uses_the_slideshow_model(described, monkeypatch):
+    folder, _ = described
+    used = []
+    monkeypatch.setattr("photos2show.ai.complete_json", lambda c, s, m: used.append(s.model) or {"picks": []})
+    db.save_setting("slideshow_model", "big-text-model")
+    with pytest.raises(ValueError):
+        slideshow.select(db.connect(folder), "x")
+    assert used == ["big-text-model"]
+
+
 def test_auto_size_picks_the_most_that_fits():
     item = {"id": 1, "taken_at": "2026-07-14T10:00", "kind": "image", "flags": [],
             "ai": {"scene": "landscape", "tags": [f"tag{i}" for i in range(10)], "aesthetic": 7, "interest": 6,

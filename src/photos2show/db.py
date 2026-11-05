@@ -92,12 +92,21 @@ def load_projects() -> dict[str, str]:
 _PARALLEL = str(default_concurrency())  # AI_CONCURRENCY from .env, kept as a choice even if not 1/2/4/8
 
 # App settings: key -> (label, choices, default, help). Add a line here and it shows up on the settings page.
+# choices None: any text (the model names, offered from the server's list on the settings page).
 SETTINGS = {
     "theme": ("Theme", ("auto", "light", "dark", "grey"), "auto",
               "Light or dark colours; auto follows your system. Grey is a neutral mid-grey that doesn't tint how photos look."),
     "accent": ("Accent colour", ("blue", "indigo", "purple", "magenta", "pink", "red", "orange",
                                     "amber", "olive", "green", "teal", "cyan", "slate"), "blue",
                "Colour of the top bar, buttons, selections and highlights."),
+    "analysis_model": ("Analysis model", None, "",
+                       "The model that describes each photo and compares shots of one scene. It must see images "
+                       "(vision) and runs once per photo, so a small, fast one pays off. Default: ANALYSIS_MODEL "
+                       "or MODEL from .env."),
+    "slideshow_model": ("Slideshow model", None, "",
+                        "The model that chooses and refines the slideshow from all photo descriptions in one "
+                        "request. It needs no vision but a large context and good reasoning, so a bigger model "
+                        "helps. Default: SLIDESHOW_MODEL or MODEL from .env."),
     "parallel": ("Parallel AI requests", tuple(sorted({"1", "2", "4", "8", _PARALLEL}, key=int)), _PARALLEL,
                  "How many photos are sent to the AI at once. More is faster if the server keeps up; "
                  "a local model on your own computer often works best with 1."),
@@ -116,7 +125,12 @@ SETTINGS = {
 def load_settings() -> dict[str, str]:
     f = cache_root() / "settings.json"
     saved = json.loads(f.read_text()) if f.exists() else {}
-    return {k: saved[k] if saved.get(k) in choices else default for k, (_, choices, default, _) in SETTINGS.items()}
+    return {k: saved[k] if valid_setting(k, saved.get(k)) else default for k, (_, _, default, _) in SETTINGS.items()}
+
+
+def valid_setting(key: str, value) -> bool:
+    choices = SETTINGS[key][1]
+    return isinstance(value, str) and len(value) <= 200 if choices is None else value in choices
 
 
 def save_setting(key: str, value: str) -> None:

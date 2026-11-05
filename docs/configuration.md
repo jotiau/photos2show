@@ -12,6 +12,8 @@ Copy `.env.example` to `.env` in the project folder. `.env` is git-ignored.
 | `OPENAI_BASE_URL` | – (required) | OpenAI-compatible endpoint, e.g. `http://localhost:11434/v1`. Must start with `http://` or `https://`. |
 | `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth |
 | `MODEL` | `glm-5.3-flash` | model id exactly as the server lists it |
+| `ANALYSIS_MODEL` | `MODEL` | model for the photo descriptions and side-by-side comparisons (needs vision); default for *Analysis model* |
+| `SLIDESHOW_MODEL` | `MODEL` | model for choosing and refining the slideshow (text only); default for *Slideshow model* |
 | `AI_CONCURRENCY` | `2` | parallel AI requests (whole number ≥ 1); default for *Parallel AI requests* and `photos2show-scan --parallel` |
 | `AI_THINKING` | `on` | `off` asks thinking models to answer without reasoning first (see [Thinking models](#thinking-models)); `on` or `off` |
 | `PHOTOS2SHOW_CACHE` | `~/.local/share/photos2show` (`$XDG_DATA_HOME/photos2show`) | data folder for projects, AI results and thumbnails |
@@ -30,9 +32,17 @@ Saved in `settings.json` in the data folder and valid for all projects.
 |---|---|---|---|
 | Theme | auto, light, dark, grey | auto | colour theme; auto follows your system. Grey is a neutral mid-grey that does not tint how photos look. |
 | Accent colour | blue, indigo, purple, magenta, pink, red, orange, amber, olive, green, teal, cyan, slate | blue | colour of the top bar, buttons, selections, links and highlights. Picked by clicking a colour swatch. |
+| Analysis model | the models the server lists | `ANALYSIS_MODEL`, else `MODEL` | the model that describes each photo and compares shots of one scene. Needs vision and runs once per photo, so a small, fast model pays off. |
+| Slideshow model | the models the server lists | `SLIDESHOW_MODEL`, else `MODEL` | the model that chooses and refines the slideshow in one request over all photo descriptions. Needs no vision but a large context and good reasoning. *auto* photo details use its context size. |
 | Parallel AI requests | 1, 2, 4, 8 (plus the `AI_CONCURRENCY` value) | `AI_CONCURRENCY` | how many photos go to the AI at once. More is faster if the server keeps up; a local model usually works best with 1. |
 | Review duplicates before AI | on, off | on | on: Analyse pauses after scanning so you can pick the best shot of each new same-scene group, or let the AI compare them. Off: the technically best shot is used without asking. |
 | Photo details for choosing | full, short, minimal, auto | full | how much the slideshow AI reads per photo (see below). Also offered next to *Select photos*. |
+
+*Analysis model* and *Slideshow model* list the models from the server's `/models`; the first entry,
+*default (…)*, keeps the model from `.env`. If the server does not answer within 3 s, a text field is
+shown instead: type the model id, or leave it empty for the default. Both use the same server
+(`OPENAI_BASE_URL`). A new analysis model only describes photos that have no description yet; existing
+descriptions are kept.
 
 *Photo details for choosing*:
 
@@ -57,7 +67,12 @@ Any server that speaks the OpenAI chat API and accepts images works.
 | LM Studio (local) | `http://localhost:1234/v1` | empty | the model id LM Studio shows |
 | Self-hosted (vLLM, SGLang, …) | your server's `/v1` URL | your key, if any | as the server lists it |
 
-`uv run photos2show-smoke` prints the model ids the server offers and sends one test picture.
+`uv run photos2show-smoke` prints the model ids the server offers and sends one test picture to the
+analysis model.
+
+The analysis and the slideshow step can use different models (Settings → *Analysis model* /
+*Slideshow model*, or `ANALYSIS_MODEL` / `SLIDESHOW_MODEL`): a small vision model for the many photo
+descriptions, a larger text model with a big context for the one slideshow request.
 Development used a self-hosted GLM-5.3 Flash; other models should work but may describe photos differently.
 If you try one, please share how it went in an issue (*Model experience* template).
 
@@ -142,5 +157,5 @@ AI descriptions are made once per file.
 ## Timeouts
 
 Each photo description may take up to 90 s, an AI side-by-side comparison 120 s, and the `/models`
-lookup for *auto* 10 s. A connection or server error is retried once (the `/models` lookup not at
+lookup for *auto* 10 s (3 s for the model list on the Settings page). A connection or server error is retried once (the `/models` lookup not at
 all); a request that still fails is reported, and the next *Analyse again* retries the photo.

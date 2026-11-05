@@ -275,6 +275,29 @@ def test_settings(tmp_path, monkeypatch):
     assert client.get("/static/style.css").headers["Cache-Control"] == "no-cache"  # updates show without a hard reload
 
 
+def test_model_settings(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://fake.invalid/v1")
+    monkeypatch.setenv("MODEL", "env-model")
+    monkeypatch.delenv("ANALYSIS_MODEL", raising=False)
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    monkeypatch.setattr(web.ai, "list_models", lambda c, timeout: None)  # server unreachable: a text field
+    page = client.get("/settings").text
+    assert 'id="s-analysis_model" name="value" value="" placeholder="default (env-model)"' in page
+    assert client.post("/settings", data={"key": "analysis_model", "value": " qwen3-vl "}).status_code == 200
+    assert web.db.load_settings()["analysis_model"] == "qwen3-vl"
+    assert client.post("/settings", data={"key": "analysis_model", "value": "x" * 201}).status_code == 400
+
+    class M:
+        def __init__(self, id): self.id = id
+    monkeypatch.setattr(web.ai, "list_models", lambda c, timeout: [M("zeta"), M("alpha")])
+    page = client.get("/settings").text
+    assert '<option value="">default (env-model)</option>\n        <option >alpha</option><option >zeta</option>' in page
+    assert "<option selected>qwen3-vl</option>" in page  # saved, though the server does not list it (any more)
+    client.post("/settings", data={"key": "analysis_model", "value": ""})  # back to the .env default
+    assert web.db.load_settings()["analysis_model"] == ""
+
+
 def test_cleanup_unused_data(tmp_path, monkeypatch):
     monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     monkeypatch.setitem(web.job, "running", False)

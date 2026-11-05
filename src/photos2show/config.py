@@ -13,7 +13,8 @@ class Settings:
     thinking: bool = True
 
 
-def load_settings() -> Settings:
+def load_settings(role: str = "analysis") -> Settings:
+    """Server settings; role analysis (per photo, needs vision) or slideshow (one text prompt) picks the model."""
     load_dotenv()
     # expandvars: python-dotenv only expands ${VAR}; a plain $VAR stayed literal ("Connection error" x 857)
     base_url = os.path.expandvars(os.environ.get("OPENAI_BASE_URL", ""))
@@ -23,9 +24,21 @@ def load_settings() -> Settings:
     return Settings(
         base_url=base_url,
         api_key=os.path.expandvars(os.environ.get("OPENAI_API_KEY", "")) or "none",  # empty: server without auth
-        model=os.environ.get("MODEL", "glm-5.3-flash"),
+        model=model(role),
         thinking=thinking(),
     )
+
+
+def model(role: str) -> str:
+    """Chosen in Settings, else the model from .env."""
+    from photos2show import db  # db imports this module
+    return db.load_settings()[f"{role}_model"] or env_model(role)
+
+
+def env_model(role: str) -> str:
+    """ANALYSIS_MODEL / SLIDESHOW_MODEL, else MODEL."""
+    load_dotenv()
+    return os.environ.get(f"{role.upper()}_MODEL") or os.environ.get("MODEL", "glm-5.3-flash")
 
 
 def thinking() -> bool:

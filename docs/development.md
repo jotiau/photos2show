@@ -25,13 +25,13 @@ CI (`.github/workflows/tests.yml`) runs `uv run pytest` on Linux, macOS and Wind
 
 ```
 src/photos2show/
-  config.py     # .env settings, AI_CONCURRENCY, AI_THINKING, data folder location
+  config.py     # .env settings, model per role (analysis / slideshow), AI_CONCURRENCY, AI_THINKING, data folder location
   db.py         # SQLite schema, projects.json, settings.json (SETTINGS), project stats, unused data
   scan.py       # file walk, supported formats, EXIF, RAW, video frames, dates, video length
   quality.py    # OpenCV metrics, thresholds, flags, technical score
   dedup.py      # pHash same-scene grouping, best of each group
   pipeline.py   # pass 1 analyse_folder(), pass 2 describe_folder(), choose_best(), ai_choose_best()
-  ai.py         # OpenAI client, prompts, analyse_image(), pick_best(), complete_json(), context_length()
+  ai.py         # OpenAI client, prompts, analyse_image(), pick_best(), complete_json(), list_models(), context_length()
   slideshow.py  # selection prompt, validation, edits, sorting, undo, export
   cli.py        # photos2show-scan
   smoke.py      # photos2show-smoke

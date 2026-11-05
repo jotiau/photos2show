@@ -99,16 +99,20 @@ def pick_best(client: OpenAI, settings: Settings, imgs: list[Image.Image]) -> in
     return n - 1
 
 
+def list_models(client: OpenAI, timeout: float = 10) -> list | None:
+    """The server's /models entries, or None if it does not answer (not offered by every server)."""
+    try:
+        return client.with_options(timeout=timeout, max_retries=0).models.list().data  # a hung server must not stall
+    except Exception:
+        return None
+
+
 def context_length(client: OpenAI, settings: Settings) -> int | None:
     """The model's context size in tokens if the server lists it under /models (e.g. vLLM), else None.
 
     Not llama.cpp's meta.n_ctx_train: that is the training size, often far above the size the server runs with.
     """
-    try:
-        models = client.with_options(timeout=10, max_retries=0).models.list().data  # a hung server must not stall Select
-    except Exception:  # not offered by every server; unknown is fine
-        return None
-    for m in models:
+    for m in list_models(client) or []:
         if m.id == settings.model:
             d = m.model_dump()
             for v in (d.get("max_model_len"), d.get("context_length"), d.get("max_context_length")):
