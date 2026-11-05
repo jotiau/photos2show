@@ -15,7 +15,7 @@ result, deviation from this plan), stop and come back to ask before proceeding �
 | AI model | Self-hosted **GLM-5.3 Flash** via OpenAI-compatible API (natively multimodal: image input, ~1M context) |
 | Input | Several hundred photos + some videos in the common formats incl. camera RAW (videos: a few sampled frames only) |
 | Output | Sorted folder with copied, numbered files (originals untouched) |
-| Models per step | *Analysis model* (vision, per photo, also side-by-side picks) and *Slideshow model* (text, one prompt) are chosen separately: Settings (list from the server's `/models`, text field if unreachable), else `ANALYSIS_MODEL` / `SLIDESHOW_MODEL`, else `MODEL`. One server (`OPENAI_BASE_URL`) for both; separate URLs only if needed |
+| Models per step | *Analysis model* (vision, per photo, also side-by-side picks) and *Slideshow model* (text, one prompt) are chosen separately: Settings (list from the server's `/models`, text field if unreachable), else `ANALYSIS_MODEL` / `SLIDESHOW_MODEL`, else `MODEL`. One server (Settings → *Server address*, else `OPENAI_BASE_URL`) for both; separate URLs only if needed |
 | Local setup | `setup.sh` / `setup.ps1`: uv + app, Ollama (asks: install automatically or yourself; nothing installed unasked), RAM/GPU detection → *Recommended pairs* row, shown and overridable before downloading, `photos2show-slideshow` = slideshow model with `num_ctx 32768` (works with Ollama as a service, no `OLLAMA_CONTEXT_LENGTH`), `.env` (old one → `.env.bak`), starts the UI |
 | UI | Simple local web UI from the start |
 | Faces / people | Not in scope – possible future feature |
@@ -173,7 +173,7 @@ per page; destructive actions red.
   seconds per photo, origin cycling through the corners; photos only) are settings, off by default; the
   player buttons switch the class at once and save the setting with a plain `fetch` (the htmx answer's
   HX-Refresh would reload the page and end the show).
-- **Settings**: theme (auto / light / dark / grey), accent colour (13 colours picked from swatches; it also colours the top bar), analysis and slideshow model, parallel AI requests, review duplicates before AI, photo details for choosing, captions in Play, slow zoom in Play
+- **Settings**, in blocks (`db.GROUPS`): *Appearance* – theme (auto / light / dark / grey), accent colour (13 colours picked from swatches; it also colours the top bar); *AI server and models* – server address, API key, analysis and slideshow model, thinking, parallel AI requests (each overrides its `.env` value; empty keeps it); *Analysis* – review duplicates before AI; *Slideshow* – photo details for choosing, captions in Play, slow zoom in Play; *Data and help* – delete unused data, open documentation
   (each with a help line); delete cached data of folders
   no project uses; *Open documentation* opens `docs/` rendered as pages in a new tab (`/docs/<page>`).
 
@@ -197,7 +197,9 @@ per page; destructive actions red.
 - SQLite via stdlib `sqlite3`
 - `pytest` for tests
 - Config via `.env`: `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `MODEL` (`prod` on the BLUM server),
-  `AI_CONCURRENCY`, `AI_THINKING`, `PHOTOS2SHOW_CACHE` (data folder, default `~/.local/share/photos2show`)
+  `AI_CONCURRENCY`, `AI_THINKING`, `PHOTOS2SHOW_CACHE` (data folder, default `~/.local/share/photos2show`);
+  everything except the data folder and port can be overridden in Settings → *AI server and models*
+  (the data folder holds `settings.json` itself)
 
 ## Project layout
 ```

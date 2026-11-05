@@ -195,8 +195,10 @@ The default is the last export folder, else `<photo folder>_slideshow`.
 
 ## Settings
 
-See [Configuration – Settings page](configuration.md#settings-page) for every option. The *Settings* tab
-also has **Delete unused data**: it removes saved AI results and thumbnails of folders no project uses
+See [Configuration – Settings page](configuration.md#settings-page) for every option. The settings are
+grouped into blocks: *Appearance*, *AI server and models* (server address, API key, both models,
+thinking, parallel requests – everything `.env` sets for the AI), *Analysis*, *Slideshow*, and
+*Data and help*. **Delete unused data**: it removes saved AI results and thumbnails of folders no project uses
 any more (also folders only analysed with `photos2show-scan`). Photos are never touched.
 
 **Open documentation** (at the bottom of Settings) opens this documentation in a new browser tab, with the
@@ -206,7 +208,7 @@ list of pages on the left.
 
 | Problem | What to do |
 |---|---|
-| "OPENAI_BASE_URL is not a URL" | Check `.env`; variables it references (e.g. `${MY_BASE_URL}`) must be set where the app starts (an IDE may not load `~/.bashrc`). |
+| "OPENAI_BASE_URL is not a URL" | Set *Server address* in Settings, or check `.env`; variables it references (e.g. `${MY_BASE_URL}`) must be set where the app starts (an IDE may not load `~/.bashrc`). |
 | AI requests fail or time out | Run `uv run photos2show-smoke` to test the endpoint and list the model ids. Failed photos are retried on the next *Analyse again*, or one by one with *Describe with AI* in the detail panel. |
 | Slideshow ignores the first photos of the trip | The model's context is too small and the list was cut off. Raise the context (32k+) or set *Photo details* to short or minimal. |
 | Local model is slow or stalls | Set *Parallel AI requests* to 1. |

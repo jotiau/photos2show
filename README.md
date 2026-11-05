@@ -67,10 +67,11 @@ Any server that speaks the OpenAI chat API and accepts images works:
 | [Ollama](https://ollama.com) (local) | `http://localhost:11434/v1` | e.g. `gemma4:e4b` |
 | [LM Studio](https://lmstudio.ai) (local) | `http://localhost:1234/v1` | the model id LM Studio shows |
 
-Settings has separate *Analysis model* and *Slideshow model* choices (or `ANALYSIS_MODEL` /
-`SLIDESHOW_MODEL`), e.g. a small vision model per photo and a larger one for the slideshow.
+Settings → *AI server and models* can override everything `.env` sets for the AI (server address,
+API key, *Thinking*), and has separate *Analysis model* and *Slideshow model* choices (or
+`ANALYSIS_MODEL` / `SLIDESHOW_MODEL`), e.g. a small vision model per photo and a larger one for the slideshow.
 Local models need a context of 32k or more for the slideshow step and work best with 1 parallel
-request. For thinking models (Qwen3.5, Qwen3.8, GLM) set `AI_THINKING=off`; see
+request. For thinking models (Qwen3.5, Qwen3.8, GLM) set `AI_THINKING=off` (or *Thinking* off in Settings); see
 [Configuration](docs/configuration.md#local-models) for
 local models and recommended analysis / slideshow pairs per GPU size.
 

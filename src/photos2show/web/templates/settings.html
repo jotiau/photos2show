@@ -10,8 +10,12 @@
 <body>
 {% include "_header.html" %}
 <main class="settings">
-  {% for key, (label, choices, _, help) in fields.items() %}
-  <section class="setting">
+  {% for title, keys in groups.items() %}
+  <section class="settings-group" aria-labelledby="g-{{ loop.index }}">
+  <h2 id="g-{{ loop.index }}">{{ title }}</h2>
+  {% for key in keys %}
+  {% set label, choices, _, help = fields[key] %}
+  <div class="setting">
     {% if key == "accent" %}
     <fieldset class="swatches-field" aria-describedby="h-{{ key }}">
       <legend class="label">{{ label }}</legend>
@@ -20,6 +24,13 @@
           aria-label="{{ c }}" {{ 'checked' if c == settings()[key] }}><span></span></label>{% endfor %}
       </form>
     </fieldset>
+    {% elif key in ("base_url", "api_key") %}
+    <div>
+      <label for="s-{{ key }}">{{ label }}</label>
+      <input id="s-{{ key }}" name="value" value="{{ settings()[key] }}" placeholder="default ({{ env_defaults[key] }})"
+        {{ 'type=password autocomplete=off' if key == "api_key" else 'type=url' }}
+        hx-post="/settings" hx-vals='{"key": "{{ key }}"}' hx-trigger="change" aria-describedby="h-{{ key }}">
+    </div>
     {% elif choices is none %}
     {% set role = key.removesuffix("_model") %}
     <div>
@@ -47,9 +58,13 @@
     </div>
     {% endif %}
     <p class="help" id="h-{{ key }}">{{ help }}</p>
+  </div>
+  {% endfor %}
   </section>
   {% endfor %}
-  <section class="setting">
+  <section class="settings-group" aria-labelledby="g-data">
+  <h2 id="g-data">Data and help</h2>
+  <div class="setting">
     <div>
       <span class="label">Unused data</span>
       {% if unused %}
@@ -62,14 +77,15 @@
       <span id="cleanup-msg"></span>
     </div>
     <p class="help">Saved AI results and thumbnails of folders that no project uses any more, e.g. after removing a project.</p>
-  </section>
-  <section class="setting">
+  </div>
+  <div class="setting">
     <div>
       <span class="label">Documentation</span>
       <a class="button" href="/docs" target="_blank" rel="noopener">Open documentation</a>
     </div>
     <p class="help">How to use photos2show, what every setting does, how the analysis and the slideshow selection work,
       and where your data is stored. Opens in a new tab.</p>
+  </div>
   </section>
 </main>
 </body>

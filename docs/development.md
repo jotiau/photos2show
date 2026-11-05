@@ -28,7 +28,7 @@ CI (`.github/workflows/tests.yml`) runs `uv run pytest` on Linux, macOS and Wind
 
 ```
 src/photos2show/
-  config.py     # .env settings, model per role (analysis / slideshow), AI_CONCURRENCY, AI_THINKING, data folder location
+  config.py     # AI connection (Settings, else .env), model per role (analysis / slideshow), AI_CONCURRENCY, AI_THINKING, data folder location
   db.py         # SQLite schema, projects.json, settings.json (SETTINGS), project stats, unused data
   scan.py       # file walk, supported formats, EXIF, RAW, video frames, dates, video length
   quality.py    # OpenCV metrics, thresholds, flags, technical score
@@ -61,8 +61,10 @@ docs/           # this documentation
   folder only if it holds an earlier export.
 - **Folder picker**: `/pick-folder` opens the system dialog on the server's computer (zenity or kdialog
   on Linux, else Tk in a subprocess), because a browser never reveals real paths.
-- **Settings** are declared in `db.SETTINGS` (`key: (label, choices, default, help)`); a new line there
-  appears on the Settings page automatically.
+- **Settings** are declared in `db.SETTINGS` (`key: (label, choices, default, help)`) and placed in a
+  block of the Settings page by `db.GROUPS` (block title -> keys); a new setting needs a line in both
+  (an assert checks every setting is in exactly one block). `config.load_settings()` builds the AI
+  connection from them: server address, API key, model and thinking from Settings, else from `.env`.
 - **Documentation viewer**: `/docs/<page>` renders `docs/<page>.md` with markdown-it-py (CommonMark +
   tables, raw HTML shown as text). Links like `configuration.md#local-models` become
   `/docs/configuration#local-models`, and headings get GitHub-style ids so those anchors work. The page

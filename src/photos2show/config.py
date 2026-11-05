@@ -14,25 +14,25 @@ class Settings:
 
 
 def load_settings(role: str = "analysis") -> Settings:
-    """Server settings; role analysis (per photo, needs vision) or slideshow (one text prompt) picks the model."""
+    """Server settings, chosen in Settings, else from .env.
+
+    role analysis (per photo, needs vision) or slideshow (one text prompt) picks the model.
+    """
+    from photos2show import db  # db imports this module
     load_dotenv()
+    saved = db.load_settings()
     # expandvars: python-dotenv only expands ${VAR}; a plain $VAR stayed literal ("Connection error" x 857)
-    base_url = os.path.expandvars(os.environ.get("OPENAI_BASE_URL", ""))
+    base_url = os.path.expandvars(saved["base_url"] or os.environ.get("OPENAI_BASE_URL", ""))
     if not base_url.startswith(("http://", "https://")):
         raise SystemExit(f"OPENAI_BASE_URL is not a URL ({base_url!r}) – check .env and the variables it "
-                         "references (e.g. ${BLUM_BASE_URL}; PyCharm does not load ~/.bashrc).")
+                         "references (e.g. ${BLUM_BASE_URL}; PyCharm does not load ~/.bashrc), or set the "
+                         "server address in Settings.")
     return Settings(
         base_url=base_url,
-        api_key=os.path.expandvars(os.environ.get("OPENAI_API_KEY", "")) or "none",  # empty: server without auth
-        model=model(role),
-        thinking=thinking(),
+        api_key=os.path.expandvars(saved["api_key"] or os.environ.get("OPENAI_API_KEY", "")) or "none",  # empty: no auth
+        model=saved[f"{role}_model"] or env_model(role),
+        thinking=saved["thinking"] == "on",
     )
-
-
-def model(role: str) -> str:
-    """Chosen in Settings, else the model from .env."""
-    from photos2show import db  # db imports this module
-    return db.load_settings()[f"{role}_model"] or env_model(role)
 
 
 def env_model(role: str) -> str:
@@ -43,6 +43,7 @@ def env_model(role: str) -> str:
 
 def thinking() -> bool:
     """AI_THINKING: off asks thinking models (Qwen3.5, GLM, ...) to answer without reasoning first."""
+    load_dotenv()
     value = os.environ.get("AI_THINKING", "on").strip().lower()
     if value not in ("on", "off"):  # a typo would otherwise silently keep the slow reasoning
         raise SystemExit(f"AI_THINKING must be on or off, not {value!r} – check .env.")

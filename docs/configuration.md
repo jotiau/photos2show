@@ -1,7 +1,9 @@
 # Configuration
 
 There are two places: the `.env` file (or environment variables) for the AI endpoint and system
-paths, and the *Settings* tab for choices you change while using the app.
+paths, and the *Settings* tab for choices you change while using the app. The server address, API key,
+models and *Thinking* can be set in both: a value chosen in Settings wins, an empty one (or *default*)
+keeps the `.env` value.
 
 ## Environment variables (`.env`)
 
@@ -9,13 +11,13 @@ Copy `.env.example` to `.env` in the project folder. `.env` is git-ignored.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `OPENAI_BASE_URL` | – (required) | OpenAI-compatible endpoint, e.g. `http://localhost:11434/v1`. Must start with `http://` or `https://`. |
-| `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth |
+| `OPENAI_BASE_URL` | – (required unless *Server address* is set) | OpenAI-compatible endpoint, e.g. `http://localhost:11434/v1`. Must start with `http://` or `https://`. Default for *Server address* |
+| `OPENAI_API_KEY` | empty | API key; leave empty for servers without auth. Default for *API key* |
 | `MODEL` | `glm-5.3-flash` | model id exactly as the server lists it |
 | `ANALYSIS_MODEL` | `MODEL` | model for the photo descriptions and side-by-side comparisons (needs vision); default for *Analysis model* |
 | `SLIDESHOW_MODEL` | `MODEL` | model for choosing and refining the slideshow (text only); default for *Slideshow model* |
 | `AI_CONCURRENCY` | `2` | parallel AI requests (whole number ≥ 1); default for *Parallel AI requests* and `photos2show-scan --parallel` |
-| `AI_THINKING` | `on` | `off` asks thinking models to answer without reasoning first (see [Thinking models](#thinking-models)); `on` or `off` |
+| `AI_THINKING` | `on` | `off` asks thinking models to answer without reasoning first (see [Thinking models](#thinking-models)); `on` or `off`. Default for *Thinking* |
 | `PHOTOS2SHOW_CACHE` | `~/.local/share/photos2show` (`$XDG_DATA_HOME/photos2show`) | data folder for projects, AI results and thumbnails |
 | `PHOTOS2SHOW_PORT` | `8000` | port of the web UI |
 
@@ -26,25 +28,34 @@ existing `~/.local/share/imgsort` folder keeps being used if there is no `photos
 
 ## Settings page
 
-Saved in `settings.json` in the data folder and valid for all projects.
+Saved in `settings.json` in the data folder and valid for all projects. The page groups the settings
+into blocks: **Appearance**, **AI server and models**, **Analysis**, **Slideshow**, and **Data and help**
+(*Delete unused data*, *Open documentation*).
 
-| Setting | Choices | Default | Effect |
-|---|---|---|---|
-| Theme | auto, light, dark, grey | auto | colour theme; auto follows your system. Grey is a neutral mid-grey that does not tint how photos look. |
-| Accent colour | blue, indigo, purple, magenta, pink, red, orange, amber, olive, green, teal, cyan, slate | blue | colour of the top bar, buttons, selections, links and highlights. Picked by clicking a colour swatch. |
-| Analysis model | the models the server lists | `ANALYSIS_MODEL`, else `MODEL` | the model that describes each photo and compares shots of one scene. Needs vision and runs once per photo, so a small, fast model pays off. |
-| Slideshow model | the models the server lists | `SLIDESHOW_MODEL`, else `MODEL` | the model that chooses and refines the slideshow in one request over all photo descriptions. Needs no vision but a large context and good reasoning. *auto* photo details use its context size. |
-| Parallel AI requests | 1, 2, 4, 8 (plus the `AI_CONCURRENCY` value) | `AI_CONCURRENCY` | how many photos go to the AI at once. More is faster if the server keeps up; a local model usually works best with 1. |
-| Review duplicates before AI | on, off | on | on: Analyse pauses after scanning so you can pick the best shot of each new same-scene group, or let the AI compare them. Off: the technically best shot is used without asking. |
-| Photo details for choosing | full, short, minimal, auto | full | how much the slideshow AI reads per photo (see below). Also offered next to *Select photos*. |
-| Captions in Play | off, on | off | on: *▶ Play* shows the date and the AI caption under every photo. Also switched with *Captions* in the player. |
-| Slow zoom in Play | off, on | off | on: *▶ Play* slowly zooms into each photo (Ken Burns effect); videos play as they are. Also switched with *Zoom* in the player. |
+| Block | Setting | Choices | Default | Effect |
+|---|---|---|---|---|
+| Appearance | Theme | auto, light, dark, grey | auto | colour theme; auto follows your system. Grey is a neutral mid-grey that does not tint how photos look. |
+| Appearance | Accent colour | blue, indigo, purple, magenta, pink, red, orange, amber, olive, green, teal, cyan, slate | blue | colour of the top bar, buttons, selections, links and highlights. Picked by clicking a colour swatch. |
+| AI server and models | Server address | any `http://` or `https://` URL | `OPENAI_BASE_URL` | the OpenAI-compatible endpoint both models use, e.g. `http://localhost:11434/v1`. Empty keeps `.env`. |
+| AI server and models | API key | any text | `OPENAI_API_KEY` | key for the server; none needed for Ollama or LM Studio. Shown as dots; the `.env` key is never shown. Saved in plain text in `settings.json`, like `.env`. Empty keeps `.env`. |
+| AI server and models | Analysis model | the models the server lists | `ANALYSIS_MODEL`, else `MODEL` | the model that describes each photo and compares shots of one scene. Needs vision and runs once per photo, so a small, fast model pays off. |
+| AI server and models | Slideshow model | the models the server lists | `SLIDESHOW_MODEL`, else `MODEL` | the model that chooses and refines the slideshow in one request over all photo descriptions. Needs no vision but a large context and good reasoning. *auto* photo details use its context size. |
+| AI server and models | Thinking | on, off | `AI_THINKING` | off asks thinking models to answer without reasoning first, for both models (see [Thinking models](#thinking-models)). |
+| AI server and models | Parallel AI requests | 1, 2, 4, 8 (plus the `AI_CONCURRENCY` value) | `AI_CONCURRENCY` | how many photos go to the AI at once. More is faster if the server keeps up; a local model usually works best with 1. |
+| Analysis | Review duplicates before AI | on, off | on | on: Analyse pauses after scanning so you can pick the best shot of each new same-scene group, or let the AI compare them. Off: the technically best shot is used without asking. |
+| Slideshow | Photo details for choosing | full, short, minimal, auto | full | how much the slideshow AI reads per photo (see below). Also offered next to *Select photos*. |
+| Slideshow | Captions in Play | off, on | off | on: *▶ Play* shows the date and the AI caption under every photo. Also switched with *Captions* in the player. |
+| Slideshow | Slow zoom in Play | off, on | off | on: *▶ Play* slowly zooms into each photo (Ken Burns effect); videos play as they are. Also switched with *Zoom* in the player. |
 
 *Analysis model* and *Slideshow model* list the models from the server's `/models`; the first entry,
 *default (…)*, keeps the model from `.env`. If the server does not answer within 3 s, a text field is
 shown instead: type the model id, or leave it empty for the default. Both use the same server
-(`OPENAI_BASE_URL`). A new analysis model only describes photos that have no description yet; existing
-descriptions are kept.
+(*Server address*, else `OPENAI_BASE_URL`); after changing it the page reloads and lists that server's
+models. A server address that does not start with `http://` or `https://` is not saved. A new analysis
+model only describes photos that have no description yet; existing descriptions are kept.
+
+*Thinking* and *Parallel AI requests* start with the `.env` value; once chosen in Settings, changing
+`.env` no longer affects them.
 
 *Photo details for choosing*:
 
@@ -70,7 +81,7 @@ Any server that speaks the OpenAI chat API and accepts images works.
 | Self-hosted (vLLM, SGLang, …) | your server's `/v1` URL | your key, if any | as the server lists it |
 
 `uv run photos2show-smoke` prints the model ids the server offers and sends one test picture to the
-analysis model.
+analysis model, using the same server, key and thinking choice as the app (Settings, else `.env`).
 
 The analysis and the slideshow step can use different models (Settings → *Analysis model* /
 *Slideshow model*, or `ANALYSIS_MODEL` / `SLIDESHOW_MODEL`): a small vision model for the many photo
@@ -85,7 +96,7 @@ same request without it, and the answer is parsed leniently.
 
 Some models reason before they answer (Qwen3.5, Qwen3.8, Qwen3-VL without `-instruct`, GLM). For a photo
 caption that only costs time: several times more seconds and output tokens per photo, and the 90 s limit
-can be reached. With `AI_THINKING=off` every request asks the model to skip it: `reasoning_effort: none`
+can be reached. With *Thinking* off in Settings (or `AI_THINKING=off`) every request asks the model to skip it: `reasoning_effort: none`
 (Ollama) and `chat_template_kwargs: {enable_thinking: false}` (vLLM, SGLang, llama.cpp). A server that
 rejects these fields gets the request again without them, so the model then thinks as before. The
 default `on` sends neither field. `photos2show-smoke` shows which one is active.
@@ -142,7 +153,7 @@ The two models do not need to fit at the same time: the analysis runs first, the
 and Ollama swaps them (a few seconds). Each one alone has to fit, the slideshow model together with
 its 32k+ context; if it does not, Ollama runs part of it on the CPU, which is slower but fine for one
 request. A Mac's GPU can use about two thirds to three quarters of its memory, hence the shifted tiers.
-`AI_THINKING` applies to both models, so instruct (non-thinking) models avoid the trade-off.
+*Thinking* (`AI_THINKING`) applies to both models, so instruct (non-thinking) models avoid the trade-off.
 
 **Ollama**
 

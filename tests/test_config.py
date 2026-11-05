@@ -44,6 +44,7 @@ def test_bad_ai_concurrency_is_refused_clearly(monkeypatch, value):
 
 
 def test_ai_thinking_is_on_unless_switched_off(monkeypatch):
+    monkeypatch.setattr("photos2show.config.load_dotenv", lambda: None)
     monkeypatch.delenv("AI_THINKING", raising=False)
     assert thinking() is True
     monkeypatch.setenv("AI_THINKING", " OFF ")
@@ -65,3 +66,18 @@ def test_model_per_role_from_settings_then_env(tmp_path, monkeypatch):
     assert (load_settings().model, load_settings("slideshow").model) == ("base", "big")
     db.save_setting("analysis_model", "small-vl")
     assert (load_settings().model, load_settings("slideshow").model) == ("small-vl", "big")
+
+
+def test_server_and_thinking_from_settings_then_env(tmp_path, monkeypatch):
+    monkeypatch.setattr("photos2show.config.load_dotenv", lambda: None)
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path))
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://env.invalid/v1")
+    monkeypatch.setenv("OPENAI_API_KEY", "env-key")
+    s = load_settings()
+    assert (s.base_url, s.api_key) == ("http://env.invalid/v1", "env-key")
+    db.save_setting("base_url", "https://ui.invalid/v1")
+    db.save_setting("api_key", "ui-key")
+    db.save_setting("thinking", "off")
+    s = load_settings("slideshow")
+    assert (s.base_url, s.api_key, s.thinking) == ("https://ui.invalid/v1", "ui-key", False)
+    assert not db.valid_setting("base_url", "localhost:11434") and db.valid_setting("base_url", "")

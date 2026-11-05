@@ -474,8 +474,10 @@ def pick_folder(path: str = Form(""), keep_name: bool = Form(False)):
 def settings_page(request: Request):
     unused = db.unused_libraries()
     size = sum(f.stat().st_size for d in unused for f in d.rglob("*") if f.is_file())
-    return _page(request, "settings.html", page="settings", fields=db.SETTINGS, unused=len(unused), unused_mb=size / 1e6,
-                 models=_server_models(), env_model=config.env_model)
+    env_defaults = {"base_url": os.path.expandvars(os.environ.get("OPENAI_BASE_URL", "")) or "not set",
+                    "api_key": "from .env" if os.environ.get("OPENAI_API_KEY") else "none"}  # never show the key
+    return _page(request, "settings.html", page="settings", fields=db.SETTINGS, groups=db.GROUPS, unused=len(unused),
+                 unused_mb=size / 1e6, models=_server_models(), env_model=config.env_model, env_defaults=env_defaults)
 
 
 def _server_models() -> list[str] | None:

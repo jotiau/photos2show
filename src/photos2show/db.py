@@ -6,7 +6,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from photos2show.config import cache_root, default_concurrency
+from photos2show.config import cache_root, default_concurrency, thinking
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS media (
@@ -92,15 +92,22 @@ def load_projects() -> dict[str, str]:
 
 
 _PARALLEL = str(default_concurrency())  # AI_CONCURRENCY from .env, kept as a choice even if not 1/2/4/8
+_THINKING = "on" if thinking() else "off"  # AI_THINKING from .env until chosen here
 
 # App settings: key -> (label, choices, default, help). Add a line here and it shows up on the settings page.
-# choices None: any text (the model names, offered from the server's list on the settings page).
+# choices None: any text; "" keeps the .env value (the model names are offered from the server's list).
 SETTINGS = {
     "theme": ("Theme", ("auto", "light", "dark", "grey"), "auto",
               "Light or dark colours; auto follows your system. Grey is a neutral mid-grey that doesn't tint how photos look."),
     "accent": ("Accent colour", ("blue", "indigo", "purple", "magenta", "pink", "red", "orange",
                                     "amber", "olive", "green", "teal", "cyan", "slate"), "blue",
                "Colour of the top bar, buttons, selections and highlights."),
+    "base_url": ("Server address", None, "",
+                 "OpenAI-compatible endpoint, e.g. http://localhost:11434/v1 (Ollama) or https://api.openai.com/v1. "
+                 "Used by both models. Empty: OPENAI_BASE_URL from .env."),
+    "api_key": ("API key", None, "",
+                "Key for the server; servers without authentication (Ollama, LM Studio) need none. Saved in plain "
+                "text in settings.json in the data folder, like .env. Empty: OPENAI_API_KEY from .env."),
     "analysis_model": ("Analysis model", None, "",
                        "The model that describes each photo and compares shots of one scene. It must see images "
                        "(vision) and runs once per photo, so a small, fast one pays off. Default: ANALYSIS_MODEL "
@@ -109,6 +116,9 @@ SETTINGS = {
                         "The model that chooses and refines the slideshow from all photo descriptions in one "
                         "request. It needs no vision but a large context and good reasoning, so a bigger model "
                         "helps. Default: SLIDESHOW_MODEL or MODEL from .env."),
+    "thinking": ("Thinking", ("on", "off"), _THINKING,
+                 "Off asks thinking models (Qwen3.5, GLM, ...) to answer without reasoning first – much faster per "
+                 "photo; harmless for other models. Applies to both models. Default: AI_THINKING from .env."),
     "parallel": ("Parallel AI requests", tuple(sorted({"1", "2", "4", "8", _PARALLEL}, key=int)), _PARALLEL,
                  "How many photos are sent to the AI at once. More is faster if the server keeps up; "
                  "a local model on your own computer often works best with 1."),
@@ -129,6 +139,15 @@ SETTINGS = {
                   "videos play as they are. Also switched with Zoom in the player's control panel."),
 }
 
+# Blocks on the settings page, in this order; every setting is in exactly one.
+GROUPS = {
+    "Appearance": ("theme", "accent"),
+    "AI server and models": ("base_url", "api_key", "analysis_model", "slideshow_model", "thinking", "parallel"),
+    "Analysis": ("review_duplicates",),
+    "Slideshow": ("desc_size", "play_captions", "ken_burns"),
+}
+assert sorted(k for keys in GROUPS.values() for k in keys) == sorted(SETTINGS)
+
 
 def load_settings() -> dict[str, str]:
     f = cache_root() / "settings.json"
@@ -138,6 +157,8 @@ def load_settings() -> dict[str, str]:
 
 def valid_setting(key: str, value) -> bool:
     choices = SETTINGS[key][1]
+    if key == "base_url" and value and not str(value).startswith(("http://", "https://")):
+        return False
     return isinstance(value, str) and len(value) <= 200 if choices is None else value in choices
 
 
