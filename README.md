@@ -50,6 +50,10 @@ uv run photos2show-smoke      # sends one test picture to check that the model a
 uv run photos2show-web        # opens http://127.0.0.1:8000 in your browser
 ```
 
+To run the AI locally with [Ollama](https://ollama.com) in one step, run `./setup.sh` (Linux, macOS) or
+`powershell -ExecutionPolicy Bypass -File setup.ps1` (Windows) instead: it installs what is missing,
+picks models that fit your GPU, writes `.env` and starts the app.
+
 Then create a project in the *Projects* tab, let it analyse, and describe your show in the *Slideshow*
 tab. It should run on Linux, macOS and Windows (use `copy` instead of `cp`); day-to-day use has been
 tested on Linux so far, reports from other systems are very welcome.

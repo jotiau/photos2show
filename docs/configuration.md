@@ -131,6 +131,11 @@ ones above. Without a GPU, `gemma4:e2b` or `qwen3-vl:2b-instruct` take about a m
 | Apple Silicon 24–32 GB | as 16 GB GPU | as 16 GB GPU |
 | Apple Silicon 36 GB or more | as 24 GB GPU | as 24 GB GPU |
 
+`setup.sh` / `setup.ps1` (see [Install and start](user-guide.md#install-and-start)) picks the row that
+matches your GPU memory, downloads both models and creates `photos2show-slideshow`: the slideshow model
+with a 32k context (`num_ctx 32768`), so the setting below is not needed. It shares the downloaded
+files. Models chosen in Settings still override `.env`.
+
 The two models do not need to fit at the same time: the analysis runs first, the slideshow afterwards,
 and Ollama swaps them (a few seconds). Each one alone has to fit, the slideshow model together with
 its 32k+ context; if it does not, Ollama runs part of it on the CPU, which is slower but fine for one

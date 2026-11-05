@@ -10,6 +10,9 @@ uv run photos2show-testdata demo_images    # synthetic photos with known defects
 uv run photos2show-scan demo_images
 ```
 
+`setup.sh` / `setup.ps1` are the one-step local setup (uv, Ollama, models, `.env`); their model choice
+copies *Recommended pairs* in `configuration.md`, and `tests/test_setup.py` checks that the two agree.
+
 CI (`.github/workflows/tests.yml`) runs `uv run pytest` on Linux, macOS and Windows.
 
 ## Command line tools

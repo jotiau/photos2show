@@ -16,6 +16,7 @@ result, deviation from this plan), stop and come back to ask before proceeding �
 | Input | Several hundred photos + some videos in the common formats incl. camera RAW (videos: a few sampled frames only) |
 | Output | Sorted folder with copied, numbered files (originals untouched) |
 | Models per step | *Analysis model* (vision, per photo, also side-by-side picks) and *Slideshow model* (text, one prompt) are chosen separately: Settings (list from the server's `/models`, text field if unreachable), else `ANALYSIS_MODEL` / `SLIDESHOW_MODEL`, else `MODEL`. One server (`OPENAI_BASE_URL`) for both; separate URLs only if needed |
+| Local setup | `setup.sh` / `setup.ps1`: uv + app, Ollama (asks: install automatically or yourself; nothing installed unasked), RAM/GPU detection → *Recommended pairs* row, shown and overridable before downloading, `photos2show-slideshow` = slideshow model with `num_ctx 32768` (works with Ollama as a service, no `OLLAMA_CONTEXT_LENGTH`), `.env` (old one → `.env.bak`), starts the UI |
 | UI | Simple local web UI from the start |
 | Faces / people | Not in scope – possible future feature |
 | Local ML (CLIP, pyiqa, torch) | Not in MVP – GLM covers semantics/aesthetics; classic CV covers technical quality |
@@ -212,16 +213,6 @@ src/photos2show/
 tests/
 docs/           # documentation (user guide, configuration, internals); kept in sync with every change
 ```
-
-## Planned next
-Added 2026-11-01, not started. Open questions are marked (?) and get asked before building.
-
-1. **Out-of-the-box local setup** – one script per OS (`setup.sh` for Linux/macOS, `setup.ps1` for
-   Windows) that installs `uv` and the app, installs Ollama if missing, checks the system (GPU vendor,
-   VRAM, RAM, CPU-only), picks and pulls matching default models from the *Recommended pairs* table in *Local models*
-   (analysis + slideshow model, see *Models per step*), writes `.env` (incl. `AI_THINKING` for thinking models) and
-   starts the UI. Re-running it is safe (skips what is installed). Detection shown before downloading
-   so the user can override (?).
 
 ## Future features ideas
 - Face detection / clustering ("everyone appears at least once")

@@ -14,6 +14,20 @@ uv run photos2show-smoke      # sends one test picture to check that the model a
 uv run photos2show-web        # opens http://127.0.0.1:8000 in your browser
 ```
 
+**Local AI in one step.** To run the AI on your own computer with Ollama, run the setup script
+instead of the commands above (from the cloned folder):
+
+```bash
+./setup.sh                                          # Linux, macOS
+powershell -ExecutionPolicy Bypass -File setup.ps1  # Windows
+```
+
+It installs uv and the app, checks for Ollama (if it is missing, it asks whether to install it
+automatically or whether you install it yourself), detects your RAM and GPU, suggests an analysis and
+a slideshow model from [Recommended pairs](configuration.md#local-models) (press Enter to keep them or
+type other ones), downloads them, writes `.env` (an existing one is kept as `.env.bak`) and starts the
+app. Running it again is safe: what is installed is skipped.
+
 `photos2show-web --no-browser` starts the server without opening a browser tab. The app only listens
 on your own computer (`127.0.0.1`).
 
