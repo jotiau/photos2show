@@ -66,7 +66,8 @@ Settings has separate *Analysis model* and *Slideshow model* choices (or `ANALYS
 `SLIDESHOW_MODEL`), e.g. a small vision model per photo and a larger one for the slideshow.
 Local models need a context of 32k or more for the slideshow step and work best with 1 parallel
 request. For thinking models (Qwen3.5, Qwen3.8, GLM) set `AI_THINKING=off`; see
-[Configuration](docs/configuration.md#local-models).
+[Configuration](docs/configuration.md#local-models) for
+local models and recommended analysis / slideshow pairs per GPU size.
 
 ## Documentation
 

@@ -218,14 +218,10 @@ Added 2026-11-01, not started. Open questions are marked (?) and get asked befor
 
 1. **Out-of-the-box local setup** – one script per OS (`setup.sh` for Linux/macOS, `setup.ps1` for
    Windows) that installs `uv` and the app, installs Ollama if missing, checks the system (GPU vendor,
-   VRAM, RAM, CPU-only), picks and pulls matching default models from the *Local models* table
+   VRAM, RAM, CPU-only), picks and pulls matching default models from the *Recommended pairs* table in *Local models*
    (analysis + slideshow model, see *Models per step*), writes `.env` (incl. `AI_THINKING` for thinking models) and
    starts the UI. Re-running it is safe (skips what is installed). Detection shown before downloading
    so the user can override (?).
-2. **Docs: longer model list** – extend *Local models* in `docs/configuration.md` with a column for
-   the role (analysis, slideshow, both), recommended pairs per hardware tier (CPU-only, 8 / 12 / 16 /
-   24 GB GPU, Apple Silicon RAM) and text-only models suited for the slideshow step. This table is
-   also the source for the setup script's choice in 1.
 
 ## Future features ideas
 - Face detection / clustering ("everyone appears at least once")

@@ -90,23 +90,52 @@ default `on` sends neither field. `photos2show-smoke` shows which one is active.
 
 ### Local models
 
-Untested starting points for one consumer GPU or a recent Mac (Ollama tags as of November 2026; the
-size is the download, add 1–2 GB for images and context):
+Untested starting points for one consumer GPU or a recent Mac. Ollama tags, download sizes and context
+sizes as listed on ollama.com in November 2026; add 1–2 GB for images and context.
 
-| Model | Ollama | Size | Notes |
-|---|---|---|---|
-| Gemma 4 E4B | `gemma4:e4b` | 6.6 GB | good default for 6–8 GB GPUs: reliable JSON, ~2 s per photo; weaker on non-English tags |
-| Gemma 4 E2B | `gemma4:e2b` | 4.6 GB | smaller and faster, for small GPUs |
-| Gemma 4 12B | `gemma4:12b` | 8 GB | better captions on a 12 GB GPU |
-| Qwen3-VL 8B Instruct | `qwen3-vl:8b-instruct` | 6.2 GB | best at naming what is in a photo; take an `-instruct` tag (the others think) |
-| Qwen3-VL 4B / 2B Instruct | `qwen3-vl:4b-instruct`, `qwen3-vl:2b-instruct` | 3.3 / 1.9 GB | small GPUs; JSON less reliable, tends to give too many tags |
-| Qwen3.5 4B / 9B | `qwen3.5:4b`, `qwen3.5:9b` | 4 / 7.6 GB | fast captions; thinking model, set `AI_THINKING=off` |
-| Gemma 4 26B (MoE) | `gemma4:26b` | 16–19 GB | 24 GB GPU: large-model quality at about the speed of a 4B model |
-| Qwen3-VL 30B-A3B Instruct | `qwen3-vl:30b-a3b-instruct` | 20 GB | 24 GB GPU, fast mixture-of-experts |
-| Qwen3.8 27B | `qwen3.8` | 18 GB | newest Qwen, 24 GB GPU; thinking model, set `AI_THINKING=off` |
+*Role* says which step a model suits (see [Choosing a model](#choosing-a-model)): **analysis** needs
+vision and runs once per photo, so small and fast wins; **slideshow** is one text request over all
+photo descriptions, so a large context and good reasoning win; **both** are vision models good enough
+for either.
+
+| Model | Ollama | Size | Context | Role | Notes |
+|---|---|---|---|---|---|
+| Gemma 4 E2B | `gemma4:e2b` | 4.6 GB | 128K | analysis | smaller and faster, for small GPUs and CPU-only |
+| Gemma 4 E4B | `gemma4:e4b` | 6.6 GB | 128K | analysis | good default for 6–8 GB GPUs: reliable JSON, ~2 s per photo; weaker on non-English tags |
+| Qwen3-VL 4B / 2B Instruct | `qwen3-vl:4b-instruct`, `qwen3-vl:2b-instruct` | 3.3 / 1.9 GB | 256K | analysis | small GPUs; JSON less reliable, tends to give too many tags |
+| Qwen3-VL 8B Instruct | `qwen3-vl:8b-instruct` | 6.2 GB | 256K | analysis | best at naming what is in a photo; take an `-instruct` tag (the others think) |
+| Qwen3.5 4B / 9B | `qwen3.5:4b`, `qwen3.5:9b` | 4 / 7.6 GB | 256K | analysis | fast captions; thinking model, set `AI_THINKING=off` |
+| Gemma 4 12B | `gemma4:12b` | 8 GB | 256K | both | better captions on a 12 GB GPU |
+| Gemma 4 26B (MoE) | `gemma4:26b` | 16–19 GB | 256K | both | 24 GB GPU: large-model quality at about the speed of a 4B model |
+| Qwen3-VL 30B-A3B Instruct | `qwen3-vl:30b-a3b-instruct` | 20 GB | 256K | both | 24 GB GPU, fast mixture-of-experts |
+| Qwen3.8 27B | `qwen3.8` | 18 GB | 256K | both | newest Qwen, 24 GB GPU; thinking model, set `AI_THINKING=off` |
+| Qwen3 4B Instruct | `qwen3:4b-instruct` | 2.5 GB | 256K | slideshow | text only; for CPU-only and small GPUs |
+| Qwen3 14B | `qwen3:14b` | 9.3 GB | 40K | slideshow | text only, 12 GB GPU; 40K context: use short *Photo details* above ~1000 photos; thinking model |
+| gpt-oss 20B | `gpt-oss:20b` | 14 GB | 128K | slideshow | text only, 16 GB GPU, careful reasoning; a thinking model that may keep reasoning even with `AI_THINKING=off` (one request, so it only costs a little time) |
+| Qwen3 30B-A3B Instruct | `qwen3:30b-instruct` | 19 GB | 256K | slideshow | text only, 24 GB GPU, fast mixture-of-experts, very large context |
 
 Older models such as LLaVA, Llama 3.2 Vision, Qwen2.5-VL and Gemma 3 still work but are superseded by the
 ones above. Without a GPU, `gemma4:e2b` or `qwen3-vl:2b-instruct` take about a minute per photo.
+
+**Recommended pairs** (Settings → *Analysis model* / *Slideshow model*, or `ANALYSIS_MODEL` /
+`SLIDESHOW_MODEL`):
+
+| Hardware | Analysis model | Slideshow model |
+|---|---|---|
+| CPU only, 16 GB RAM | `gemma4:e2b` | `qwen3:4b-instruct` |
+| 8 GB GPU | `gemma4:e4b` | `gemma4:e4b` (one model, nothing to swap) |
+| 12 GB GPU | `qwen3-vl:8b-instruct` | `gemma4:12b`, or `qwen3:14b` for up to ~1000 photos |
+| 16 GB GPU | `qwen3-vl:8b-instruct` | `gpt-oss:20b` |
+| 24 GB GPU | `qwen3-vl:30b-a3b-instruct` or `gemma4:26b` | `qwen3:30b-instruct` |
+| Apple Silicon 16 GB | as 8 GB GPU | as 8 GB GPU |
+| Apple Silicon 24–32 GB | as 16 GB GPU | as 16 GB GPU |
+| Apple Silicon 36 GB or more | as 24 GB GPU | as 24 GB GPU |
+
+The two models do not need to fit at the same time: the analysis runs first, the slideshow afterwards,
+and Ollama swaps them (a few seconds). Each one alone has to fit, the slideshow model together with
+its 32k+ context; if it does not, Ollama runs part of it on the CPU, which is slower but fine for one
+request. A Mac's GPU can use about two thirds to three quarters of its memory, hence the shifted tiers.
+`AI_THINKING` applies to both models, so instruct (non-thinking) models avoid the trade-off.
 
 **Ollama**
 
@@ -121,6 +150,13 @@ OPENAI_API_KEY=
 MODEL=gemma4:e4b
 AI_CONCURRENCY=1
 AI_THINKING=off    # only matters for thinking models, harmless otherwise
+```
+
+Two models, e.g. for a 16 GB GPU: `ollama pull qwen3-vl:8b-instruct` and `ollama pull gpt-oss:20b`, then
+
+```ini
+ANALYSIS_MODEL=qwen3-vl:8b-instruct
+SLIDESHOW_MODEL=gpt-oss:20b
 ```
 
 **LM Studio**: download a vision model (e.g. *Gemma 4 E4B* or *Qwen3-VL 8B Instruct*, marked with an eye
