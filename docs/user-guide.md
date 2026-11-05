@@ -18,7 +18,7 @@ uv run photos2show-web        # opens http://127.0.0.1:8000 in your browser
 on your own computer (`127.0.0.1`).
 
 The app has four tabs: **Projects**, **Library**, **Slideshow** and **Settings**. The project you work
-on is chosen in the dropdown in the header.
+on is chosen in the dropdown in the header; clicking the *photos2show* title opens its Library.
 
 ## Projects
 
