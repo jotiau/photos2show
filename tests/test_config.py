@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from photos2show import db
@@ -80,4 +82,6 @@ def test_server_and_thinking_from_settings_then_env(tmp_path, monkeypatch):
     db.save_setting("thinking", "off")
     s = load_settings("slideshow")
     assert (s.base_url, s.api_key, s.thinking) == ("https://ui.invalid/v1", "ui-key", False)
+    if os.name == "posix":  # holds the key: not readable by other users
+        assert (tmp_path / "settings.json").stat().st_mode & 0o077 == 0
     assert not db.valid_setting("base_url", "localhost:11434") and db.valid_setting("base_url", "")

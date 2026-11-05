@@ -35,7 +35,7 @@ Everything the app writes, except exports, goes into the data folder (default
 ```
 ~/.local/share/photos2show/
   projects.json                 # project name -> photo folder
-  settings.json                 # Settings page choices
+  settings.json                 # Settings page choices (also the API key, if set there; owner-only)
   <folder name>-<12 hex>/       # one per photo folder (hash of its full path)
     photos2show.db              # SQLite: one row per file
     selection.json              # the slideshow of this folder

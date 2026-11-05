@@ -37,7 +37,7 @@ into blocks: **Appearance**, **AI server and models**, **Analysis**, **Slideshow
 | Appearance | Theme | auto, light, dark, grey | auto | colour theme; auto follows your system. Grey is a neutral mid-grey that does not tint how photos look. |
 | Appearance | Accent colour | blue, indigo, purple, magenta, pink, red, orange, amber, olive, green, teal, cyan, slate | blue | colour of the top bar, buttons, selections, links and highlights. Picked by clicking a colour swatch. |
 | AI server and models | Server address | any `http://` or `https://` URL | `OPENAI_BASE_URL` | the OpenAI-compatible endpoint both models use, e.g. `http://localhost:11434/v1`. Empty keeps `.env`. |
-| AI server and models | API key | any text | `OPENAI_API_KEY` | key for the server; none needed for Ollama or LM Studio. Shown as dots; the `.env` key is never shown. Saved in plain text in `settings.json`, like `.env`. Empty keeps `.env`. |
+| AI server and models | API key | any text | `OPENAI_API_KEY` | key for the server; none needed for Ollama or LM Studio. Shown as dots; the `.env` key is never shown. Saved in plain text in `settings.json`, like `.env`; the file is readable only by you (on Linux and macOS). Empty keeps `.env`. |
 | AI server and models | Analysis model | the models the server lists | `ANALYSIS_MODEL`, else `MODEL` | the model that describes each photo and compares shots of one scene. Needs vision and runs once per photo, so a small, fast model pays off. |
 | AI server and models | Slideshow model | the models the server lists | `SLIDESHOW_MODEL`, else `MODEL` | the model that chooses and refines the slideshow in one request over all photo descriptions. Needs no vision but a large context and good reasoning. *auto* photo details use its context size. |
 | AI server and models | Thinking | on, off | `AI_THINKING` | off asks thinking models to answer without reasoning first, for both models (see [Thinking models](#thinking-models)). |
@@ -52,7 +52,9 @@ into blocks: **Appearance**, **AI server and models**, **Analysis**, **Slideshow
 shown instead: type the model id, or leave it empty for the default. Both use the same server
 (*Server address*, else `OPENAI_BASE_URL`); after changing it the page reloads and lists that server's
 models. A server address that does not start with `http://` or `https://` is not saved; a message under the
-field says so. A new analysis
+field says so. After changing the server, check both models: a model chosen for the old server stays
+chosen (shown as an extra entry if the new server does not list it), and every request to the new
+server then fails with "model not found" until you pick another one or *default*. A new analysis
 model only describes photos that have no description yet; existing descriptions are kept.
 
 *Thinking* and *Parallel AI requests* start with the `.env` value; once chosen in Settings, changing

@@ -77,10 +77,16 @@ def get_media(conn: sqlite3.Connection, media_id: int) -> dict | None:
     return row_to_dict(row) if row else None
 
 
-def write_json(path: Path, data) -> None:
-    """Write a temp file, then swap it in: a crash mid-write must not leave an empty file that breaks every page."""
+def write_json(path: Path, data, private: bool = False) -> None:
+    """Write a temp file, then swap it in: a crash mid-write must not leave an empty file that breaks every page.
+
+    private: only the owner may read it (settings.json can hold the API key).
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
+    if private:  # before the content goes in, so the key is never readable by others
+        tmp.touch(exist_ok=True)
+        tmp.chmod(0o600)
     tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
     os.replace(tmp, path)
 
@@ -163,7 +169,7 @@ def valid_setting(key: str, value) -> bool:
 
 
 def save_setting(key: str, value: str) -> None:
-    write_json(cache_root() / "settings.json", load_settings() | {key: value})
+    write_json(cache_root() / "settings.json", load_settings() | {key: value}, private=True)
 
 
 def save_project(name: str, folder: Path) -> None:
