@@ -191,6 +191,7 @@ def test_project_analyse_browse_and_slideshow(tmp_path, monkeypatch, fake_ai):
     # Swap a pick for another shot of its scene
     client.post(f"/slideshow/add/{items['burst_1.jpg']}")
     picks = client.get("/slideshow/picks").text
+    assert 'data-date="2026-08-11T15:40:00" data-caption="fake caption"' in picks  # for Captions in Play
     assert "⇄ 2 other shots" in picks and f'"to": {items["burst_2.jpg"]}' in picks
     before = [p["id"] for p in web.slideshow.load(folder)["picks"]]
     picks = client.post("/slideshow/swap", data={"id": items["burst_1.jpg"], "to": items["burst_2.jpg"]}).text
@@ -273,6 +274,11 @@ def test_settings(tmp_path, monkeypatch):
     assert 'data-accent="teal"' in client.get("/").text
     assert 'value="teal"\n          aria-label="teal" checked' in client.get("/settings").text  # swatch picker marks the choice
     assert client.get("/static/style.css").headers["Cache-Control"] == "no-cache"  # updates show without a hard reload
+    assert '<dialog id="player" class=" ">' in client.get("/slideshow").text  # Captions and Zoom are off by default
+    client.post("/settings", data={"key": "play_captions", "value": "on"})  # as the player's Captions / Zoom buttons do
+    client.post("/settings", data={"key": "ken_burns", "value": "on"})
+    assert '<dialog id="player" class="captions kenburns">' in client.get("/slideshow").text
+    assert client.post("/settings", data={"key": "ken_burns", "value": "yes"}).status_code == 400
 
 
 def test_model_settings(tmp_path, monkeypatch):

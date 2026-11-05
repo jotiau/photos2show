@@ -121,13 +121,22 @@ header select option { background: var(--panel); color: var(--text); }
 .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 16px 0; }
 .bar .path { color: var(--muted); word-break: break-all; }
 #player { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #000; }
-#player .stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+#player .stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 #player img, #player video { width: 100%; height: 100%; object-fit: contain; }  /* small files are enlarged too */
 #player .stage:focus { outline: none; }
 #player .reason { position: fixed; bottom: 64px; left: 16px; right: 16px; margin: 0; color: #eee; font-size: 1.1em;
                   text-align: center; text-shadow: 0 1px 3px #000; opacity: 0; transition: opacity .4s; }
 #player .controls { position: fixed; bottom: 12px; left: 50%; translate: -50%; display: flex; gap: 4px; align-items: center;
                     padding: 4px 8px; border-radius: 8px; background: #000b; opacity: 0; transition: opacity .4s; }
+#player .caption { display: none; position: fixed; bottom: 64px; left: 16px; right: 16px; margin: 0; color: #fff;
+                   font-size: 1.4em; text-align: center; text-shadow: 0 1px 4px #000, 0 0 12px #000; }
+#player.captions .caption { display: block; }
+#player.captions .reason { bottom: 112px; }  /* above the caption, which sits above the controls */
+#player.kenburns .stage img { animation: kenburns var(--seconds, 5s) ease-out forwards; }
+#player.held .stage img { animation-play-state: paused; }
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.15); } }
+#player .controls .switch { font-size: 13px; color: #bbb; }
+#player .controls .switch[aria-pressed="true"] { color: #fff; box-shadow: inset 0 -2px 0 var(--accent); }
 #player.info .reason, #player.info .controls, #player .controls:hover, #player .controls:focus-within { opacity: 1; }
 #player .controls button { background: none; border: none; color: #fff; font-size: 20px; padding: 4px 10px; }
 #player .controls button:hover { background: #fff3; }

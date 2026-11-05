@@ -168,8 +168,12 @@ per page; destructive actions red.
   dialog with *Open folder*, *▶ Play*) and *Refine picks*; drag & drop or ‹ › to reorder, × to
   remove, "⇄ N other shots" to swap a pick for another shot of its scene (same place and reason);
   lightbox with ← → through the picks; *▶ Play* fills the window, with the reason and a control
-  panel (back, hold, forward, close) on mouse move or tap; keys ← → Space Esc.
-- **Settings**: theme (auto / light / dark / grey), accent colour (13 colours picked from swatches; it also colours the top bar), analysis and slideshow model, parallel AI requests, review duplicates before AI, photo details for choosing
+  panel (back, hold, forward, close, *Captions*, *Zoom*) on mouse move or tap; keys ← → Space Esc.
+  *Captions* (date + AI caption under each photo) and *Zoom* (CSS Ken Burns: scale 1 → 1.15 over the
+  seconds per photo, origin cycling through the corners; photos only) are settings, off by default; the
+  player buttons switch the class at once and save the setting with a plain `fetch` (the htmx answer's
+  HX-Refresh would reload the page and end the show).
+- **Settings**: theme (auto / light / dark / grey), accent colour (13 colours picked from swatches; it also colours the top bar), analysis and slideshow model, parallel AI requests, review duplicates before AI, photo details for choosing, captions in Play, slow zoom in Play
   (each with a help line); delete cached data of folders
   no project uses; *Open documentation* opens `docs/` rendered as pages in a new tab (`/docs/<page>`).
 

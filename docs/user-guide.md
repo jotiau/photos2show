@@ -171,8 +171,14 @@ length (videos count with their real length).
 - **Undo** goes back one change (any change of the picks: select, refine, sort, move, add, remove, swap).
 - Click a tile to step through the picks in a **lightbox** (← →).
 - **▶ Play** shows the show full screen, scaled to the window. Move the mouse or tap to see why a photo
-  was picked and the controls (back, hold, forward, close). Keys: ← → Space Esc. Videos the browser
-  cannot play are skipped in the preview (they are still exported).
+  was picked and the controls (back, hold, forward, close, *Captions*, *Zoom*). Keys: ← → Space Esc. Videos
+  the browser cannot play are skipped in the preview (they are still exported).
+  - **Captions** shows the date and the AI caption under every photo, e.g. when showing the trip to others.
+  - **Zoom** slowly zooms into each photo over its seconds on screen (Ken Burns effect), from a different
+    corner each time; videos play as they are.
+
+  Both are off by default. Clicking them in the control panel switches them at once and saves the choice;
+  they are also on the Settings page (*Captions in Play*, *Slow zoom in Play*).
 
 ### Export
 

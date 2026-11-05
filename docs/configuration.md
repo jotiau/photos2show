@@ -37,6 +37,8 @@ Saved in `settings.json` in the data folder and valid for all projects.
 | Parallel AI requests | 1, 2, 4, 8 (plus the `AI_CONCURRENCY` value) | `AI_CONCURRENCY` | how many photos go to the AI at once. More is faster if the server keeps up; a local model usually works best with 1. |
 | Review duplicates before AI | on, off | on | on: Analyse pauses after scanning so you can pick the best shot of each new same-scene group, or let the AI compare them. Off: the technically best shot is used without asking. |
 | Photo details for choosing | full, short, minimal, auto | full | how much the slideshow AI reads per photo (see below). Also offered next to *Select photos*. |
+| Captions in Play | off, on | off | on: *▶ Play* shows the date and the AI caption under every photo. Also switched with *Captions* in the player. |
+| Slow zoom in Play | off, on | off | on: *▶ Play* slowly zooms into each photo (Ken Burns effect); videos play as they are. Also switched with *Zoom* in the player. |
 
 *Analysis model* and *Slideshow model* list the models from the server's `/models`; the first entry,
 *default (…)*, keeps the model from `.env`. If the server does not answer within 3 s, a text field is

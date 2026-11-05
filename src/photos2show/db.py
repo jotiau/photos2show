@@ -121,6 +121,12 @@ SETTINGS = {
                   "(~70 tokens per photo). Short: caption cut to 8 words, 5 tags (~35). Minimal: scene, "
                   "3 tags, scores, no caption (~20) – for small models with little context. Auto: the most "
                   "that fits the model's context, if the server reports it (else Full)."),
+    "play_captions": ("Captions in Play", ("off", "on"), "off",
+                      "On: ▶ Play shows the date and the AI caption under every photo, e.g. when showing the "
+                      "trip to others. Also switched with Captions in the player's control panel."),
+    "ken_burns": ("Slow zoom in Play", ("off", "on"), "off",
+                  "On: ▶ Play slowly zooms into each photo (Ken Burns effect), from a different corner each time; "
+                  "videos play as they are. Also switched with Zoom in the player's control panel."),
 }
 
 

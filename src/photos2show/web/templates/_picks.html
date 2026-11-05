@@ -33,7 +33,8 @@
   {% for p in picks %}
   <li class="card" draggable="true" data-id="{{ p.item.id }}" title="Drag to reorder">
     <img src="/thumb/{{ p.item.id }}?p={{ media_key() }}" alt="" loading="lazy" draggable="false" title="Click to enlarge"
-         data-full="/original/{{ p.item.id }}?p={{ media_key() }}"{% if p.item.kind == 'video' %} data-video{% endif %}>
+         data-full="/original/{{ p.item.id }}?p={{ media_key() }}"{% if p.item.kind == 'video' %} data-video{% endif %}
+         data-date="{{ p.item.taken_at or '' }}" data-caption="{{ (p.item.ai or {}).caption or '' }}">
     <span class="num">{{ loop.index }}</span>
     {% if p.item.kind == 'video' %}<span class="video">▶ video</span>{% endif %}
     <div class="name">#{{ p.item.id }} {{ p.item.path | basename }}</div>
