@@ -67,14 +67,21 @@ def library_dir(root: Path) -> Path:
     return d
 
 
+_ready: set[Path] = set()  # databases set up by this process: every page and poll connects
+
+
 def connect(root: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(library_dir(root) / "photos2show.db", check_same_thread=False)
+    path = library_path(root) / "photos2show.db"
+    fresh = path not in _ready or not path.is_file()  # is_file: removing a project or unused data deletes it
+    conn = sqlite3.connect(library_dir(root) / "photos2show.db" if fresh else path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.executescript(SCHEMA)
-    have = {r[1] for r in conn.execute("PRAGMA table_info(media)")}
-    for column in {"chosen", "excluded"} - have:  # libraries from before the column
-        conn.execute(f"ALTER TABLE media ADD COLUMN {column} INTEGER DEFAULT 0")
+    if fresh:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.executescript(SCHEMA)
+        have = {r[1] for r in conn.execute("PRAGMA table_info(media)")}
+        for column in {"chosen", "excluded"} - have:  # libraries from before the column
+            conn.execute(f"ALTER TABLE media ADD COLUMN {column} INTEGER DEFAULT 0")
+        _ready.add(path)
     return conn
 
 

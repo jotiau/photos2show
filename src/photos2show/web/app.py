@@ -11,6 +11,7 @@ import time
 import webbrowser
 import zlib
 from collections import Counter, defaultdict
+from contextlib import closing
 from html import escape
 from pathlib import Path
 from urllib.parse import urlencode
@@ -163,7 +164,9 @@ def _describe_now(root: Path, media_id: int) -> None:
 def _items() -> list[dict]:
     if not job["folder"] or not Path(job["folder"]).is_dir():
         return []
-    items, picks = db.all_media(db.connect(_root())), _pick_numbers()
+    with closing(db.connect(_root())) as conn:  # closed right away: the grid and every poll get here
+        items = db.all_media(conn)
+    picks = _pick_numbers()
     for it in items:
         it["skip_ai"], it["pick"] = skip_ai_reason(it), picks.get(it["id"])
     return items
@@ -220,7 +223,8 @@ def _root() -> Path:
 
 
 def _item(media_id: int) -> dict:
-    item = db.get_media(db.connect(_root()), media_id)
+    with closing(db.connect(_root())) as conn:
+        item = db.get_media(conn, media_id)
     if not item:
         raise HTTPException(404)
     return item
@@ -695,9 +699,10 @@ def swap(request: Request, id: int = Form(...), to: int = Form(...)):
 
 
 def _picks(request: Request, error: str | None = None) -> HTMLResponse:
-    conn, selection = db.connect(_root()), slideshow.load(_root())
+    selection = slideshow.load(_root())
     seconds = slideshow.per_photo(selection)
-    items = {it["id"]: it for it in db.all_media(conn)}
+    with closing(db.connect(_root())) as conn:
+        items = {it["id"]: it for it in db.all_media(conn)}
     scenes = defaultdict(list)  # best shot id -> every shot of that scene
     for it in items.values():
         scenes[_scene(it)].append(it["id"])

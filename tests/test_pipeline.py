@@ -284,3 +284,27 @@ def test_dark_low_contrast_shots_are_grouped_like_any_other(tmp_path, monkeypatc
     assert items["night_1.jpg"]["metrics"]["sharpness"] < pipeline.quality.VERY_BLURRY
     assert "very_blurry" not in items["night_1.jpg"]["flags"]  # so it goes to the AI ...
     assert items["night_2.jpg"]["duplicate_of"] == items["night_1.jpg"]["id"]  # ... but only once
+
+
+def test_database_is_set_up_once_and_again_after_it_was_deleted(tmp_path, monkeypatch):
+    import shutil
+    import sqlite3
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = tmp_path / "photos"
+    folder.mkdir()
+    statements, real = [], sqlite3.connect
+
+    def traced(*args, **kwargs):
+        conn = real(*args, **kwargs)
+        conn.set_trace_callback(statements.append)
+        return conn
+
+    monkeypatch.setattr(db.sqlite3, "connect", traced)
+    setups = lambda: sum("CREATE TABLE" in s for s in statements)  # noqa: E731
+    db.connect(folder).close()
+    db.connect(folder).close()
+    assert setups() == 1  # every page and poll connects: the schema runs once
+    shutil.rmtree(db.library_path(folder))  # Remove project with its results, Delete unused data
+    with db.connect(folder) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM media").fetchone()[0] == 0
+    assert setups() == 2
