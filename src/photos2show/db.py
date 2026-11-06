@@ -238,6 +238,9 @@ def project_stats(folder: Path) -> dict:
                              "score DESC LIMIT 1").fetchone()
         stats["cover"] = cover and d / "thumbs" / cover[0]
         conn.close()
-    if (d / "selection.json").exists():
-        stats["picks"] = len(json.loads((d / "selection.json").read_text())["picks"])
+    shows = [f for f in (d / "slideshows").glob("*.json") if f.stem.isdigit()] or \
+        [f for f in (d / "selection.json",) if f.exists()]  # before several shows
+    stats["shows"] = len(shows)
+    if len(shows) == 1:
+        stats["picks"] = len(json.loads(shows[0].read_text())["picks"])
     return stats

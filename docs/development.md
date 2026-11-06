@@ -35,7 +35,7 @@ src/photos2show/
   dedup.py      # pHash same-scene grouping, best of each group
   pipeline.py   # pass 1 analyse_folder(), pass 2 describe_folder(), choose_best(), ai_choose_best()
   ai.py         # OpenAI client, prompts, analyse_image(), pick_best(), complete_json(), list_models(), context_length()
-  slideshow.py  # selection prompt, validation, edits, sorting, undo, export
+  slideshow.py  # selection prompt, validation, edits, sorting, undo, several shows, export
   cli.py        # photos2show-scan
   smoke.py      # photos2show-smoke
   testdata.py   # photos2show-testdata
@@ -87,6 +87,7 @@ docs/           # this documentation
 | `POST /never-pick/{id}`, `/caption/{id}` | toggle *Never pick*; save a caption corrected by hand |
 | `POST /separate/{id}`, `/separate/{id}?all=true` | review: keep a shot (or every shot of its scene) as its own picture |
 | `GET /slideshow`, `/slideshow/picks` | slideshow page; picks partial |
+| `POST /slideshow/open`, `/new`, `/rename`, `/delete` | open, create (empty or `duplicate`), rename or delete a slideshow of the project |
 | `POST /slideshow/select`, `/refine`, `/seconds`, `/sort`, `/move`, `/swap`, `/undo` | change the picks |
 | `POST /slideshow/{add\|remove}/{id}`, `/slideshow/bulk` | add or remove one or several |
 | `POST /slideshow/export`, `/slideshow/open-export` | export; open the export folder |

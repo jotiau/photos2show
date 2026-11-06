@@ -1,3 +1,4 @@
+import json
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -183,7 +184,8 @@ def test_undo_is_one_step_and_forgets_deleted_files(described):
     slideshow.change(folder, {"description": "d", "picks": [b]})  # no change: keeps the undo step
     slideshow.save(folder, {**slideshow.load(folder), "exported_to": "/stick/show"})
     slideshow.undo(folder)
-    assert slideshow.load(folder) == {"description": "d", "picks": [a, b], "exported_to": "/stick/show"}
+    assert slideshow.load(folder) == {"name": "Slideshow", "description": "d", "picks": [a, b],
+                                      "exported_to": "/stick/show"}
     assert not slideshow.can_undo(folder)
     slideshow.undo(folder)  # nothing to undo: no error, no change
     assert slideshow.load(folder)["picks"] == [a, b]
@@ -255,3 +257,35 @@ def test_parallel_edits_are_not_lost(tmp_path, monkeypatch):
     with ThreadPoolExecutor(8) as pool:
         list(pool.map(add, range(40)))
     assert sorted(p["id"] for p in slideshow.load(tmp_path)["picks"]) == list(range(40))
+
+
+def test_several_shows_per_project(described):
+    folder, ids = described
+    a, b = {"id": ids["scene_1.jpg"], "reason": ""}, {"id": ids["scene_2.jpg"], "reason": ""}
+    lib = db.library_dir(folder)
+    (lib / "selection.json").write_text(json.dumps({"description": "old", "picks": [a], "exported_to": "/x"}))
+    assert slideshow.shows(folder) == [(1, "Slideshow")] and slideshow.load(folder)["picks"] == [a]  # moved in
+    assert not (lib / "selection.json").exists()
+    slideshow.create(folder, "Parents", copy=True)
+    assert slideshow.current(folder) == 2 and slideshow.load(folder) == {"name": "Parents", "description": "old",
+                                                                         "picks": [a]}  # export folder not copied
+    slideshow.change(folder, {**slideshow.load(folder), "picks": [a, b]})
+    slideshow.create(folder, "Friends")
+    assert slideshow.load(folder)["picks"] == [] and not slideshow.can_undo(folder)  # undo is per show
+    slideshow.switch(folder, 2)
+    slideshow.switch(folder, 99)  # unknown: stays
+    slideshow.rename(folder, "Mum and Dad")
+    slideshow.undo(folder)  # the picks go back, the new name stays
+    assert slideshow.load(folder) == {"name": "Mum and Dad", "description": "old", "picks": [a]}
+    assert slideshow.folder_name("Mum & Dad / 2026") == "mum-dad-2026" and slideshow.folder_name("!") == "slideshow"
+
+    slideshow.forget(folder, {a["id"]})  # also what Never pick does: out of every show and undo copy
+    assert [slideshow.load(folder, n)["picks"] for n in slideshow.ids(folder)] == [[], [], []]
+    slideshow.delete(folder)
+    assert slideshow.shows(folder) == [(1, "Slideshow"), (3, "Friends")] and slideshow.current(folder) == 1
+    assert db.project_stats(folder)["shows"] == 2
+    slideshow.delete(folder)
+    with pytest.raises(ValueError, match="last slideshow"):
+        slideshow.delete(folder)
+    assert slideshow.shows(folder) == [(3, "Friends")]
+    assert db.project_stats(folder)["shows"] == 1 and db.project_stats(folder)["picks"] == 0

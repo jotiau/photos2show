@@ -1,5 +1,5 @@
 {% set n = picks.get(id) %}
 <button class="add" id="toggle" hx-post="/slideshow/{{ 'remove' if n else 'add' }}/{{ id }}" hx-swap="outerHTML">
-  {{ 'Remove from slideshow (#%d)' % n if n else 'Add to slideshow' }}</button>
+  {{ 'Remove from %s (#%d)' % (show_name(), n) if n else 'Add to %s' % show_name() }}</button>
 <span id="pick-{{ id }}" class="pick" hx-swap-oob="true">{{ '✓ %d' % n if n }}</span>
 {% for pid, pn in picks.items() if pid != id %}<span id="pick-{{ pid }}" class="pick" hx-swap-oob="true">✓ {{ pn }}</span>{% endfor %}

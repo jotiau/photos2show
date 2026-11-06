@@ -146,12 +146,12 @@ header select option { background: var(--panel); color: var(--text); }
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='7'/%3E%3Cpath d='m15 15 6 6'/%3E%3C/svg%3E"); }
 .tags { margin: -4px 0 12px; }
 /* <summary> styled as a normal button (Tags, project Edit) */
-.tags summary, .project details.edit summary { display: inline-block; list-style: none; cursor: pointer; padding: 6px 10px;
+.tags summary, .project details.edit summary, .shows details.edit summary { display: inline-block; list-style: none; cursor: pointer; padding: 6px 10px;
   border: 1px solid var(--border); border-radius: 6px; background: var(--panel); margin-bottom: 6px; }
-.tags summary::-webkit-details-marker, .project details.edit summary::-webkit-details-marker { display: none; }
-.tags summary:hover, .project details.edit summary:hover { border-color: var(--accent); }
-.tags summary::after, .project details.edit summary::after { content: " ▾"; color: var(--muted); }
-.tags[open] summary::after, .project details.edit[open] summary::after { content: " ▴"; }
+.tags summary::-webkit-details-marker, .project details.edit summary::-webkit-details-marker, .shows details.edit summary::-webkit-details-marker { display: none; }
+.tags summary:hover, .project details.edit summary:hover, .shows details.edit summary:hover { border-color: var(--accent); }
+.tags summary::after, .project details.edit summary::after, .shows details.edit summary::after { content: " ▾"; color: var(--muted); }
+.tags[open] summary::after, .project details.edit[open] summary::after, .shows details.edit[open] summary::after { content: " ▴"; }
 .tags .tag { margin: 0 4px 4px 0; }
 .tags .tag span { color: var(--muted); }
 .tags .tag.active { border-color: var(--accent); }
@@ -184,6 +184,7 @@ details.describe .options button { margin-left: auto; }
 .toolbar { position: sticky; top: 59px; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
            background: var(--panel); padding: 8px 0; border-bottom: 1px solid var(--border); }
 main.slideshow .toolbar form { flex-direction: row; align-items: center; }
+main.slideshow .shows form { flex-direction: row; flex-wrap: wrap; align-items: center; }
 .toolbar .end { margin-left: auto; display: flex; gap: 6px; }
 .hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
 #export { width: min(560px, calc(100vw - 32px)); max-width: none; }
@@ -252,7 +253,7 @@ details.project.new:not([open]) > summary { padding: 6px 10px; border: 1px solid
                                             background: var(--panel); }
 details.project.new:not([open]) > summary:hover { border-color: var(--accent); }
 details.project.new:not([open]) h2::before { content: "+ "; }
-.project form, .project .actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.project form, .project .actions, .shows, .shows form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .project form input[name="folder"] { flex: 1; min-width: 200px; }
 .project h2 { font-size: 15px; margin: 0; }
 .project .empty { margin: 0; }
@@ -265,7 +266,10 @@ button.remove { background: var(--panel); color: var(--bad); border-color: var(-
 .project .path { margin: 0; color: var(--muted); font-size: 12px; word-break: break-all; }
 .project .actions { align-items: flex-start; }  /* Open stays level with Edit when the edit panel opens */
 .project details.edit { flex: 1; }
-.project details.edit summary { margin-bottom: 0; }
+.shows { margin-bottom: 16px; align-items: flex-start; }
+.shows details.edit summary { margin-bottom: 0; }
+.shows details.edit[open] { display: flex; flex-direction: column; gap: 6px; }
+.project details.edit summary, .shows details.edit summary { margin-bottom: 0; }
 .project details.edit form, .project details.edit > .remove { margin-top: 6px; }
 dialog.confirm { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); max-width: 440px; }
 dialog.confirm form { flex-direction: column; align-items: stretch; }

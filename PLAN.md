@@ -135,14 +135,18 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
 5. Validate: unknown, repeated or malformed ids are dropped; only described, non-duplicate items.
    No score-based fallback – on a bad answer the UI shows the error and you press *Select* again.
 6. Default order chronological unless the description says otherwise.
-7. One selection per project (`selection.json` in the project cache: description, picks,
-   refinements, seconds per photo, last export folder); editing by hand in the UI. All edits run
+7. Several slideshows per project: `slideshows/<n>.json` in the project cache (name, description, picks,
+   refinements, seconds per photo, last export folder), `current` = the open one; editing by hand in the UI.
+   Routes keep working on the open show (no show id per request); the Library adds to it and names it once
+   there are several. The old `selection.json` becomes show 1 on first read. *Never pick* and deleted files
+   leave every show and undo copy. New (empty or a copy without the export folder), rename, delete (not the
+   last). Default export folder `<photo folder>_<show name>`. All edits run
    under one lock, so parallel requests, a rescan or an export never drop a change.
 8. *Refine*: an instruction plus the current picks in order (id | reason) is appended to the same
    prompt; the LLM returns the complete new list. Current picks stay valid even if added by hand
    (duplicates, undescribed); a pick without a new reason keeps its old one. Instructions are kept in
    `refinements`. Every change of the picks (select, refine, sort, move, add, remove, bulk) saves
-   the list before it to `selection.prev.json` for one step of *Undo*.
+   the list before it to `<n>.prev.json` for one step of *Undo* (per show; a rename is not undone).
 
 ### 6. Review UI
 Local web app (FastAPI + Jinja2 templates + HTMX, no JS build step). One primary (blue) button
@@ -150,7 +154,7 @@ per page; destructive actions red.
 - **Projects**: one per holiday (name → photo folder, stored in `projects.json` in the cache);
   dropdown in the header to switch; the *Projects* page has "New project" to create and analyse
   (names must be unique) and shows each as a card: cover (the photo the AI liked best), name,
-  state (files, described, picks, last analysed, folder missing) and *Open*; rename and change
+  state (files, described, picks or number of slideshows, last analysed, folder missing) and *Open*; rename and change
   folder and *Remove project…* behind *Edit*. Remove asks in a dialog; it keeps the cached AI results (they are keyed
   by folder, not by project name) unless "also delete saved AI results" is ticked there and no
   other project uses that folder. *Change folder* copies the saved results to the new folder with the paths
@@ -169,7 +173,7 @@ per page; destructive actions red.
   (one file now with the analysis model, also skipped ones; the old result stays until the new one arrives). Keys: Tab to a card, Enter/Space opens it, ← → step
   through the grid, A adds/removes, Esc closes. Ctrl/⌘-click and Shift-click select cards for a
   bulk add/remove bar.
-- **Slideshow**: two step cards. ① description → *Select photos* (spinner, elapsed time, picks
+- **Slideshow**: a bar to pick, rename, add (empty or copy) and delete the shows of the project, then two step cards. ① description → *Select photos* (spinner, elapsed time, picks
   locked meanwhile); collapses to one line with *Edit* once there are picks. ② ordered tiles with
   reasons under a sticky toolbar (count and length, seconds per photo, sort, *Undo*, *Export…*
   dialog with *Open folder*, *▶ Play*) and *Refine picks*; drag & drop or ‹ › to reorder, × to
@@ -186,7 +190,7 @@ per page; destructive actions red.
 
 ### 7. Export
 - Copy to a new, empty folder outside the photo folder (default: the last export folder, else
-  `<photo folder>_slideshow`) as
+  `<photo folder>_<show name>`) as
   `001_2026-07-14_beach-sunset.jpg` (other files copied as they are, e.g. `.mp4`, `.heic`, in their
   slot). RAW photos are developed to a full-size JPEG (quality 92), since TVs and slideshow apps
   can't show RAW. Never move or modify originals.
@@ -235,7 +239,7 @@ docs/           # documentation (user guide, configuration, internals); kept in 
 - Learned IQA models (pyiqa: MUSIQ/TOPIQ/NIMA) if GLM aesthetic scores prove noisy
 - Deeper video handling (scene detection, picking clips)
 - Map / location grouping from GPS
-- Several saved slideshows per project; projects spanning several folders
+- Projects spanning several folders
 
 ## Risks / open points
 Reviewed with the user on 2026-10-23; resolved ones removed 2026-11-01.

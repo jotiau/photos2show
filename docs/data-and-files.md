@@ -41,8 +41,10 @@ Everything the app writes, except exports, goes into the data folder (default
   settings.json                 # Settings page choices (also the API key, if set there; owner-only)
   <folder name>-<12 hex>/       # one per photo folder (hash of its full path)
     photos2show.db              # SQLite: one row per file
-    selection.json              # the slideshow of this folder
-    selection.prev.json         # the picks before the last change (Undo)
+    slideshows/
+      1.json, 2.json …          # one per slideshow (selection.json before several slideshows; moved here)
+      1.prev.json …             # its picks before the last change (Undo)
+      current                   # number of the slideshow that is open
     analysed_at                 # time of the last complete analysis
     thumbs/
       <16 hex>.jpg              # grid thumbnail (~400 px)
@@ -76,17 +78,18 @@ a cache folder.
 | `chosen` | best shot by choice: 0 no, 1 by you, 2 by the AI; 3 kept separately (not similar, never grouped) |
 | `excluded` | 1: *Never pick* – not offered to the AI for the slideshow; kept on later scans |
 
-### `selection.json`
+### Slideshow (`slideshows/<n>.json`)
 
 ```json
-{"description": "10-minute show for my parents …",
+{"name": "Slideshow",
+ "description": "10-minute show for my parents …",
  "picks": [{"id": 12, "reason": "ferry arriving at sunrise"}],
  "refinements": ["add more sunsets"],
  "seconds": 5,
  "exported_to": "/home/me/Pictures/Norway_slideshow"}
 ```
 
-The export folder gets the same file without `exported_to`.
+The export folder gets the same file as `selection.json`, without `exported_to`.
 
 ## Privacy
 

@@ -172,21 +172,94 @@ def sort(picks: list[dict], items: dict[int, dict], by: str) -> list[dict]:
     return sorted(known, key=lambda p: key(items[p["id"]]), reverse=desc) + rest
 
 
-def load(root: Path) -> dict:
-    f = db.library_dir(root) / "selection.json"
-    return json.loads(f.read_text()) if f.exists() else {"description": "", "picks": []}
+def _dir(root: Path) -> Path:
+    """slideshows/<n>.json per show, <n>.prev.json its undo step, current: the open one."""
+    d = db.library_dir(root) / "slideshows"
+    d.mkdir(exist_ok=True)
+    for old, new in (("selection.json", "1.json"), ("selection.prev.json", "1.prev.json")):  # one show before
+        try:
+            (db.library_dir(root) / old).rename(d / new)
+        except FileNotFoundError:
+            pass
+    return d
+
+
+def ids(root: Path) -> list[int]:
+    return sorted(int(f.stem) for f in _dir(root).glob("*.json") if f.stem.isdigit())
+
+
+def current(root: Path) -> int:
+    """The show the Slideshow tab and the Library work on (1 before any show is saved)."""
+    known = ids(root)
+    try:
+        n = int((_dir(root) / "current").read_text())
+    except (OSError, ValueError):
+        n = None
+    return n if n in known else (known[0] if known else 1)
+
+
+def _file(root: Path, n: int | None = None) -> Path:
+    return _dir(root) / f"{current(root) if n is None else n}.json"
+
+
+def load(root: Path, n: int | None = None) -> dict:
+    f = _file(root, n)
+    return {"name": "Slideshow", **json.loads(f.read_text())} if f.exists() else \
+        {"name": "Slideshow", "description": "", "picks": []}
 
 
 def save(root: Path, selection: dict) -> None:
-    db.write_json(db.library_dir(root) / "selection.json", selection)
+    db.write_json(_file(root), selection)
+
+
+def shows(root: Path) -> list[tuple[int, str]]:
+    return [(n, load(root, n)["name"]) for n in ids(root)] or [(1, "Slideshow")]
+
+
+def folder_name(name: str) -> str:
+    """Show name as part of the default export folder: <photo folder>_<name>."""
+    return re.sub(r"[^\w-]+", "-", name.lower()).strip("-") or "slideshow"
 
 
 def _previous(root: Path) -> Path:
-    return db.library_dir(root) / "selection.prev.json"
+    return _dir(root) / f"{current(root)}.prev.json"
 
 
 # FastAPI runs routes in parallel threads: two quick edits must not both start from the same old file.
 lock = threading.Lock()
+
+
+def switch(root: Path, n: int) -> None:
+    with lock:
+        if n in ids(root):
+            (_dir(root) / "current").write_text(str(n))
+
+
+def create(root: Path, name: str, copy: bool = False) -> None:
+    """A new show, empty or a copy of the current one (without its export folder), and open it."""
+    with lock:
+        selection = load(root)
+        save(root, selection)  # the first show may only exist as the default so far
+        n = max(ids(root)) + 1
+        new = {k: v for k, v in selection.items() if k != "exported_to"} if copy else {"description": "", "picks": []}
+        db.write_json(_file(root, n), {**new, "name": name})
+        (_dir(root) / "current").write_text(str(n))
+
+
+def rename(root: Path, name: str) -> None:
+    with lock:
+        save(root, {**load(root), "name": name})
+
+
+def delete(root: Path) -> None:
+    """Delete the current show and its undo step; the first one left opens. The last show stays."""
+    with lock:
+        n, known = current(root), ids(root)
+        if len(known) < 2:
+            raise ValueError("The last slideshow cannot be deleted.")
+        _previous(root).unlink(missing_ok=True)
+        _file(root, n).unlink()
+        (_dir(root) / "current").write_text(str(next(i for i in known if i != n)))
 
 
 def update(root: Path, fn) -> None:
@@ -208,25 +281,25 @@ def can_undo(root: Path) -> bool:
 
 
 def undo(root: Path) -> None:
-    """Restore the picks before the last change (one step); the export folder stays remembered."""
+    """Restore the picks before the last change (one step); the name and export folder stay as they are."""
     f = _previous(root)
     with lock:
         if not f.exists():
             return
         current = load(root)
-        save(root, {**json.loads(f.read_text()), **({"exported_to": current["exported_to"]}
-                                                    if "exported_to" in current else {})})
+        save(root, {**json.loads(f.read_text()), "name": current["name"],
+                    **({"exported_to": current["exported_to"]} if "exported_to" in current else {})})
         f.unlink()
 
 
 def forget(root: Path, gone: set[int]) -> None:
-    """Drop deleted files from the picks and the undo copy: SQLite gives a deleted top id to the next new file."""
+    """Drop ids from every show and undo copy: deleted files (SQLite gives a deleted top id to the next new
+    file) and photos marked Never pick."""
     with lock:
-        for f in (db.library_dir(root) / "selection.json", _previous(root)):
-            if f.exists():
-                selection = json.loads(f.read_text())
-                if any(p["id"] in gone for p in selection["picks"]):
-                    db.write_json(f, {**selection, "picks": [p for p in selection["picks"] if p["id"] not in gone]})
+        for f in _dir(root).glob("*.json"):
+            selection = json.loads(f.read_text())
+            if any(p["id"] in gone for p in selection["picks"]):
+                db.write_json(f, {**selection, "picks": [p for p in selection["picks"] if p["id"] not in gone]})
 
 
 EXPORTED = re.compile(r"\d{3}_.+")  # file names written by export()

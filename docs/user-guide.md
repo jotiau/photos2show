@@ -41,7 +41,7 @@ One project per trip. Each project is a name plus a photo folder; subfolders are
 - **New project**: enter a name (must be unique) and the folder, either typed or picked with *Browse…*
   (opens your system's folder dialog). *Create & analyse* saves the project and starts the analysis.
 - **Cards**: every project shows a cover (the photo the AI liked best), the number of files,
-  AI-described files and slideshow picks, when it was last analysed, and a warning if the folder is
+  AI-described files and slideshow picks (or the number of slideshows, if there are several), when it was last analysed, and a warning if the folder is
   missing (e.g. an unplugged drive). *Open* switches to it.
 - **Edit**: *Rename* the project, or *Change folder* to point it to another folder (e.g. after moving the
   photos; press *Analyse again* in the Library afterwards). The AI results and slideshow come along, so only
@@ -94,7 +94,7 @@ the slideshow, and *never pick* if you excluded it from the slideshow.
 - **Stacks**: same-scene shots are stacked behind the best one, shown with `+N`. *Show all shots*
   unstacks them; *Stack same-scene shots* stacks them again.
 - **Filters** (chips with counts; empty ones are hidden): all, ok (no flag), skips ai, very blurry,
-  blurry, too dark, too bright, low contrast, monotone, duplicate, video, in slideshow, never pick.
+  blurry, too dark, too bright, low contrast, monotone, duplicate, video, in slideshow (the open one), never pick.
 - **Tags**: the 30 most common AI tags with counts; click one to filter by it (also from the detail panel).
 - **Search**: every word must appear in the caption, tags, scene, issues or file name (any case),
   e.g. `boat sunset`.
@@ -112,8 +112,9 @@ caption, scene, people count, scores, tags and issues, and the technical metrics
 *Technical details*. Videos show a player (if the browser can play the format) and their sampled frames.
 
 - **Add to slideshow** / **Remove from slideshow (#N)** toggles the photo; N is its position in the show.
+  With several slideshows the button names the open one, e.g. *Add to Highlights*.
 - **Never pick** keeps the photo out of the AI's choice (*Select photos* and *Refine picks*), e.g. a
-  stranger in the frame or a shot you don't like; it also leaves the current slideshow. *✓ Never pick*
+  stranger in the frame or a shot you don't like; it also leaves every slideshow of the project. *✓ Never pick*
   turns it off again. You can still add the photo by hand. The choice is kept on later scans.
 - **Caption**: click the caption to correct it, Enter (or leaving the field) saves. The slideshow AI
   chooses by the captions, so a wrong one ("dog" for a fox) leads to wrong picks. *Describe again*
@@ -143,7 +144,18 @@ many are selected, with *Add to slideshow*, *Remove from slideshow* and *Clear*.
 
 ## Slideshow
 
-Each project has one slideshow. To make a second show from the same trip, export the first, then select again.
+A project can have several slideshows, e.g. a 10-minute show for your parents and a 2-minute highlight
+reel for friends. The bar at the top picks the one you work on; the Library adds to and removes from that
+one too. Its *Edit* menu has:
+
+- **Rename** the open slideshow.
+- **New slideshow**: give it a name; tick *copy this one* to start from the open show's description and
+  picks (e.g. to make a shorter version with *Refine picks*), otherwise it starts empty.
+- **Delete slideshow…** (only with two or more) asks first; photos, other slideshows and exported folders
+  stay untouched.
+
+Each slideshow keeps its own description, picks, seconds per photo, *Undo* step and export folder. A
+project that had one slideshow before keeps it as *Slideshow*.
 
 ### ① Describe
 
@@ -184,11 +196,12 @@ length (videos count with their real length).
 ### Export
 
 Press *Export…*, choose a folder **outside the photo folder** and press *Export*, then *Open folder*.
-The default is the last export folder, else `<photo folder>_slideshow`.
+The default is this slideshow's last export folder, else `<photo folder>_<slideshow name>`
+(e.g. `Norway_slideshow`, `Norway_for-mum`), so two slideshows do not export into the same folder.
 
 - Files are named `001_<date>_<first two tags>.<ext>` and copied as they are; camera RAW photos become
   full-size JPEGs, because TVs and slideshow apps cannot show RAW.
-- A `selection.json` next to them records your description, refinements, seconds per photo and the
+- A `selection.json` next to them records the slideshow's name, your description, refinements, seconds per photo and the
   reason for every pick.
 - The folder must be new or empty. To export again after changes, tick *replace previous export in this folder*: this
   empties a folder only if it contains an earlier export's `selection.json` and numbered files, never a

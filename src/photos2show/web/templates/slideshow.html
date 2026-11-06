@@ -13,6 +13,38 @@
 {% if selection is none %}
   <p class="empty"><a href="/projects">Create a project</a> first.</p>
 {% else %}
+  <section class="shows">
+    <label for="show">Slideshow</label>
+    <select id="show" name="id" hx-post="/slideshow/open" hx-trigger="change" hx-target="#show-msg">
+      {% for n, name in shows %}<option value="{{ n }}" {{ 'selected' if n == show }}>{{ name }}</option>{% endfor %}
+    </select>
+    <details class="edit">
+      <summary>Edit</summary>
+      <form hx-post="/slideshow/rename" hx-target="#show-msg">
+        <input name="name" value="{{ selection.name }}" required aria-label="Slideshow name">
+        <button>Rename</button>
+      </form>
+      <form hx-post="/slideshow/new" hx-target="#show-msg">
+        <input name="name" placeholder="Highlights for friends" required aria-label="Name of the new slideshow">
+        <label><input type="checkbox" name="duplicate" value="true"> copy this one</label>
+        <button>New slideshow</button>
+      </form>
+      {% if shows | length > 1 %}
+      <button type="button" class="remove" onclick="this.nextElementSibling.showModal()">Delete slideshow…</button>
+      <dialog class="confirm">
+        <form hx-post="/slideshow/delete" hx-target="#show-msg" hx-on::after-request="this.closest('dialog').close()">
+          <p>Delete the slideshow <strong>{{ selection.name }}</strong>? Your photos and other slideshows stay
+            untouched, and so does an exported folder.</p>
+          <div class="buttons">
+            <button type="button" onclick="this.closest('dialog').close()">Cancel</button>
+            <button class="remove">Delete slideshow</button>
+          </div>
+        </form>
+      </dialog>
+      {% endif %}
+    </details>
+    <span id="show-msg"></span>
+  </section>
   <section class="step">
     <h2>① Describe</h2>
     <!-- collapsed to one line once there are picks; the summary is hidden while open -->

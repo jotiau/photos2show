@@ -25,8 +25,8 @@ LM Studio if you'd rather keep your photos on your own computer.
   or lets you pick it before the AI runs.
 - **AI descriptions:** a caption, tags, scene type, people count and scores for every photo worth
   keeping, videos included. Runs in parallel, can be stopped and resumed, and caches everything.
-- **Slideshow from a description:** the model picks and orders the photos and says why. Refine it in
-  words, reorder, swap or add by hand, undo, and play it full screen (optionally with captions and a
+- **Slideshow from a description:** the model picks and orders the photos and says why; several
+  slideshows per trip. Refine it in words, reorder, swap or add by hand, undo, and play it full screen (optionally with captions and a
   slow zoom).
 - **Library browser:** thumbnail grid with filters, tags, search over the captions, a date range,
   sorting, a detail panel (correct a caption, mark a photo *Never pick*) and keyboard shortcuts. One project per trip.
@@ -91,7 +91,7 @@ local models and recommended analysis / slideshow pairs per GPU size.
 
 Planned, roughly in this order of interest:
 
-- Several saved slideshows per project; projects spanning several folders
+- Projects spanning several folders
 - Face detection and grouping ("everyone appears at least once")
 - Map and location grouping from GPS
 - Local semantic search (CLIP) and smarter duplicate grouping

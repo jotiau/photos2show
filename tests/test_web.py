@@ -2,13 +2,14 @@ import io
 import os
 import re
 import shutil
+import threading
 import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from photos2show import pipeline, testdata
+from photos2show import ai, pipeline, testdata
 from photos2show.web import app as web
 
 LOCAL = "http://127.0.0.1"
@@ -431,9 +432,16 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
             time.sleep(0.1)
         raise AssertionError("still describing")
 
+    gate = threading.Event()  # holds the AI until the test has seen "Describing with AI"
+
+    def held(fn):
+        return lambda *a: (gate.wait(10), fn(*a))[1]
+
+    monkeypatch.setattr("photos2show.ai.analyse_image", held(ai.analyse_image))
     detail = client.post(f"/best/{items['burst_1.jpg']}", headers={"HX-Target": "detail"})
     assert detail.headers["HX-Trigger"] == "analysed" and "Make this the best shot" not in detail.text
     assert "Describing with AI" in detail.text
+    gate.set()
     done = poll(items["burst_1.jpg"])
     assert done.headers["HX-Retarget"] == "#detail" and "fake caption" in done.text
     assert "Make this the best shot" in client.get(f"/media/{items['burst_2.jpg']}").text
@@ -449,7 +457,10 @@ def test_review_duplicates_then_change_best_later(tmp_path, monkeypatch, fake_ai
 
     # Describe again: also a shot that is not the best of its scene; a failure keeps the old description.
     assert "Make this the best shot" in client.get(f"/media/{items['burst_2.jpg']}").text  # skipped as duplicate
+    gate.clear()
+    monkeypatch.setattr("photos2show.ai.analyse_image", held(broken))
     assert "Describing with AI" in client.post(f"/describe/{items['burst_2.jpg']}").text
+    gate.set()
     failed = poll(items["burst_2.jpg"])
     assert "model offline" in failed.text and "previous description is kept" in failed.text
     assert "fake caption" in failed.text and failed.headers["HX-Trigger"] == "analysed"
@@ -583,3 +594,30 @@ def test_change_folder_after_moving_the_photos_keeps_the_results(tmp_path, monke
     assert all(it["path"].startswith(str(new.resolve())) for it in items)
     assert web.slideshow.load(new)["picks"] == [{"id": first, "reason": "nice"}]
     assert web.db.library_path(old).is_dir()  # copied, not moved: the old folder's results are kept
+
+
+def test_several_slideshows(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = testdata.generate(tmp_path / "trip")
+    pipeline.analyse_folder(folder)
+    for key, value in {"running": False, "project": "Norway", "folder": str(folder)}.items():
+        monkeypatch.setitem(web.job, key, value)
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    first = web.db.all_media(web.db.connect(folder))[0]["id"]
+    client.post(f"/slideshow/add/{first}")
+    page = client.get("/slideshow").text
+    assert f'value="{folder}_slideshow"' in page and "Delete slideshow" not in page  # the only show stays
+
+    assert "Name missing" in client.post("/slideshow/new", data={"name": " "}).text
+    assert client.post("/slideshow/new", data={"name": "For Mum", "duplicate": "true"}).headers["HX-Refresh"]
+    page = client.get("/slideshow").text
+    assert '<option value="2" selected>For Mum</option>' in page and f'value="{folder}_for-mum"' in page
+    assert "Remove from For Mum (#1)" in client.get(f"/media/{first}").text  # the Library names the show
+    client.post(f"/never-pick/{first}")
+    assert all(not web.slideshow.load(folder, n)["picks"] for n in (1, 2))  # out of every show
+    client.post("/slideshow/rename", data={"name": "Mum"})
+    client.post("/slideshow/open", data={"id": "1"})
+    assert '<option value="2" >Mum</option>' in client.get("/slideshow").text
+    assert client.post("/slideshow/delete").headers["HX-Refresh"]
+    assert web.slideshow.shows(folder) == [(2, "Mum")]
+    assert "cannot be deleted" in client.post("/slideshow/delete").text

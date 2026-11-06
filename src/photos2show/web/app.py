@@ -265,6 +265,14 @@ def library_url(**changes) -> str:
 
 
 templates.env.globals["library_url"] = library_url
+def show_name() -> str:
+    """Library: the show Add goes to, named once a project has several."""
+    if not job["folder"] or not Path(job["folder"]).is_dir():
+        return "slideshow"
+    return slideshow.load(_root())["name"] if len(slideshow.ids(_root())) > 1 else "slideshow"
+
+
+templates.env.globals["show_name"] = show_name
 
 
 @app.post("/projects", response_class=HTMLResponse)
@@ -656,7 +664,7 @@ def never_pick(request: Request, media_id: int):
     conn.execute("UPDATE media SET excluded = ? WHERE id = ?", (int(excluded), media_id))
     conn.commit()
     if excluded:
-        slideshow.update(_root(), lambda s: {**s, "picks": slideshow.edit(s["picks"], "remove", media_id)})
+        slideshow.forget(_root(), {media_id})  # from every show
     resp = detail(request, media_id)
     resp.headers["HX-Trigger"] = "analysed"  # the card's badge and pick numbers in the grid
     return resp
@@ -721,7 +729,40 @@ def slideshow_page(request: Request):
         return _page(request, "slideshow.html", page="slideshow", selection=None)
     selection = slideshow.load(_root())
     return _page(request, "slideshow.html", page="slideshow", selection=selection,
-                 default_target=selection.get("exported_to") or f"{job['folder']}_slideshow")
+                 shows=slideshow.shows(_root()), show=slideshow.current(_root()),
+                 default_target=selection.get("exported_to")
+                 or f"{job['folder']}_{slideshow.folder_name(selection['name'])}")
+
+
+@app.post("/slideshow/open", response_class=HTMLResponse)
+def open_show(id: int = Form(...)):
+    slideshow.switch(_root(), id)
+    return HTMLResponse("", headers=REFRESH)
+
+
+@app.post("/slideshow/new", response_class=HTMLResponse)
+def new_show(name: str = Form(...), duplicate: bool = Form(False)):
+    if not name.strip():
+        return HTMLResponse('<span class="error">Name missing</span>')
+    slideshow.create(_root(), name.strip(), duplicate)
+    return HTMLResponse("", headers=REFRESH)
+
+
+@app.post("/slideshow/rename", response_class=HTMLResponse)
+def rename_show(name: str = Form(...)):
+    if not name.strip():
+        return HTMLResponse('<span class="error">Name missing</span>')
+    slideshow.rename(_root(), name.strip())
+    return HTMLResponse("", headers=REFRESH)
+
+
+@app.post("/slideshow/delete", response_class=HTMLResponse)
+def delete_show():
+    try:
+        slideshow.delete(_root())
+    except ValueError as e:
+        return HTMLResponse(f'<span class="error">{escape(str(e))}</span>')
+    return HTMLResponse("", headers=REFRESH)
 
 
 @app.get("/slideshow/picks", response_class=HTMLResponse)
