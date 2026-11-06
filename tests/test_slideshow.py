@@ -281,11 +281,30 @@ def test_several_shows_per_project(described):
 
     slideshow.forget(folder, {a["id"]})  # also what Never pick does: out of every show and undo copy
     assert [slideshow.load(folder, n)["picks"] for n in slideshow.ids(folder)] == [[], [], []]
-    slideshow.delete(folder)
-    assert slideshow.shows(folder) == [(1, "Slideshow"), (3, "Friends")] and slideshow.current(folder) == 1
+    slideshow.update(folder, lambda s: {**s, "picks": [b]}, 1)  # a slow request that started on show 1
+    assert slideshow.load(folder, 1)["picks"] == [b] and slideshow.load(folder)["picks"] == []  # 2 is open
+    slideshow.delete(folder, 3)  # not the open one: 2 stays open
+    assert slideshow.shows(folder) == [(1, "Slideshow"), (2, "Mum and Dad")] and slideshow.current(folder) == 2
     assert db.project_stats(folder)["shows"] == 2
-    slideshow.delete(folder)
+    slideshow.delete(folder, 2)
+    assert slideshow.current(folder) == 1
+    with pytest.raises(ValueError, match="already gone"):
+        slideshow.delete(folder, 2)
     with pytest.raises(ValueError, match="last slideshow"):
-        slideshow.delete(folder)
-    assert slideshow.shows(folder) == [(3, "Friends")]
-    assert db.project_stats(folder)["shows"] == 1 and db.project_stats(folder)["picks"] == 0
+        slideshow.delete(folder, 1)
+    (lib / "selection.json").write_text(json.dumps({"description": "older version", "picks": []}))
+    assert slideshow.load(folder)["picks"] == [b]  # an older version run again does not replace show 1
+    assert slideshow.shows(folder) == [(1, "Slideshow")]
+    assert db.project_stats(folder)["shows"] == 1 and db.project_stats(folder)["picks"] == 1
+
+
+def test_export_records_its_folder_in_the_show_it_started_on(described, tmp_path, monkeypatch):
+    folder, ids = described
+    slideshow.save(folder, {"description": "d", "picks": [{"id": ids["scene_1.jpg"], "reason": ""}]})
+    slideshow.create(folder, "Other")
+    slideshow.switch(folder, 1)
+    copy = slideshow.shutil.copy2
+    monkeypatch.setattr(slideshow.shutil, "copy2", lambda *a: (slideshow.switch(folder, 2), copy(*a)))  # meanwhile
+    assert slideshow.export(folder, tmp_path / "show") == 1
+    assert slideshow.load(folder, 1)["exported_to"] == str(tmp_path / "show")
+    assert "exported_to" not in slideshow.load(folder, 2)

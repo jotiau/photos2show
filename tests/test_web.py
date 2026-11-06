@@ -596,10 +596,11 @@ def test_change_folder_after_moving_the_photos_keeps_the_results(tmp_path, monke
     assert web.db.library_path(old).is_dir()  # copied, not moved: the old folder's results are kept
 
 
-def test_several_slideshows(tmp_path, monkeypatch):
+def test_several_slideshows(tmp_path, monkeypatch, fake_ai):
     monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
     folder = testdata.generate(tmp_path / "trip")
     pipeline.analyse_folder(folder)
+    pipeline.describe_folder(folder)
     for key, value in {"running": False, "project": "Norway", "folder": str(folder)}.items():
         monkeypatch.setitem(web.job, key, value)
     client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
@@ -618,6 +619,23 @@ def test_several_slideshows(tmp_path, monkeypatch):
     client.post("/slideshow/rename", data={"name": "Mum"})
     client.post("/slideshow/open", data={"id": "1"})
     assert '<option value="2" >Mum</option>' in client.get("/slideshow").text
-    assert client.post("/slideshow/delete").headers["HX-Refresh"]
-    assert web.slideshow.shows(folder) == [(2, "Mum")]
-    assert "cannot be deleted" in client.post("/slideshow/delete").text
+
+    pick = next(it["id"] for it in web.db.all_media(web.db.connect(folder))
+                if it["ai"] and not it["duplicate_of"] and not it["excluded"])
+
+    def switch_meanwhile(c, s, m):  # the AI takes minutes: the user opens another show
+        web.slideshow.switch(folder, 2)
+        return {"picks": [{"id": pick, "reason": "for show 1"}]}
+
+    monkeypatch.setattr("photos2show.ai.complete_json", switch_meanwhile)
+    client.post("/slideshow/select", data={"description": "short"})
+    assert web.slideshow.load(folder, 1)["picks"] == [{"id": pick, "reason": "for show 1"}]
+    assert web.slideshow.load(folder, 2)["picks"] == []  # the open show is untouched
+    client.post("/slideshow/refine", data={"instruction": "more"})  # started on 2 now
+    assert web.slideshow.load(folder, 2)["refinements"] == ["more"] and web.slideshow.load(folder, 1)["refinements"] == []
+    page = client.get("/slideshow").text
+    assert '<input type="hidden" name="id" value="2">' in page  # the dialog names the show to delete
+    client.post("/slideshow/open", data={"id": "1"})  # e.g. in another tab
+    assert client.post("/slideshow/delete", data={"id": "2"}).headers["HX-Refresh"]
+    assert web.slideshow.shows(folder) == [(1, "Slideshow")]  # the named show went, not the open one
+    assert "cannot be deleted" in client.post("/slideshow/delete", data={"id": "1"}).text

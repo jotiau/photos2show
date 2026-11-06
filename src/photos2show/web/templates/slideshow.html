@@ -33,6 +33,7 @@
       <button type="button" class="remove" onclick="this.nextElementSibling.showModal()">Delete slideshow…</button>
       <dialog class="confirm">
         <form hx-post="/slideshow/delete" hx-target="#show-msg" hx-on::after-request="this.closest('dialog').close()">
+          <input type="hidden" name="id" value="{{ show }}">
           <p>Delete the slideshow <strong>{{ selection.name }}</strong>? Your photos and other slideshows stay
             untouched, and so does an exported folder.</p>
           <div class="buttons">

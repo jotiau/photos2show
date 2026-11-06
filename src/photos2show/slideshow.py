@@ -178,7 +178,8 @@ def _dir(root: Path) -> Path:
     d.mkdir(exist_ok=True)
     for old, new in (("selection.json", "1.json"), ("selection.prev.json", "1.prev.json")):  # one show before
         try:
-            (db.library_dir(root) / old).rename(d / new)
+            if not (d / new).exists():  # an older version run again must not replace show 1
+                (db.library_dir(root) / old).rename(d / new)
         except FileNotFoundError:
             pass
     return d
@@ -208,8 +209,8 @@ def load(root: Path, n: int | None = None) -> dict:
         {"name": "Slideshow", "description": "", "picks": []}
 
 
-def save(root: Path, selection: dict) -> None:
-    db.write_json(_file(root), selection)
+def save(root: Path, selection: dict, n: int | None = None) -> None:
+    db.write_json(_file(root, n), selection)
 
 
 def shows(root: Path) -> list[tuple[int, str]]:
@@ -221,8 +222,8 @@ def folder_name(name: str) -> str:
     return re.sub(r"[^\w-]+", "-", name.lower()).strip("-") or "slideshow"
 
 
-def _previous(root: Path) -> Path:
-    return _dir(root) / f"{current(root)}.prev.json"
+def _previous(root: Path, n: int | None = None) -> Path:
+    return _dir(root) / f"{current(root) if n is None else n}.prev.json"
 
 
 # FastAPI runs routes in parallel threads: two quick edits must not both start from the same old file.
@@ -251,29 +252,36 @@ def rename(root: Path, name: str) -> None:
         save(root, {**load(root), "name": name})
 
 
-def delete(root: Path) -> None:
-    """Delete the current show and its undo step; the first one left opens. The last show stays."""
+def delete(root: Path, n: int) -> None:
+    """Delete show n and its undo step; if it was open, the first one left opens. The last show stays."""
     with lock:
-        n, known = current(root), ids(root)
+        known = ids(root)
+        if n not in known:
+            raise ValueError("This slideshow is already gone – reload the page.")
         if len(known) < 2:
             raise ValueError("The last slideshow cannot be deleted.")
-        _previous(root).unlink(missing_ok=True)
+        if n == current(root):
+            (_dir(root) / "current").write_text(str(next(i for i in known if i != n)))
+        _previous(root, n).unlink(missing_ok=True)
         _file(root, n).unlink()
-        (_dir(root) / "current").write_text(str(next(i for i in known if i != n)))
 
 
-def update(root: Path, fn) -> None:
-    """Apply fn(selection) -> new selection under the lock, keeping one step of undo."""
+def update(root: Path, fn, n: int | None = None) -> None:
+    """Apply fn(selection) -> new selection under the lock, keeping one step of undo.
+
+    n: the show a slow request (AI, export) started on; without it, the one open now."""
     with lock:
-        change(root, fn(load(root)))
+        n = current(root) if n is None else n
+        change(root, fn(load(root, n)), n)
 
 
-def change(root: Path, selection: dict) -> None:
+def change(root: Path, selection: dict, n: int | None = None) -> None:
     """Save an edit of the picks and keep the list before it for one step of undo."""
-    old = load(root)
+    n = current(root) if n is None else n
+    old = load(root, n)
     if old["picks"] != selection["picks"]:
-        db.write_json(_previous(root), old)
-    save(root, selection)
+        db.write_json(_previous(root, n), old)
+    save(root, selection, n)
 
 
 def can_undo(root: Path) -> bool:
@@ -313,7 +321,8 @@ def export(root: Path, target: Path, replace: bool = False) -> int:
     root, target = root.resolve(), target.expanduser().resolve()
     if target.is_relative_to(root):
         raise ValueError("Export folder must be outside the photo folder, otherwise it gets scanned again.")
-    selection, conn = load(root), db.connect(root)
+    show = current(root)  # the show to record the folder in, even if another one is opened while copying
+    selection, conn = load(root, show), db.connect(root)
     items = [it for p in selection["picks"] if (it := db.get_media(conn, p["id"]))]
     if not items:
         raise ValueError("Nothing selected.")
@@ -338,5 +347,6 @@ def export(root: Path, target: Path, replace: bool = False) -> int:
         else:
             shutil.copy2(src, target / f"{name}{src.suffix.lower()}")
     with lock:  # re-read: picks may have been edited while copying
-        save(root, {**load(root), "exported_to": str(target)})  # suggested again for the next export
+        if show in ids(root) or show == current(root):  # not deleted while copying (1 may not be saved yet)
+            save(root, {**load(root, show), "exported_to": str(target)}, show)  # suggested again for the next export
     return len(items)

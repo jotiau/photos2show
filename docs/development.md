@@ -87,7 +87,7 @@ docs/           # this documentation
 | `POST /never-pick/{id}`, `/caption/{id}` | toggle *Never pick*; save a caption corrected by hand |
 | `POST /separate/{id}`, `/separate/{id}?all=true` | review: keep a shot (or every shot of its scene) as its own picture |
 | `GET /slideshow`, `/slideshow/picks` | slideshow page; picks partial |
-| `POST /slideshow/open`, `/new`, `/rename`, `/delete` | open, create (empty or `duplicate`), rename or delete a slideshow of the project |
+| `POST /slideshow/open`, `/new`, `/rename`, `/delete` | open, create (empty or `duplicate`), rename the open slideshow, or delete the one with `id` |
 | `POST /slideshow/select`, `/refine`, `/seconds`, `/sort`, `/move`, `/swap`, `/undo` | change the picks |
 | `POST /slideshow/{add\|remove}/{id}`, `/slideshow/bulk` | add or remove one or several |
 | `POST /slideshow/export`, `/slideshow/open-export` | export; open the export folder |

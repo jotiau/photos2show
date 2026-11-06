@@ -757,9 +757,9 @@ def rename_show(name: str = Form(...)):
 
 
 @app.post("/slideshow/delete", response_class=HTMLResponse)
-def delete_show():
+def delete_show(id: int = Form(...)):
     try:
-        slideshow.delete(_root())
+        slideshow.delete(_root(), id)  # the show the dialog names, not the one open now (another tab)
     except ValueError as e:
         return HTMLResponse(f'<span class="error">{escape(str(e))}</span>')
     return HTMLResponse("", headers=REFRESH)
@@ -777,25 +777,27 @@ def select(request: Request, description: str = Form(...), desc_size: str | None
         if desc_size not in db.SETTINGS["desc_size"][1]:
             raise HTTPException(400)
         db.save_setting("desc_size", desc_size)
+    n = slideshow.current(root)  # the AI takes minutes: the answer belongs to this show, even after a switch
     try:
-        picks = slideshow.select(db.connect(root), description, seconds=slideshow.per_photo(slideshow.load(root)))
+        picks = slideshow.select(db.connect(root), description, seconds=slideshow.per_photo(slideshow.load(root, n)))
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
-    slideshow.update(root, lambda s: {**s, "description": description, "picks": picks, "refinements": []})
+    slideshow.update(root, lambda s: {**s, "description": description, "picks": picks, "refinements": []}, n)
     return _picks(request)
 
 
 @app.post("/slideshow/refine", response_class=HTMLResponse)
 def refine(request: Request, instruction: str = Form(...)):
     root = _root()
-    selection = slideshow.load(root)
+    n = slideshow.current(root)  # as in select()
+    selection = slideshow.load(root, n)
     try:
         picks = slideshow.select(db.connect(root), selection["description"], selection["picks"], instruction,
                                  slideshow.per_photo(selection))
     except (Exception, SystemExit) as e:
         return _picks(request, error=str(e))
     # refinements: kept for selection.json in the export
-    slideshow.update(root, lambda s: {**s, "picks": picks, "refinements": [*s.get("refinements", []), instruction]})
+    slideshow.update(root, lambda s: {**s, "picks": picks, "refinements": [*s.get("refinements", []), instruction]}, n)
     return _picks(request)
 
 

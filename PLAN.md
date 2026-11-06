@@ -140,7 +140,9 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
    Routes keep working on the open show (no show id per request); the Library adds to it and names it once
    there are several. The old `selection.json` becomes show 1 on first read. *Never pick* and deleted files
    leave every show and undo copy. New (empty or a copy without the export folder), rename, delete (not the
-   last). Default export folder `<photo folder>_<show name>`. All edits run
+   last; the dialog sends the show it names, so a stale tab cannot delete another). *Select*, *Refine* and
+   *Export* write into the show they started on, even if another one is opened meanwhile. The old
+   `selection.json` is moved only while `1.json` does not exist. Default export folder `<photo folder>_<show name>`. All edits run
    under one lock, so parallel requests, a rescan or an export never drop a change.
 8. *Refine*: an instruction plus the current picks in order (id | reason) is appended to the same
    prompt; the LLM returns the complete new list. Current picks stay valid even if added by hand

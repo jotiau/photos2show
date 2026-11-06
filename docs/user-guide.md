@@ -154,7 +154,9 @@ one too. Its *Edit* menu has:
 - **Delete slideshow…** (only with two or more) asks first; photos, other slideshows and exported folders
   stay untouched.
 
-Each slideshow keeps its own description, picks, seconds per photo, *Undo* step and export folder. A
+Each slideshow keeps its own description, picks, seconds per photo, *Undo* step and export folder. If
+you open another slideshow while the AI is choosing or an export is copying, the result still goes to
+the slideshow it was started for. A
 project that had one slideshow before keeps it as *Slideshow*.
 
 ### ① Describe
