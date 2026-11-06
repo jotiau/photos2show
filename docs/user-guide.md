@@ -213,6 +213,7 @@ list of pages on the left.
 | AI requests fail or time out | Run `uv run photos2show-smoke` to test the endpoint and list the model ids. Failed photos are retried on the next *Analyse again*, or one by one with *Describe with AI* in the detail panel. |
 | Slideshow ignores the first photos of the trip | The model's context is too small and the list was cut off. Raise the context (32k+) or set *Photo details* to short or minimal. |
 | Local model is slow or stalls | Set *Parallel AI requests* to 1. |
+| "The AI sent an empty answer" | Usually a thinking model that used all its room for reasoning: set *Thinking* off in Settings, or give the model a larger context. |
 | A video shows no player | The browser can't play that format (common for AVI, MTS, WMV). It is still analysed and exported. |
 | Wrong dates | See [Data and files – Dates](data-and-files.md#dates). |
 | "Folder not found" | The photo folder was moved or the drive is unplugged; reconnect it or change the folder under *Edit*. |

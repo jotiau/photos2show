@@ -36,8 +36,8 @@ def test_encode_image_downscales():
 class FakeClient:
     """Rejects the first `reject` requests with 400, like a server without JSON mode or no-thinking fields."""
 
-    def __init__(self, reject):
-        self.reject, self.calls = reject, []
+    def __init__(self, reject, content='{"a": 1}'):
+        self.reject, self.calls, self.content = reject, [], content
         self.chat = self.completions = self
 
     def create(self, **kwargs):
@@ -45,7 +45,7 @@ class FakeClient:
         if len(self.calls) <= self.reject:
             raise openai.BadRequestError("rejected", body=None,
                                          response=httpx.Response(400, request=httpx.Request("POST", "http://x")))
-        message = type("M", (), {"content": '{"a": 1}'})
+        message = type("M", (), {"content": self.content})
         return type("R", (), {"choices": [type("C", (), {"message": message})]})
 
 
@@ -64,3 +64,9 @@ def test_complete_json_falls_back_step_by_step(thinking, reject, sent):
 def test_complete_json_gives_up_after_the_plain_request():
     with pytest.raises(openai.BadRequestError):
         complete_json(FakeClient(9), Settings("http://x", "k", "m", False), [])
+
+
+@pytest.mark.parametrize("content", [None, "", "  \n"])
+def test_empty_answer_says_so(content):
+    with pytest.raises(ValueError, match="empty answer"):
+        complete_json(FakeClient(0, content), Settings("http://x", "k", "m", True), [])

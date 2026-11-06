@@ -77,7 +77,11 @@ def complete_json(client: OpenAI, settings: Settings, messages: list) -> dict:
         except BadRequestError:
             if kwargs is attempts[-1]:
                 raise
-    return parse_json(resp.choices[0].message.content)
+    text = resp.choices[0].message.content
+    if not (text or "").strip():  # else "the JSON object must be str, ... not NoneType"
+        raise ValueError("The AI sent an empty answer – a thinking model may have run out of room: try Thinking off "
+                         "in Settings, or a larger context.")
+    return parse_json(text)
 
 
 BEST_PROMPT = """These {n} photos show the same scene (a burst or near-duplicates). Which one is best for a holiday

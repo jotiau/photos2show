@@ -270,3 +270,17 @@ def test_best_shot_and_keep_separately_regroup_only_their_scene(tmp_path, monkey
     pipeline.update_flags(conn)  # a full regroup must agree
     assert state() == after
     assert items_by_name(folder)["burst_3.jpg"]["duplicate_of"] == burst[0]
+
+
+def test_dark_low_contrast_shots_are_grouped_like_any_other(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = tmp_path / "photos"
+    folder.mkdir()
+    night = np.tile(np.linspace(10, 22, 800, dtype=np.uint8), (600, 1))  # dark, flat: blur can't be judged
+    for name in ("night_1.jpg", "night_2.jpg"):
+        Image.fromarray(np.dstack([night] * 3)).save(folder / name)
+    analyse_folder(folder)
+    items = items_by_name(folder)
+    assert items["night_1.jpg"]["metrics"]["sharpness"] < pipeline.quality.VERY_BLURRY
+    assert "very_blurry" not in items["night_1.jpg"]["flags"]  # so it goes to the AI ...
+    assert items["night_2.jpg"]["duplicate_of"] == items["night_1.jpg"]["id"]  # ... but only once

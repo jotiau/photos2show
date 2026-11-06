@@ -122,9 +122,9 @@ def update_flags(conn, scenes: set[int] | None = None) -> None:
     items = db.all_media(conn)
     if scenes is not None:
         items = [it for it in items if (it["duplicate_of"] or it["id"]) in scenes]
-    # Very blurry images and videos never compete for "best of scene".
+    # Very blurry images (the flag: a dark low-contrast shot is not one) and videos never compete for "best of scene".
     # Shots the user kept on their own (SEPARATE) are never grouped again.
-    candidates = [it for it in items if it["kind"] == "image" and quality.VERY_BLURRY <= it["metrics"]["sharpness"]
+    candidates = [it for it in items if it["kind"] == "image" and "very_blurry" not in quality.flags(it["metrics"])
                   and it["chosen"] != SEPARATE]
     best = dedup.best_of_clusters(candidates)
     for it in items:
