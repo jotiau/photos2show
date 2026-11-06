@@ -1,13 +1,14 @@
 import io
 import os
 import re
+import shutil
 import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from photos2show import testdata
+from photos2show import pipeline, testdata
 from photos2show.web import app as web
 
 LOCAL = "http://127.0.0.1"
@@ -555,3 +556,30 @@ def test_never_pick_date_range_and_caption(tmp_path, monkeypatch, fake_ai):
     assert client.post(f"/caption/{scene}", data={"caption": " "}).status_code == 400
     assert client.post(f"/caption/{ids['very_blurry.jpg']}", data={"caption": "x"}).status_code == 400
     assert web._item(scene)["ai"]["tags"] == ["beach", "sunset"]  # the rest of the AI result is untouched
+
+
+def test_change_folder_after_moving_the_photos_keeps_the_results(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    for key, value in {"running": False, "project": "", "folder": ""}.items():
+        monkeypatch.setitem(web.job, key, value)
+    client = TestClient(web.app, base_url=LOCAL, headers={"HX-Request": "true"})
+    old, new = tmp_path / "trip 100%_", tmp_path / "stick" / "trip"  # % and _: no LIKE wildcards
+    testdata.generate(old)
+    pipeline.analyse_folder(old)
+    conn = web.db.connect(old)
+    conn.execute("UPDATE media SET ai = '{\"caption\": \"fjord\"}'")
+    conn.commit()
+    first = web.db.all_media(conn)[0]["id"]
+    web.slideshow.save(old, {"description": "x", "picks": [{"id": first, "reason": "nice"}]})
+    web.db.save_projects({"Norway": str(old.resolve())})
+    new.parent.mkdir()
+    shutil.copytree(old, new)  # copy2: keeps file times, like moving to a new drive
+    shutil.rmtree(old)
+
+    client.post("/projects/folder", data={"name": "Norway", "folder": str(new)})
+    pipeline.analyse_folder(new)
+    items = web.db.all_media(web.db.connect(new))
+    assert items and all(it["ai"] == {"caption": "fjord", "tags": []} for it in items)  # nothing to describe again
+    assert all(it["path"].startswith(str(new.resolve())) for it in items)
+    assert web.slideshow.load(new)["picks"] == [{"id": first, "reason": "nice"}]
+    assert web.db.library_path(old).is_dir()  # copied, not moved: the old folder's results are kept

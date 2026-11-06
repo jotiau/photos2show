@@ -20,7 +20,10 @@ Photos and videos are sorted by capture time, found in this order:
 1. **Photos**: EXIF `DateTimeOriginal`, else EXIF `DateTime` (RAW: the capture time LibRaw reads).
 2. A **phone-style file name**: `YYYYMMDD_HHMMSS` or `YYYYMMDD-HHMMSS` anywhere in the name,
    e.g. `20260725_130945.mp4`.
-3. **MP4, MOV, M4V, 3GP**: the `creation_time` of the movie header (stored in UTC, shown in local time).
+3. **MP4, MOV, M4V, 3GP**: the local capture time iPhones store with its time zone
+   (`com.apple.quicktime.creationdate`), kept as filmed like the photo EXIF; else the `creation_time` of
+   the movie header (stored in UTC, shown in this computer's time zone, so a clip from another time zone
+   without either of the two above is off by the difference).
 4. The **file date**: the earlier of created and modified, because copying resets one and editing the
    other. On Linux the creation time is read with GNU `stat`.
 
@@ -48,8 +51,9 @@ Everything the app writes, except exports, goes into the data folder (default
 ```
 
 AI results belong to the **folder**, not the project name: renaming a project, or removing it and
-creating a new one for the same folder, keeps them. *Delete unused data* in Settings removes folders no
-project points to.
+creating a new one for the same folder, keeps them. *Change folder* copies them to the new folder (unless it
+has results of its own), so after moving the photos only new or changed files are analysed again; the old
+copy stays until *Delete unused data* in Settings removes folders no project points to.
 
 The AI results take 30–70 minutes per trip to recreate, which is why this is a data folder rather than
 a cache folder.

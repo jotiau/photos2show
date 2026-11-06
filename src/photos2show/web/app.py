@@ -341,6 +341,7 @@ def change_folder(name: str = Form(...), folder: str = Form(...)):
     def change(projects):
         if not root.is_dir():
             return f"Not a folder: {folder}"
+        db.copy_library(Path(projects[name]), root)
         projects[name] = str(root.resolve())
         if job["project"] == name:
             _open(name, projects)

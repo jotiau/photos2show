@@ -112,3 +112,21 @@ def test_file_time_takes_the_creation_time_when_it_is_earlier(tmp_path):
     if birth_time(edited, edited.stat()) is None:
         pytest.skip("file system keeps no creation time")
     assert file_time(edited)[:4] == str(datetime.now().year)
+
+
+def test_iphone_video_keeps_the_local_time_where_it_was_filmed(tmp_path):
+    utc = int((datetime(2026, 8, 11, 14, 0, 0) - datetime(1904, 1, 1)).total_seconds())  # 10:00 in New York
+    key = lambda name: struct.pack(">I", 8 + len(name)) + b"mdta" + name  # noqa: E731
+    keys = box(b"keys", bytes(4) + struct.pack(">I", 2) + key(b"com.apple.quicktime.make")
+               + key(b"com.apple.quicktime.creationdate"))
+    item = lambda n, text: box(struct.pack(">I", n), box(b"data", struct.pack(">II", 1, 0) + text))  # noqa: E731
+    ilst = box(b"ilst", item(1, b"Apple") + item(2, b"2026-08-11T10:00:00-0400"))
+    ftyp = box(b"ftyp", b"qt  " + bytes(4))
+    cases = {
+        "IMG_1.MOV": (box(b"meta", box(b"hdlr", bytes(25)) + keys + ilst), "2026-08-11T10:00:00"),  # QuickTime meta
+        "IMG_2.MOV": (box(b"meta", bytes(4) + keys + ilst), "2026-08-11T10:00:00"),  # MP4 meta: version/flags
+        "IMG_3.MOV": (box(b"meta", keys + box(b"ilst", item(2, b"not a date"))), local(datetime(2026, 8, 11, 14))),
+    }
+    for name, (meta, expected) in cases.items():
+        (tmp_path / name).write_bytes(ftyp + box(b"moov", mvhd(utc) + meta))  # meta after mvhd, as iPhones write it
+        assert mp4_created(tmp_path / name) == expected, name

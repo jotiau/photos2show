@@ -250,3 +250,23 @@ def test_image_without_exif_date_gets_the_file_date_also_when_cached(tmp_path, m
     conn.commit()
     assert analyse_folder(folder)["analysed"] == 0  # no full re-scan
     assert items_by_name(folder)["shot.png"]["taken_at"] == "2026-07-14T09:30:00"
+
+
+def test_best_shot_and_keep_separately_regroup_only_their_scene(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTOS2SHOW_CACHE", str(tmp_path / "cache"))
+    folder = testdata.generate(tmp_path / "photos")
+    analyse_folder(folder)
+    conn = db.connect(folder)
+    state = lambda: conn.execute("SELECT id, chosen, duplicate_of, flags FROM media ORDER BY id").fetchall()  # noqa: E731
+    burst = [items_by_name(folder)[f"burst_{n}.jpg"]["id"] for n in (1, 2, 3)]
+    compared = []
+    real = pipeline.dedup.best_of_clusters
+    monkeypatch.setattr(pipeline.dedup, "best_of_clusters", lambda items: compared.append(len(items)) or real(items))
+
+    pipeline.choose_best(conn, burst[1])
+    pipeline.keep_separate(conn, [burst[1]])
+    assert compared == [3, 2]  # the burst only (without the separated shot), not the whole library
+    after = state()
+    pipeline.update_flags(conn)  # a full regroup must agree
+    assert state() == after
+    assert items_by_name(folder)["burst_3.jpg"]["duplicate_of"] == burst[0]

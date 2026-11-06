@@ -125,9 +125,11 @@ def _boxes(f, end: int):
 
 
 def mp4_created(path: Path) -> str | None:
-    """creation_time of the MP4 movie header (moov/mvhd) as local ISO time, or None if missing or unset.
+    """Capture time of an MP4/MOV as local ISO time, or None if missing or unset.
 
-    Phones store it in UTC; converted with this computer's time zone, like the photo dates.
+    iPhones store the local time of the trip with its offset (moov/meta, com.apple.quicktime.creationdate): kept as
+    it is, like the photos' EXIF time. Else the movie header (moov/mvhd), which is in UTC: converted with this
+    computer's time zone, so a clip filmed in another time zone is off by the difference.
     """
     try:
         with open(path, "rb") as f:
@@ -137,19 +139,49 @@ def mp4_created(path: Path) -> str | None:
                 if kind != b"moov":
                     continue
                 f.seek(start)
-                for kind, start, _ in _boxes(f, stop):
-                    if kind == b"mvhd":
+                header = None
+                for kind, start, stop in _boxes(f, stop):
+                    if kind == b"meta" and (local := _apple_created(f, start, stop)):
+                        return local
+                    if kind == b"mvhd":  # meta usually follows it: keep looking
                         f.seek(start)
                         version = f.read(1)[0]
                         f.read(3)  # flags
                         secs = struct.unpack(">Q" if version == 1 else ">I", f.read(8 if version == 1 else 4))[0]
-                        if not secs:  # 0 = not set (common in edited or exported clips)
-                            return None
-                        t = (MP4_EPOCH + timedelta(seconds=secs)).astimezone().replace(tzinfo=None)
-                        return t.isoformat()
-                return None
-    except (OSError, struct.error, IndexError, OverflowError):
+                        if secs:  # 0 = not set (common in edited or exported clips)
+                            t = (MP4_EPOCH + timedelta(seconds=secs)).astimezone().replace(tzinfo=None)
+                            header = t.isoformat()
+                return header
+    except (OSError, struct.error, IndexError, OverflowError, ValueError):
         return None
+    return None
+
+
+def _apple_created(f, start: int, stop: int) -> str | None:
+    """com.apple.quicktime.creationdate from a moov/meta box (keys name it, ilst holds the value by key number)."""
+    f.seek(start)
+    if f.read(4) != bytes(4):  # QuickTime's meta has no version/flags, MP4's has
+        f.seek(start)
+    keys, values = [], {}
+    for kind, s, e in _boxes(f, stop):
+        f.seek(s + 4)  # version/flags
+        if kind == b"keys":
+            for _ in range(struct.unpack(">I", f.read(4))[0]):
+                size = struct.unpack(">I", f.read(4))[0]
+                keys.append(f.read(size - 4)[4:])  # size counts itself; skip the namespace (mdta)
+        elif kind == b"ilst":
+            f.seek(s)
+            for number, s2, e2 in _boxes(f, e):
+                for data, s3, e3 in _boxes(f, e2):
+                    if data == b"data":
+                        f.seek(s3 + 8)  # type and locale
+                        values[int.from_bytes(number)] = f.read(e3 - s3 - 8)
+    if b"com.apple.quicktime.creationdate" in keys:
+        value = values.get(keys.index(b"com.apple.quicktime.creationdate") + 1)
+        try:  # e.g. 2026-08-11T10:00:00-0400: the clock time where it was filmed
+            return datetime.fromisoformat(value.decode()).replace(tzinfo=None).isoformat()
+        except (AttributeError, ValueError):  # missing or unreadable: the movie header is used
+            pass
     return None
 
 

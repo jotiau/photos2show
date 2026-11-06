@@ -44,7 +44,8 @@ One project per trip. Each project is a name plus a photo folder; subfolders are
   AI-described files and slideshow picks, when it was last analysed, and a warning if the folder is
   missing (e.g. an unplugged drive). *Open* switches to it.
 - **Edit**: *Rename* the project, or *Change folder* to point it to another folder (e.g. after moving the
-  photos; press *Analyse again* in the Library afterwards).
+  photos; press *Analyse again* in the Library afterwards). The AI results and slideshow come along, so only
+  files that changed (other size or modification time) are described again.
 - **Remove project…**: asks in a dialog and never deletes photos. Saved AI results and thumbnails stay
   in the data folder, so a new project for the same folder picks them up again. Tick *also delete its saved
   AI results* to remove them too (they are kept anyway while another project uses the same folder).

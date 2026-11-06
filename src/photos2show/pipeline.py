@@ -113,8 +113,15 @@ def analyse_folder(root: Path, progress: Callable[[int, int], None] | None = Non
     return {"total": len(paths), "analysed": analysed, "errors": errors}
 
 
-def update_flags(conn) -> None:
+def update_flags(conn, scenes: set[int] | None = None) -> None:
+    """Set the quality flags and regroup same-scene shots; scenes: only the shots of these (best shot ids).
+
+    A scene is a connected group: taking shots out of it or choosing another best never affects other scenes,
+    so regrouping just those avoids comparing every photo with every other (seconds per click on big trips).
+    """
     items = db.all_media(conn)
+    if scenes is not None:
+        items = [it for it in items if (it["duplicate_of"] or it["id"]) in scenes]
     # Very blurry images and videos never compete for "best of scene".
     # Shots the user kept on their own (SEPARATE) are never grouped again.
     candidates = [it for it in items if it["kind"] == "image" and quality.VERY_BLURRY <= it["metrics"]["sharpness"]
@@ -137,14 +144,16 @@ def choose_best(conn, media_id: int, by: int = USER_PICK) -> None:
     scene = conn.execute("SELECT COALESCE(duplicate_of, id) FROM media WHERE id = ?", (media_id,)).fetchone()[0]
     conn.execute("UPDATE media SET chosen = (id = ?) * ? WHERE id = ? OR duplicate_of = ?",
                  (media_id, by, scene, scene))
-    update_flags(conn)
+    update_flags(conn, {scene})
     conn.commit()
 
 
 def keep_separate(conn, ids: list[int]) -> None:
     """Take these shots out of their scene: each is its own picture, described by the AI (later scans too)."""
+    marks = ",".join("?" * len(ids))
+    scenes = {r[0] for r in conn.execute(f"SELECT COALESCE(duplicate_of, id) FROM media WHERE id IN ({marks})", ids)}
     conn.executemany("UPDATE media SET chosen = ? WHERE id = ?", [(SEPARATE, i) for i in ids])
-    update_flags(conn)
+    update_flags(conn, scenes)
     conn.commit()
 
 

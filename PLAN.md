@@ -50,7 +50,9 @@ folder ─► 1 Scan ─► 2 Quality ─► 3 Dedup ─► 4 AI analysis ─►
   A changed or deleted file loses its thumbnail, video frames and preview.
 - Videos: OpenCV `VideoCapture` grabs frames at 10 % / 50 % / 90 % of duration; the sharpest
   frame represents the video. Date: from the phone-style file name (`YYYYMMDD_HHMMSS`), else
-  the MP4 movie header `creation_time` (MP4, MOV, M4V, 3GP; UTC, shown in local time), else the
+  the iPhone's local `com.apple.quicktime.creationdate` (moov/meta keys + ilst; kept as filmed, as
+  the header's UTC converted at home would put New York clips 6 h after the photos), else the
+  MP4 movie header `creation_time` (MP4, MOV, M4V, 3GP; UTC, shown in local time), else the
   earlier of file creation and modification time: copying resets creation (all Norway photos and
   screenshots showed the copy day) while editing resets mtime; mtime was 1 h off for copied Norway
   videos. Linux: creation time via GNU `stat -c %W` (Python < 3.15 can't read it there). The name goes first: it is the phone's local time like the photo
@@ -87,6 +89,9 @@ Absolute thresholds, calibrated in M4 on 848 real photos (`BLURRY` 200, `VERY_BL
   after the scan and shows every group without a description so the best can be picked before the AI pass.
 - Wrong groups: in the review, *Keep separately* (per shot) or *Keep all* (per group) sets `chosen = 3`;
   such shots are left out of grouping for good, so each is described and can be picked on its own.
+- Both regroup only the scene they change (`update_flags(conn, scenes)`): a scene is a connected group, so
+  other scenes cannot change, and comparing every photo with every other took 2 s (1500 photos) to 9 s (3000)
+  per click.
 
 ### 4. AI analysis (GLM-5.3 Flash, per image)
 - Send the 1024px image (base64 `image_url`) with a fixed prompt; request JSON:
@@ -148,7 +153,9 @@ per page; destructive actions red.
   state (files, described, picks, last analysed, folder missing) and *Open*; rename and change
   folder and *Remove project…* behind *Edit*. Remove asks in a dialog; it keeps the cached AI results (they are keyed
   by folder, not by project name) unless "also delete saved AI results" is ticked there and no
-  other project uses that folder.
+  other project uses that folder. *Change folder* copies the saved results to the new folder with the paths
+  rewritten (`db.copy_library`), unless it has results of its own: moved photos keep their descriptions.
+  Copied, not moved, so pointing a project at another trip by mistake loses nothing.
 - **Library**: progress bar with *Stop* and time left; during the AI pass the grid stays still and
   a "Show N new results" button reloads it (automatic reload only when a phase starts and ends).
   Grid cards: date, 1–5 stars from aesthetic + interest, caption, flags, "✓ 3" pick number, video

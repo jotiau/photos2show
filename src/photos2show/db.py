@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -36,6 +37,28 @@ def library_path(root: Path) -> Path:
     """The cache folder of a photo folder, without creating it."""
     key = hashlib.sha1(str(root.resolve()).encode()).hexdigest()[:12]
     return cache_root() / f"{root.resolve().name}-{key}"
+
+
+def copy_library(old: Path, new: Path) -> None:
+    """A project's folder changed (photos moved): take its saved results along, unless new has results of its own.
+
+    Copied, not moved: if new is another trip, the old folder keeps its results (and the next scan of new drops
+    the rows of files it does not hold). Unchanged files (same size and time) then stay cached.
+    """
+    src, dest = library_path(old), library_path(new)
+    if not (src / "photos2show.db").is_file() or dest.exists():
+        return
+    prefix, new_prefix = str(old) + os.sep, str(new.resolve()) + os.sep
+    try:
+        shutil.copytree(src, dest)  # with the -wal file: results not yet checkpointed come along
+        conn = sqlite3.connect(dest / "photos2show.db")
+        with conn:  # substr, not LIKE: folder names may hold % or _
+            conn.execute("UPDATE media SET path = ? || substr(path, ?) WHERE substr(path, 1, ?) = ?",
+                         (new_prefix, len(prefix) + 1, len(prefix), prefix))
+        conn.close()
+    except BaseException:  # e.g. disk full: a half copy would count as the new folder's own results
+        shutil.rmtree(dest, ignore_errors=True)
+        raise
 
 
 def library_dir(root: Path) -> Path:
